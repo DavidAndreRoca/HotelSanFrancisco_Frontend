@@ -8,6 +8,7 @@ interface NavItem {
   label: string;
   icon: string;
   link: string;
+  children?: { label: string; link: string }[];
 }
 
 @Component({
@@ -31,16 +32,28 @@ interface NavItem {
           </div>
         </div>
 
-        <nav class="flex-1 px-3 py-5 space-y-1 text-[14px]">
+        <nav class="flex-1 px-3 py-5 space-y-0.5 text-[14px] overflow-y-auto">
           @for (item of nav(); track item.link) {
             <a
               [routerLink]="item.link"
               routerLinkActive="bg-white/10 text-[var(--color-primary-300)]"
-              [routerLinkActiveOptions]="{ exact: false }"
+              [routerLinkActiveOptions]="{ exact: true }"
               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/75 hover:text-white hover:bg-white/5 transition-colors">
               <span class="text-base" aria-hidden="true">{{ item.icon }}</span>
               <span>{{ item.label }}</span>
             </a>
+            @if (item.children) {
+              @for (child of item.children; track child.link) {
+                <a
+                  [routerLink]="child.link"
+                  routerLinkActive="text-[var(--color-primary-300)]"
+                  [routerLinkActiveOptions]="{ exact: true }"
+                  class="flex items-center gap-3 pl-10 pr-3 py-2 rounded-lg text-white/55 hover:text-white/85 hover:bg-white/5 transition-colors text-[13px]">
+                  <span class="w-1 h-1 rounded-full bg-current inline-block shrink-0"></span>
+                  {{ child.label }}
+                </a>
+              }
+            }
           }
         </nav>
 
@@ -98,16 +111,30 @@ interface NavItem {
           <aside
             class="absolute left-0 top-0 bottom-0 w-72 bg-[var(--color-ink)] text-[var(--color-surface)] p-5"
             (click)="$event.stopPropagation()">
-            <nav class="space-y-1 mt-6 text-[14px]">
+            <nav class="space-y-0.5 mt-6 text-[14px]">
               @for (item of nav(); track item.link) {
                 <a
                   [routerLink]="item.link"
                   routerLinkActive="bg-white/10 text-[var(--color-primary-300)]"
+                  [routerLinkActiveOptions]="{ exact: true }"
                   (click)="toggleMobile()"
                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/75 hover:bg-white/5">
                   <span aria-hidden="true">{{ item.icon }}</span>
                   <span>{{ item.label }}</span>
                 </a>
+                @if (item.children) {
+                  @for (child of item.children; track child.link) {
+                    <a
+                      [routerLink]="child.link"
+                      routerLinkActive="text-[var(--color-primary-300)]"
+                      [routerLinkActiveOptions]="{ exact: true }"
+                      (click)="toggleMobile()"
+                      class="flex items-center gap-3 pl-10 pr-3 py-2 rounded-lg text-white/55 hover:text-white/85 hover:bg-white/5 text-[13px]">
+                      <span class="w-1 h-1 rounded-full bg-current inline-block shrink-0"></span>
+                      {{ child.label }}
+                    </a>
+                  }
+                }
               }
             </nav>
           </aside>
@@ -127,9 +154,17 @@ export class MainLayoutComponent {
 
   readonly nav = signal<NavItem[]>([
     { label: 'Dashboard', icon: '◆', link: '/dashboard' },
-    { label: 'Habitaciones', icon: '◇', link: '/rooms' },
+    {
+      label: 'Operaciones', icon: '◇', link: '/habitaciones',
+      children: [
+        { label: 'Panel de habitaciones', link: '/habitaciones' },
+        { label: 'Check-in', link: '/habitaciones/checkin' },
+        { label: 'Check-out', link: '/habitaciones/checkout' },
+        { label: 'Limpieza', link: '/habitaciones/limpieza' },
+        { label: 'Mantenimiento', link: '/habitaciones/mantenimiento' },
+      ],
+    },
     { label: 'Reservas', icon: '☷', link: '/reservations' },
-    { label: 'Pagos', icon: '✦', link: '/payments' },
     { label: 'Huéspedes', icon: '☺', link: '/guests' },
     { label: 'Empleados', icon: '✤', link: '/employees' },
     { label: 'Usuarios', icon: '⚙', link: '/users' },
