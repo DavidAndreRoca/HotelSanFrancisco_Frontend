@@ -29,6 +29,14 @@ export const routes: Routes = [
           import('./features/auth/pages/register.page').then((m) => m.RegisterComponent),
         title: 'Registro · Hotel San Francisco',
       },
+      {
+        path: 'booking',
+        loadComponent: () =>
+          import('./features/booking/pages/booking-flow/booking-flow.page').then(
+            (m) => m.BookingFlowPage,
+          ),
+        title: 'Reservar habitación · Hotel San Francisco',
+      },
     ],
   },
 

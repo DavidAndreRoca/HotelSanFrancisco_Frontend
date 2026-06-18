@@ -74,7 +74,7 @@ export class HomeComponent {
       this.toastr.warning('Completa fechas y cantidad de huéspedes.');
       return;
     }
-    this.router.navigate(['/rooms'], { queryParams: this.searchForm.getRawValue() });
+    this.router.navigate(['/booking'], { queryParams: this.searchForm.getRawValue() });
   }
 
   onReserve(room: Room): void {
