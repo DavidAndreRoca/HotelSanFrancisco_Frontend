@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { UiBadgeComponent, BadgeTone } from '../../../shared/ui/badge/ui-badge.component';
-import { UiEmptyStateComponent } from '../../../shared/ui/empty-state/ui-empty-state.component';
-import { UiSkeletonComponent } from '../../../shared/ui/skeleton/ui-skeleton.component';
-import { Payment, TipoPago } from '../models/payment.model';
+import { UiBadgeComponent, BadgeTone } from '../../../../shared/ui/badge/ui-badge.component';
+import { UiEmptyStateComponent } from '../../../../shared/ui/empty-state/ui-empty-state.component';
+import { UiSkeletonComponent } from '../../../../shared/ui/skeleton/ui-skeleton.component';
+import { Payment, TipoPago } from '../../models/payment.model';
 
 const TIPO_TONE: Record<TipoPago, BadgeTone> = {
   ANTICIPO: 'primary',

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { Payment } from '../models/payment.model';
+import { Payment } from '../../models/payment.model';
 
 interface StatCard {
   label: string;

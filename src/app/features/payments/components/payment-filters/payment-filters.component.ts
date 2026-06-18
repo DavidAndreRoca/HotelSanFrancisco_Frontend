@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MetodoPago, PaymentFilters, TipoPago } from '../models/payment.model';
+import { MetodoPago, PaymentFilters, TipoPago } from '../../models/payment.model';
 
 @Component({
   selector: 'app-payment-filters',

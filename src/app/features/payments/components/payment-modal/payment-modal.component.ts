@@ -9,16 +9,16 @@ import {
   signal,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component';
-import { UiModalComponent } from '../../../shared/ui/modal/ui-modal.component';
-import { PaymentService } from '../services/payment.service';
+import { UiButtonComponent } from '../../../../shared/ui/button/ui-button.component';
+import { UiModalComponent } from '../../../../shared/ui/modal/ui-modal.component';
+import { PaymentService } from '../../services/payment.service';
 import {
   MetodoPago,
   Payment,
   PaymentCreatePayload,
   ReservaPagoContext,
   TipoPago,
-} from '../models/payment.model';
+} from '../../models/payment.model';
 
 @Component({
   selector: 'app-payment-modal',
