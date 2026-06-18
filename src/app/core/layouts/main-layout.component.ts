@@ -8,6 +8,13 @@ interface NavItem {
   label: string;
   icon: string;
   link: string;
+  exact: boolean;
+  sub?: boolean;
+}
+
+interface NavGroup {
+  title?: string;
+  items: NavItem[];
 }
 
 @Component({
@@ -31,16 +38,24 @@ interface NavItem {
           </div>
         </div>
 
-        <nav class="flex-1 px-3 py-5 space-y-1 text-[14px]">
-          @for (item of nav(); track item.link) {
-            <a
-              [routerLink]="item.link"
-              routerLinkActive="bg-white/10 text-[var(--color-primary-300)]"
-              [routerLinkActiveOptions]="{ exact: false }"
-              class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/75 hover:text-white hover:bg-white/5 transition-colors">
-              <span class="text-base" aria-hidden="true">{{ item.icon }}</span>
-              <span>{{ item.label }}</span>
-            </a>
+        <nav class="flex-1 px-3 py-4 text-[14px] overflow-y-auto">
+          @for (group of navGroups(); track $index) {
+            @if (group.title) {
+              <p class="px-3 pt-4 pb-1 text-[10px] font-semibold tracking-widest uppercase text-white/30">
+                {{ group.title }}
+              </p>
+            }
+            @for (item of group.items; track item.link) {
+              <a
+                [routerLink]="item.link"
+                routerLinkActive="bg-white/10 text-[var(--color-primary-300)]"
+                [routerLinkActiveOptions]="{ exact: item.exact }"
+                class="flex items-center gap-3 rounded-lg text-white/70 hover:text-white hover:bg-white/5 transition-colors mb-0.5"
+                [class]="item.sub ? 'px-3 py-2 pl-8 text-[13px]' : 'px-3 py-2.5'">
+                <span class="text-base shrink-0" aria-hidden="true">{{ item.icon }}</span>
+                <span>{{ item.label }}</span>
+              </a>
+            }
           }
         </nav>
 
@@ -98,16 +113,25 @@ interface NavItem {
           <aside
             class="absolute left-0 top-0 bottom-0 w-72 bg-[var(--color-ink)] text-[var(--color-surface)] p-5"
             (click)="$event.stopPropagation()">
-            <nav class="space-y-1 mt-6 text-[14px]">
-              @for (item of nav(); track item.link) {
-                <a
-                  [routerLink]="item.link"
-                  routerLinkActive="bg-white/10 text-[var(--color-primary-300)]"
-                  (click)="toggleMobile()"
-                  class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/75 hover:bg-white/5">
-                  <span aria-hidden="true">{{ item.icon }}</span>
-                  <span>{{ item.label }}</span>
-                </a>
+            <nav class="space-y-0.5 mt-6 text-[14px]">
+              @for (group of navGroups(); track $index) {
+                @if (group.title) {
+                  <p class="px-3 pt-4 pb-1 text-[10px] font-semibold tracking-widest uppercase text-white/30">
+                    {{ group.title }}
+                  </p>
+                }
+                @for (item of group.items; track item.link) {
+                  <a
+                    [routerLink]="item.link"
+                    routerLinkActive="bg-white/10 text-[var(--color-primary-300)]"
+                    [routerLinkActiveOptions]="{ exact: item.exact }"
+                    (click)="toggleMobile()"
+                    class="flex items-center gap-3 rounded-lg text-white/70 hover:bg-white/5 transition-colors"
+                    [class]="item.sub ? 'px-3 py-2 pl-8 text-[13px]' : 'px-3 py-2.5'">
+                    <span aria-hidden="true">{{ item.icon }}</span>
+                    <span>{{ item.label }}</span>
+                  </a>
+                }
               }
             </nav>
           </aside>
@@ -125,14 +149,34 @@ export class MainLayoutComponent {
   readonly user = this.store.user;
   readonly mobileOpen = signal(false);
 
-  readonly nav = signal<NavItem[]>([
-    { label: 'Dashboard', icon: '◆', link: '/dashboard' },
-    { label: 'Habitaciones', icon: '◇', link: '/rooms' },
-    { label: 'Reservas', icon: '☷', link: '/reservations' },
-    { label: 'Pagos', icon: '✦', link: '/payments' },
-    { label: 'Huéspedes', icon: '☺', link: '/guests' },
-    { label: 'Empleados', icon: '✤', link: '/employees' },
-    { label: 'Usuarios', icon: '⚙', link: '/users' },
+  readonly navGroups = signal<NavGroup[]>([
+    {
+      items: [
+        { label: 'Dashboard',    icon: '📊', link: '/dashboard', exact: false },
+      ],
+    },
+    {
+      title: 'Recepción',
+      items: [
+        { label: 'Reservas',    icon: '📅', link: '/reservations',              exact: true  },
+        { label: 'Mis Reservas',icon: '📋', link: '/reservations/mis-reservas', exact: true, sub: true },
+        { label: 'Clientes',    icon: '👤', link: '/clients',                   exact: false },
+      ],
+    },
+    {
+      title: 'Hotel',
+      items: [
+        { label: 'Habitaciones',icon: '🛏️', link: '/rooms',   exact: false },
+        { label: 'Huéspedes',  icon: '👥', link: '/guests',   exact: false },
+      ],
+    },
+    {
+      title: 'Administración',
+      items: [
+        { label: 'Empleados',      icon: '👔', link: '/employees',     exact: false },
+        { label: 'Notificaciones', icon: '🔔', link: '/notifications', exact: false },
+      ],
+    },
   ]);
 
   readonly initials = computed(() => {

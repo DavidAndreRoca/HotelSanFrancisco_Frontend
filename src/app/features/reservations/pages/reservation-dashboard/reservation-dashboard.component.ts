@@ -1,11 +1,14 @@
-// features/reservations/pages/reservations-dashboard/reservations-dashboard.component.ts
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { ReservationService } from '../../services/reservation.service';
 import { ReservationStatsComponent } from '../../components/reservation-stats/reservation-stats.component';
 import { ReservationTableComponent } from '../../components/reservation-table/reservation-table.component';
 import { ReservationFiltersComponent } from '../../components/reservation-filters/reservation-filters.component';
+import { ReservationDetailComponent } from '../../components/reservation-detail/reservation-detail.component';
+import { ReservationFormComponent, ReservaFormSaveEvent } from '../../components/reservation-form/reservation-form.component';
+import { CancelarModalComponent } from '../../components/cancelar-modal/cancelar-modal.component';
 import { RoomSidebarComponent } from '../../../rooms/components/room-sidebar/room-sidebar.component';
-import { ReservationStatus } from '../../models/reservation.model';
+import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
+import { Reserva, CancelarReservaPayload, CreateReservaPayload, UpdateReservaPayload } from '../../models/reservation.model';
 
 @Component({
   selector: 'app-reservations-dashboard',
@@ -14,66 +17,96 @@ import { ReservationStatus } from '../../models/reservation.model';
     RoomSidebarComponent,
     ReservationStatsComponent,
     ReservationTableComponent,
-    ReservationFiltersComponent
+    ReservationFiltersComponent,
+    ReservationDetailComponent,
+    ReservationFormComponent,
+    CancelarModalComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="dashboard-layout">
       <app-room-sidebar />
-      
+
       <main class="main-content">
         <div class="header">
-          <h1>Gestión de Reservas</h1>
-          <p class="subtitle">Administra las reservas y el estado de los huéspedes</p>
+          <div>
+            <h1>Gestión de Reservas</h1>
+            <p class="subtitle">Administra las reservas y el estado de los huéspedes</p>
+          </div>
+          <button class="btn-nueva" (click)="abrirNuevaReserva()">
+            ＋ Nueva reserva
+          </button>
         </div>
 
-        <app-reservation-stats [stats]="reservationService.stats()" />
+        <app-reservation-stats [stats]="svc.stats()" />
 
         <app-reservation-filters
-          [confirmedCount]="reservationService.confirmedCount()"
-          [checkedInCount]="reservationService.checkedInCount()"
-          [checkedOutCount]="reservationService.checkedOutCount()"
-          [pendingCount]="reservationService.pendingCount()"
-          [cancelledCount]="reservationService.cancelledCount()"
-          (onSearch)="handleSearch($event)"
-          (onStatusFilter)="handleStatusFilter($event)" />
+          [pendienteCount]="svc.pendienteCount()"
+          [confirmadaCount]="svc.confirmadaCount()"
+          [checkInCount]="svc.checkInCount()"
+          [checkOutCount]="svc.checkOutCount()"
+          [canceladaCount]="svc.canceladaCount()"
+          [noShowCount]="svc.noShowCount()"
+          (onSearch)="svc.setSearchTerm($event)"
+          (onEstadoFilter)="svc.setEstadoFilter($event)" />
 
         <app-reservation-table
-          [reservations]="reservationService.filteredReservations()"
-          (onViewReservation)="viewReservation($event)"
-          (onEditReservation)="editReservation($event)"
+          [reservas]="svc.filteredReservas()"
+          (onVerReserva)="abrirDetalle($event)"
+          (onEditarReserva)="abrirEditar($event)"
           (onCheckIn)="handleCheckIn($event)"
           (onCheckOut)="handleCheckOut($event)"
-          (onCancelReservation)="handleCancelReservation($event)" />
+          (onCancelarReserva)="iniciarCancelacion($event)" />
       </main>
     </div>
-   `,
-  styles: `
-    /* Importar fuente Inter */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100..900;1,100..900&display=swap');
 
-    * {
-      font-family: 'Inter', sans-serif;
-    }
+    <!-- Detail modal -->
+    <app-reservation-detail
+      [isOpen]="detailAbierto()"
+      [reservaId]="reservaIdDetalle()"
+      (onClose)="detailAbierto.set(false)"
+      (onEditar)="abrirEditarDesdeDetalle($event)"
+      (onCheckIn)="handleCheckInDesdeDetalle($event)"
+      (onCheckOut)="handleCheckOutDesdeDetalle($event)"
+      (onCancelar)="iniciarCancelacionDesdeDetalle($event)" />
+
+    <!-- Form modal (create + edit) -->
+    <app-reservation-form
+      [isOpen]="formAbierto()"
+      [reserva]="reservaAEditar()"
+      (onClose)="formAbierto.set(false)"
+      (onSave)="guardarReserva($event)" />
+
+    <!-- Cancelar modal -->
+    <app-cancelar-modal
+      [isOpen]="cancelarAbierto()"
+      [reserva]="reservaACancelar()"
+      (onClose)="cancelarAbierto.set(false)"
+      (onCancelar)="confirmarCancelacion($event)" />
+  `,
+  styles: `
+    @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100..900;1,100..900&display=swap');
+    * { font-family: 'Inter', sans-serif; }
 
     .dashboard-layout {
       display: flex;
       min-height: 100vh;
-      background: #F9F5F0; /* Background: Blanco Hueso */
+      background: #F9F5F0;
     }
 
     .main-content {
       flex: 1;
-      margin-left: 260px; /* Coincide con el ancho del sidebar */
+      margin-left: 260px;
       padding: 2rem;
-      background: #F9F5F0; /* Background: Blanco Hueso */
+      background: #F9F5F0;
       min-height: 100vh;
+      animation: fadeIn 0.4s ease-out;
     }
 
     .header {
       margin-bottom: 2rem;
       padding-bottom: 1rem;
-      border-bottom: 2px solid #C5A048; /* Primary: Dorado Principal */
+      border-bottom: 2px solid #C5A048;
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
@@ -85,158 +118,168 @@ import { ReservationStatus } from '../../models/reservation.model';
       margin: 0;
       font-size: 1.875rem;
       font-weight: 700;
-      color: #2D2926; /* Sidebar/Contrast: Gris Carbón */
+      color: #2D2926;
       letter-spacing: -0.02em;
-      position: relative;
-      display: inline-block;
     }
 
     .header h1::before {
       content: '📅';
       font-size: 1.5rem;
       margin-right: 0.75rem;
-      display: inline-block;
       vertical-align: middle;
     }
 
-    .subtitle {
-      color: #8E6F2E; /* Secondary: Ocre Oscuro */
-      margin: 0;
-      font-size: 1rem;
-      font-weight: 400;
+    .subtitle { color: #8E6F2E; margin: 0.25rem 0 0; font-size: 1rem; }
+
+    .btn-nueva {
+      padding: 0.625rem 1.375rem;
+      background: #C5A048; color: white;
+      border: none; border-radius: 0.625rem;
+      font-size: 0.9rem; font-weight: 700;
+      cursor: pointer; transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-nueva:hover {
+      background: #8E6F2E;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(197,160,72,0.35);
     }
 
-    /* Contenedor de estadísticas con espaciado */
-    app-reservation-stats {
-      display: block;
-      margin-bottom: 1.5rem;
-    }
-
-    /* Contenedor de filtros con espaciado */
-    app-reservation-filters {
-      display: block;
-      margin-bottom: 1.5rem;
-    }
-
-    /* Contenedor de tabla */
-    app-reservation-table {
-      display: block;
-    }
-
-    /* Animación de entrada para el contenido */
-    .main-content {
-      animation: fadeIn 0.4s ease-out;
-    }
+    app-reservation-stats   { display: block; margin-bottom: 1.5rem; }
+    app-reservation-filters { display: block; margin-bottom: 1.5rem; }
+    app-reservation-table   { display: block; }
 
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* Responsive para tablets */
+    :focus-visible { outline: 2px solid #C5A048; outline-offset: 2px; }
+
     @media (max-width: 1024px) {
-      .main-content {
-        margin-left: 72px; /* Sidebar contraído */
-        padding: 1.5rem;
-      }
-
-      .header h1 {
-        font-size: 1.5rem;
-      }
-
-      .header h1::before {
-        font-size: 1.25rem;
-      }
+      .main-content { margin-left: 72px; padding: 1.5rem; }
+      .header h1 { font-size: 1.5rem; }
     }
 
-    /* Responsive para móviles */
     @media (max-width: 768px) {
-      .main-content {
-        margin-left: 0;
-        padding: 1rem;
-        padding-bottom: 80px; /* Espacio para sidebar móvil */
-      }
-
-      .header {
-        flex-direction: column;
-        align-items: flex-start;
-        margin-bottom: 1.5rem;
-      }
-
-      .header h1 {
-        font-size: 1.25rem;
-      }
-
-      .header h1::before {
-        font-size: 1rem;
-        margin-right: 0.5rem;
-      }
-
-      .subtitle {
-        font-size: 0.875rem;
-      }
+      .main-content { margin-left: 0; padding: 1rem; padding-bottom: 80px; }
+      .header { flex-direction: column; align-items: flex-start; }
+      .header h1 { font-size: 1.25rem; }
+      .btn-nueva { align-self: flex-start; }
     }
 
-    /* Para pantallas muy pequeñas */
     @media (max-width: 480px) {
-      .main-content {
-        padding: 0.75rem;
-        padding-bottom: 80px;
-      }
-
-      .header {
-        margin-bottom: 1rem;
-      }
-    }
-
-    /* Scroll suave para toda la aplicación */
-    html {
-      scroll-behavior: smooth;
-    }
-
-    /* Mejora de focus para accesibilidad */
-    :focus-visible {
-      outline: 2px solid #C5A048;
-      outline-offset: 2px;
+      .main-content { padding: 0.75rem; padding-bottom: 80px; }
     }
   `
 })
 export class ReservationsDashboardComponent {
-  reservationService = inject(ReservationService);
+  protected svc     = inject(ReservationService);
+  private confirm   = inject(ConfirmDialogService);
 
-  handleSearch(term: string) {
-    this.reservationService.setSearchTerm(term);
+  // ── Detail modal ───────────────────────────────────────────────────────────
+  readonly detailAbierto    = signal(false);
+  readonly reservaIdDetalle = signal<number | null>(null);
+
+  // ── Form modal ─────────────────────────────────────────────────────────────
+  readonly formAbierto    = signal(false);
+  readonly reservaAEditar = signal<Reserva | null>(null);
+
+  // ── Cancelar modal ─────────────────────────────────────────────────────────
+  readonly cancelarAbierto    = signal(false);
+  readonly reservaACancelar   = signal<Reserva | null>(null);
+
+  // ── Detail modal actions ───────────────────────────────────────────────────
+
+  abrirDetalle(id: number): void {
+    this.reservaIdDetalle.set(id);
+    this.detailAbierto.set(true);
   }
 
-  handleStatusFilter(status: 'all' | ReservationStatus) {
-    this.reservationService.setStatusFilter(status);
+  abrirEditarDesdeDetalle(id: number): void {
+    this.detailAbierto.set(false);
+    this.abrirEditar(id);
   }
 
-  viewReservation(id: number) {
-    console.log('Ver reserva:', id);
+  async handleCheckInDesdeDetalle(id: number): Promise<void> {
+    this.detailAbierto.set(false);
+    await this.handleCheckIn(id);
   }
 
-  editReservation(id: number) {
-    console.log('Editar reserva:', id);
+  async handleCheckOutDesdeDetalle(id: number): Promise<void> {
+    this.detailAbierto.set(false);
+    await this.handleCheckOut(id);
   }
 
-  handleCheckIn(id: number) {
-    this.reservationService.updateReservationStatus(id, 'checked-in');
+  iniciarCancelacionDesdeDetalle(id: number): void {
+    this.detailAbierto.set(false);
+    this.iniciarCancelacion(id);
   }
 
-  handleCheckOut(id: number) {
-    this.reservationService.updateReservationStatus(id, 'checked-out');
+  // ── Form actions ───────────────────────────────────────────────────────────
+
+  abrirNuevaReserva(): void {
+    this.reservaAEditar.set(null);
+    this.formAbierto.set(true);
   }
 
-  handleCancelReservation(id: number) {
-    if (confirm('¿Estás seguro de cancelar esta reserva?')) {
-      this.reservationService.updateReservationStatus(id, 'cancelled');
-    }
+  abrirEditar(id: number): void {
+    const r = this.svc.findById(id);
+    if (!r) return;
+    this.reservaAEditar.set(r);
+    this.formAbierto.set(true);
+  }
+
+  guardarReserva(event: ReservaFormSaveEvent): void {
+    const obs$ = event.id != null
+      ? this.svc.update(event.id, event.payload as UpdateReservaPayload)
+      : this.svc.create(event.payload as CreateReservaPayload);
+    obs$.subscribe(() => this.formAbierto.set(false));
+  }
+
+  // ── Check-in / Check-out ───────────────────────────────────────────────────
+
+  async handleCheckIn(id: number): Promise<void> {
+    const reserva = this.svc.findById(id);
+    const nombre  = reserva?.huespedes.find(h => h.esPrincipal)?.nombreCompleto
+                  ?? reserva?.huespedes[0]?.nombreCompleto ?? '';
+    const ok = await this.confirm.ask({
+      title:       'Confirmar Check-in',
+      message:     `¿Registrar el ingreso de ${nombre}?`,
+      confirmText: 'Sí, Check-in',
+      cancelText:  'Cancelar',
+    });
+    if (ok) this.svc.cambiarEstado(id, { nuevoEstado: 'CHECK_IN' }).subscribe();
+  }
+
+  async handleCheckOut(id: number): Promise<void> {
+    const reserva = this.svc.findById(id);
+    const nombre  = reserva?.huespedes.find(h => h.esPrincipal)?.nombreCompleto
+                  ?? reserva?.huespedes[0]?.nombreCompleto ?? '';
+    const ok = await this.confirm.ask({
+      title:       'Confirmar Check-out',
+      message:     `¿Registrar la salida de ${nombre}?`,
+      confirmText: 'Sí, Check-out',
+      cancelText:  'Cancelar',
+    });
+    if (ok) this.svc.cambiarEstado(id, { nuevoEstado: 'CHECK_OUT' }).subscribe();
+  }
+
+  // ── Cancelar ───────────────────────────────────────────────────────────────
+
+  iniciarCancelacion(id: number): void {
+    const r = this.svc.findById(id);
+    if (!r) return;
+    this.reservaACancelar.set(r);
+    this.cancelarAbierto.set(true);
+  }
+
+  confirmarCancelacion(payload: CancelarReservaPayload): void {
+    const r = this.reservaACancelar();
+    if (!r) return;
+    this.svc.cancelar(r.reservaId, payload).subscribe(() => {
+      this.cancelarAbierto.set(false);
+      this.reservaACancelar.set(null);
+    });
   }
 }
