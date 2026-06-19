@@ -1,6 +1,5 @@
-// features/reservations/components/reservation-stats/reservation-stats.component.ts
 import { Component, input, ChangeDetectionStrategy } from '@angular/core';
-import { ReservationStats } from '../../models/reservation.model';
+import { ReservaStats } from '../../models/reservation.model';
 
 @Component({
   selector: 'app-reservation-stats',
@@ -19,7 +18,7 @@ import { ReservationStats } from '../../models/reservation.model';
       <div class="stat-card status-confirmed">
         <div class="stat-icon">✅</div>
         <div class="stat-info">
-          <div class="stat-value">{{ stats().confirmed }}</div>
+          <div class="stat-value">{{ stats().confirmada }}</div>
           <div class="stat-label">Confirmadas</div>
         </div>
       </div>
@@ -27,7 +26,7 @@ import { ReservationStats } from '../../models/reservation.model';
       <div class="stat-card status-checked-in">
         <div class="stat-icon">🏨</div>
         <div class="stat-info">
-          <div class="stat-value">{{ stats().checkedIn }}</div>
+          <div class="stat-value">{{ stats().checkIn }}</div>
           <div class="stat-label">Hospedados</div>
         </div>
       </div>
@@ -35,7 +34,7 @@ import { ReservationStats } from '../../models/reservation.model';
       <div class="stat-card status-checked-out">
         <div class="stat-icon">🚪</div>
         <div class="stat-info">
-          <div class="stat-value">{{ stats().checkedOut }}</div>
+          <div class="stat-value">{{ stats().checkOut }}</div>
           <div class="stat-label">Check-out</div>
         </div>
       </div>
@@ -43,7 +42,7 @@ import { ReservationStats } from '../../models/reservation.model';
       <div class="stat-card status-pending">
         <div class="stat-icon">⏳</div>
         <div class="stat-info">
-          <div class="stat-value">{{ stats().pending }}</div>
+          <div class="stat-value">{{ stats().pendiente }}</div>
           <div class="stat-label">Pendientes</div>
         </div>
       </div>
@@ -245,5 +244,5 @@ import { ReservationStats } from '../../models/reservation.model';
   `
 })
 export class ReservationStatsComponent {
-  stats = input.required<ReservationStats>();
+  stats = input.required<ReservaStats>();
 }
