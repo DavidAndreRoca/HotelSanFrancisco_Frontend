@@ -9,12 +9,12 @@ import {
 } from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { ToastrService } from 'ngx-toastr';
-import { ReportService } from '../services/report.service';
-import { RevenueChartComponent } from '../components/revenue-chart/revenue-chart.component';
-import { OccupancyChartComponent } from '../components/occupancy-chart/occupancy-chart.component';
-import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component';
-import { UiSkeletonComponent } from '../../../shared/ui/skeleton/ui-skeleton.component';
-import { DEFAULT_REPORT_RANGE } from '../models/report.model';
+import { ReportService } from '../../services/report.service';
+import { RevenueChartComponent } from '../../components/revenue-chart/revenue-chart.component';
+import { OccupancyChartComponent } from '../../components/occupancy-chart/occupancy-chart.component';
+import { UiButtonComponent } from '../../../../shared/ui/button/ui-button.component';
+import { UiSkeletonComponent } from '../../../../shared/ui/skeleton/ui-skeleton.component';
+import { DEFAULT_REPORT_RANGE } from '../../models/report.model';
 
 interface KpiCard {
   label: string;
