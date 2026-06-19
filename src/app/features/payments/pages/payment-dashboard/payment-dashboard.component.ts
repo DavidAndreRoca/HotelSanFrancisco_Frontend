@@ -1,20 +1,20 @@
 // features/payments/pages/payments-dashboard/payments-dashboard.component.ts
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ToastrService } from 'ngx-toastr';
-import { PaymentService } from '../services/payment.service';
-import { PaymentStatsComponent } from '../components/payment-stats/payment-stats.component';
-import { PaymentFiltersComponent } from '../components/payment-filters/payment-filters.component';
-import { PaymentTableComponent } from '../components/payment-table/payment-table.component';
-import { PaymentModalComponent } from '../components/payment-modal/payment-modal.component';
-import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component';
-import { ConfirmDialogService } from '../../../shared/ui/confirm-dialog/confirm-dialog.service';
+import { PaymentService } from '../../services/payment.service';
+import { PaymentStatsComponent } from '../../components/payment-stats/payment-stats.component';
+import { PaymentFiltersComponent } from '../../components/payment-filters/payment-filters.component';
+import { PaymentTableComponent } from '../../components/payment-table/payment-table.component';
+import { PaymentModalComponent } from '../../components/payment-modal/payment-modal.component';
+import { UiButtonComponent } from '../../../../shared/ui/button/ui-button.component';
+import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
 import {
   DEFAULT_PAYMENT_FILTERS,
   Payment,
   PaymentCreatePayload,
   PaymentFilters,
   ReservaPagoContext,
-} from '../models/payment.model';
+} from '../../models/payment.model';
 
 @Component({
   selector: 'app-payments-dashboard',
