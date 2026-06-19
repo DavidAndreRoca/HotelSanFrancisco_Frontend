@@ -57,6 +57,15 @@ export const routes: Routes = [
         title: 'Detalle de habitación',
       },
       {
+        path: 'reservations/mis-reservas',
+        loadComponent: () =>
+          import('./features/reservations/pages/mis-reservas/mis-reservas.component').then(
+            (m) => m.MisReservasComponent,
+          ),
+        title: 'Mis Reservas',
+      },
+      {
+        path: 'reservations',
         path: 'reports',
         loadComponent: () =>
           import('./features/reports/pages/reports-dashboard/reports-dashboard.component').then(
@@ -65,6 +74,15 @@ export const routes: Routes = [
         title: 'Reportes',
       },
       {
+        path: 'clients',
+        loadComponent: () =>
+          import('./features/clients/pages/clientes-dashboard/clientes-dashboard.component').then(
+            (m) => m.ClientesDashboardComponent,
+          ),
+        title: 'Clientes',
+      },
+      {
+        path: 'guests',
         path: 'management',
         loadComponent: () =>
           import('./features/reports/pages/management-dashboard/management-dashboard.component').then(
