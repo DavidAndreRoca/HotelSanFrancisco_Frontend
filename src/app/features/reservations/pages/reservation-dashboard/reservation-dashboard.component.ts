@@ -1,5 +1,9 @@
 import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+// features/reservations/pages/reservations-dashboard/reservations-dashboard.component.ts
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import { ToastrService } from 'ngx-toastr';
 import { ReservationService } from '../../services/reservation.service';
+import { NotificationService } from '../../../notifications/services/notifications.service';
 import { ReservationStatsComponent } from '../../components/reservation-stats/reservation-stats.component';
 import { ReservationTableComponent } from '../../components/reservation-table/reservation-table.component';
 import { ReservationFiltersComponent } from '../../components/reservation-filters/reservation-filters.component';
@@ -176,6 +180,9 @@ import { Reserva, CancelarReservaPayload, CreateReservaPayload, UpdateReservaPay
 export class ReservationsDashboardComponent {
   protected svc     = inject(ReservationService);
   private confirm   = inject(ConfirmDialogService);
+  reservationService = inject(ReservationService);
+  private readonly notificationService = inject(NotificationService);
+  private readonly toastr = inject(ToastrService);
 
   // ── Detail modal ───────────────────────────────────────────────────────────
   readonly detailAbierto    = signal(false);
@@ -281,5 +288,28 @@ export class ReservationsDashboardComponent {
       this.cancelarAbierto.set(false);
       this.reservaACancelar.set(null);
     });
+  /**
+   * Punto 9: al confirmar una reserva (p.ej. desde estado 'pending' a 'confirmed'),
+   * se dispara el correo de confirmación de reserva.
+   */
+  handleConfirmReservation(id: number) {
+    this.reservationService.updateReservationStatus(id, 'confirmed');
+    this.notificationService.sendReservationConfirmation({ reservaId: id }).subscribe({
+      next: () => this.toastr.info('Correo de confirmación de reserva enviado.'),
+      error: () => this.toastr.warning('La reserva se confirmó, pero no se pudo enviar el correo.'),
+    });
+  }
+
+  /**
+   * Punto 11: al cancelar una reserva se envía el correo de cancelación.
+   */
+  handleCancelReservation(id: number) {
+    if (confirm('¿Estás seguro de cancelar esta reserva?')) {
+      this.reservationService.updateReservationStatus(id, 'cancelled');
+      this.notificationService.sendCancellationEmail({ reservaId: id }).subscribe({
+        next: () => this.toastr.info('Correo de cancelación enviado.'),
+        error: () => this.toastr.warning('La reserva se canceló, pero no se pudo enviar el correo.'),
+      });
+    }
   }
 }

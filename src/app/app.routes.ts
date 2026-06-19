@@ -29,14 +29,6 @@ export const routes: Routes = [
           import('./features/auth/pages/register.page').then((m) => m.RegisterComponent),
         title: 'Registro · Hotel San Francisco',
       },
-      {
-        path: 'booking',
-        loadComponent: () =>
-          import('./features/booking/pages/booking-flow/booking-flow.page').then(
-            (m) => m.BookingFlowPage,
-          ),
-        title: 'Reservar habitación · Hotel San Francisco',
-      },
     ],
   },
 
@@ -74,11 +66,12 @@ export const routes: Routes = [
       },
       {
         path: 'reservations',
+        path: 'reports',
         loadComponent: () =>
-          import('./features/reservations/pages/reservation-dashboard/reservation-dashboard.component').then(
-            (m) => m.ReservationsDashboardComponent,
+          import('./features/reports/pages/reports-dashboard/reports-dashboard.component').then(
+            (m) => m.ReportsDashboardComponent,
           ),
-        title: 'Reservas',
+        title: 'Reportes',
       },
       {
         path: 'clients',
@@ -87,6 +80,39 @@ export const routes: Routes = [
             (m) => m.ClientesDashboardComponent,
           ),
         title: 'Clientes',
+      },
+      {
+        path: 'guests',
+        path: 'management',
+        loadComponent: () =>
+          import('./features/reports/pages/management-dashboard/management-dashboard.component').then(
+            (m) => m.ManagementDashboardComponent,
+          ),
+        title: 'Dashboard Gerencial',
+      },
+      {
+        path: 'notifications',
+        loadComponent: () =>
+          import('./features/notifications/pages/notifications-settings/notifications-settings.component').then(
+            (m) => m.NotificationsSettingsComponent,
+          ),
+        title: 'Notificaciones',
+      },
+      {
+        path: 'payments',
+        loadComponent: () =>
+          import('./features/payments/pages/payment-dashboard/payment-dashboard.component').then(
+            (m) => m.PaymentsDashboardComponent,
+          ),
+        title: 'Pagos',
+      },
+      {
+        path: 'reservations',
+        loadComponent: () =>
+          import('./features/reservations/pages/reservation-dashboard/reservation-dashboard.component').then(
+            (m) => m.ReservationsDashboardComponent,
+          ),
+        title: 'Reservas',
       },
       {
         path: 'guests',
@@ -103,48 +129,6 @@ export const routes: Routes = [
             (m) => m.EmployeesDashboardComponent,
           ),
         title: 'Empleados',
-      },
-
-      // ── Habitaciones (operaciones) ─────────────────────────────────────────
-      {
-        path: 'habitaciones',
-        loadComponent: () =>
-          import('./features/habitaciones/pages/habitacion-dashboard/habitacion-dashboard.component').then(
-            (m) => m.HabitacionDashboardComponent,
-          ),
-        title: 'Panel de habitaciones',
-      },
-      {
-        path: 'habitaciones/checkin',
-        loadComponent: () =>
-          import('./features/habitaciones/pages/checkin/checkin.page').then(
-            (m) => m.CheckInPage,
-          ),
-        title: 'Check-in',
-      },
-      {
-        path: 'habitaciones/checkout',
-        loadComponent: () =>
-          import('./features/habitaciones/pages/checkout/checkout.page').then(
-            (m) => m.CheckOutPage,
-          ),
-        title: 'Check-out',
-      },
-      {
-        path: 'habitaciones/limpieza',
-        loadComponent: () =>
-          import('./features/habitaciones/pages/limpieza/limpieza.page').then(
-            (m) => m.LimpiezaPage,
-          ),
-        title: 'Cola de limpieza',
-      },
-      {
-        path: 'habitaciones/mantenimiento',
-        loadComponent: () =>
-          import('./features/habitaciones/pages/mantenimiento/mantenimiento.page').then(
-            (m) => m.MantenimientoPage,
-          ),
-        title: 'Mantenimiento e Incidencias',
       },
     ],
   },
