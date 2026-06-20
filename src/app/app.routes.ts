@@ -88,7 +88,15 @@ export const routes: Routes = [
         path: 'rooms',
         loadComponent: () =>
           import('./features/rooms/pages/room-list.page').then((m) => m.RoomsListPage),
-        title: 'Habitaciones',
+        title: 'Tipos de habitación',
+      },
+      {
+        path: 'habitaciones',
+        loadComponent: () =>
+          import('./features/habitaciones/pages/habitaciones-list/habitaciones-list.page').then(
+            (m) => m.HabitacionesListPage,
+          ),
+        title: 'Habitaciones · Hotel San Francisco',
       },
       {
         path: 'rooms/calendar',
