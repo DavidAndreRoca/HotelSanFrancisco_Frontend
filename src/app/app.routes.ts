@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, publicOnlyGuard } from './core/guards/auth.guard';
+import { solicitudGestionGuard } from './features/solicitudes/guards/solicitud-gestion.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -170,6 +171,39 @@ export const routes: Routes = [
             (m) => m.PagosFacturasClientePage,
           ),
         title: 'Pagos y facturas · Hotel San Francisco',
+      },
+      {
+        path: 'solicitudes',
+        loadComponent: () =>
+          import('./features/solicitudes/pages/mis-solicitudes/mis-solicitudes.page').then(
+            (m) => m.MisSolicitudesPage,
+          ),
+        title: 'Mis Solicitudes · Hotel San Francisco',
+      },
+      {
+        path: 'solicitudes/nueva',
+        loadComponent: () =>
+          import('./features/solicitudes/pages/nueva/nueva-solicitud.page').then(
+            (m) => m.NuevaSolicitudPage,
+          ),
+        title: 'Nueva solicitud · Hotel San Francisco',
+      },
+      {
+        path: 'solicitudes/gestion',
+        canActivate: [solicitudGestionGuard],
+        loadComponent: () =>
+          import('./features/solicitudes/pages/gestion-global/gestion-global.page').then(
+            (m) => m.GestionGlobalSolicitudesPage,
+          ),
+        title: 'Gestión de Solicitudes · Hotel San Francisco',
+      },
+      {
+        path: 'solicitudes/:id',
+        loadComponent: () =>
+          import('./features/solicitudes/pages/detalle/detalle-solicitud.page').then(
+            (m) => m.DetalleSolicitudPage,
+          ),
+        title: 'Detalle de solicitud · Hotel San Francisco',
       },
       {
         path: 'reservations',
