@@ -721,8 +721,9 @@ export class ReservationFormComponent {
   private readonly authStore          = inject(AuthStore);
   private readonly destroyRef         = inject(DestroyRef);
 
-  isOpen  = input.required<boolean>();
-  reserva = input<Reserva | null>(null);
+  isOpen        = input.required<boolean>();
+  reserva       = input<Reserva | null>(null);
+  initialFechas = input<{ fechaInicio: string; fechaFin: string; nroAdultos: number } | null>(null);
 
   onClose = output<void>();
   onSave  = output<ReservaFormSaveEvent>();
@@ -844,6 +845,20 @@ export class ReservationFormComponent {
 
     effect(() => {
       if (!this.isOpen()) this.reset();
+    });
+
+    effect(() => {
+      const init = this.initialFechas();
+      const open = this.isOpen();
+      if (init && open && !this.esEdicion()) {
+        this.paso1Form.patchValue({
+          fechaInicio: init.fechaInicio,
+          fechaFin:    init.fechaFin,
+          nroAdultos:  init.nroAdultos,
+        });
+        this._fechaInicio.set(init.fechaInicio);
+        this._fechaFin.set(init.fechaFin);
+      }
     });
 
     this.paso1Form.get('fechaInicio')!.valueChanges.pipe(

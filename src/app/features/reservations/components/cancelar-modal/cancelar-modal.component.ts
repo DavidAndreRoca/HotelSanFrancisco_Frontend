@@ -5,9 +5,8 @@ import { Reserva, CancelarReservaPayload } from '../../models/reservation.model'
 
 @Component({
   selector: 'app-cancelar-modal',
-  standalone: true,
-  imports: [ReactiveFormsModule, DecimalPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ReactiveFormsModule, DecimalPipe],
   host: {
     '(document:keydown.escape)': 'isOpen() && onClose.emit()',
     role: 'dialog',
@@ -15,20 +14,43 @@ import { Reserva, CancelarReservaPayload } from '../../models/reservation.model'
   },
   template: `
     @if (isOpen() && reserva()) {
-      <div class="modal-overlay" (click)="onClose.emit()">
-        <div class="modal-content" (click)="$event.stopPropagation()">
-          <button class="modal-close" (click)="onClose.emit()" aria-label="Cerrar">✕</button>
+      <div class="fixed inset-0 z-[1200] flex items-center justify-center p-4 bg-[#2D2926]/75"
+           (click)="onClose.emit()">
+        <div class="w-full max-w-lg bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh]
+                    overflow-y-auto relative"
+             (click)="$event.stopPropagation()">
 
-          <div class="modal-header danger">
-            <span class="header-icon">⚠️</span>
+          <!-- Cerrar -->
+          <button type="button" (click)="onClose.emit()" aria-label="Cerrar"
+            class="absolute top-4 right-4 w-8 h-8 rounded-full bg-[#F9F5F0] border border-[#EEE3D1]
+                   flex items-center justify-center text-[#2D2926]/40
+                   hover:bg-red-600 hover:border-red-600 hover:text-white transition-colors z-10">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+          </button>
+
+          <!-- Header -->
+          <div class="flex items-start gap-4 px-6 py-5 border-b-2 border-red-500">
+            <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0 mt-0.5">
+              <svg class="w-5 h-5 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71
+                         c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898
+                         0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+              </svg>
+            </div>
             <div>
-              <h2>Cancelar Reserva</h2>
-              <p class="cod-badge">{{ reserva()!.codReserva }}</p>
+              <h2 class="text-base font-bold text-[#2D2926]">Cancelar Reserva</h2>
+              <p class="text-xs font-mono text-red-600 font-semibold mt-0.5">{{ reserva()!.codReserva }}</p>
             </div>
           </div>
 
-          <div class="modal-body">
-            <div class="warning-box">
+          <!-- Body -->
+          <div class="p-6">
+
+            <!-- Aviso -->
+            <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-5 text-sm text-[#2D2926] leading-relaxed">
               <p>
                 Estás a punto de cancelar la reserva de
                 <strong>{{ huespedPrincipal() }}</strong>
@@ -36,191 +58,88 @@ import { Reserva, CancelarReservaPayload } from '../../models/reservation.model'
                 al <strong>{{ formatFecha(reserva()!.fechaFin) }}</strong>.
               </p>
               @if (reserva()!.adelanto > 0) {
-                <p class="adelanto-info">
+                <p class="mt-2 text-red-700 font-medium">
                   Adelanto registrado: <strong>S/ {{ reserva()!.adelanto | number:'1.2-2' }}</strong>
                 </p>
               }
             </div>
 
-            <form [formGroup]="form" (ngSubmit)="confirmar()">
-              <div class="form-group">
-                <label for="motivo">Motivo de cancelación <span class="req">*</span></label>
+            <form [formGroup]="form" (ngSubmit)="confirmar()" class="space-y-4">
+
+              <!-- Motivo -->
+              <div>
+                <label class="text-[11px] uppercase tracking-wider font-semibold text-[#8E6F2E] block mb-1.5">
+                  Motivo de cancelación <span class="text-red-500">*</span>
+                </label>
                 <textarea
-                  id="motivo"
                   formControlName="motivo"
-                  class="form-control"
-                  [class.is-invalid]="isInvalid('motivo')"
                   rows="3"
                   maxlength="500"
-                  placeholder="Indique el motivo de la cancelación..."></textarea>
-                @if (isInvalid('motivo')) {
-                  <span class="error-msg">El motivo es obligatorio (máx. 500 caracteres)</span>
-                }
-                <span class="char-count">{{ form.get('motivo')?.value?.length ?? 0 }} / 500</span>
+                  placeholder="Indique el motivo de la cancelación..."
+                  class="w-full px-3.5 py-2.5 rounded-xl border text-sm resize-none transition
+                         focus:outline-none focus:ring-2"
+                  [class]="isInvalid('motivo')
+                    ? 'border-red-400 focus:border-red-400 focus:ring-red-400/20'
+                    : 'border-[#EEE3D1] focus:border-red-400 focus:ring-red-400/20'">
+                </textarea>
+                <div class="flex items-center justify-between mt-1">
+                  @if (isInvalid('motivo')) {
+                    <span class="text-[11px] text-red-600">El motivo es obligatorio (máx. 500 caracteres)</span>
+                  } @else {
+                    <span></span>
+                  }
+                  <span class="text-[11px] text-[#8E6F2E]">
+                    {{ form.get('motivo')?.value?.length ?? 0 }} / 500
+                  </span>
+                </div>
               </div>
 
+              <!-- Penalización -->
               @if (reserva()!.adelanto > 0) {
-                <div class="form-group">
-                  <label for="penalizacion">Política de penalización</label>
-                  <select id="penalizacion" formControlName="aplicarPenalizacion" class="form-control">
+                <div>
+                  <label class="text-[11px] uppercase tracking-wider font-semibold text-[#8E6F2E] block mb-1.5">
+                    Política de penalización
+                  </label>
+                  <select formControlName="aplicarPenalizacion"
+                    class="w-full h-10 px-3.5 rounded-xl border border-[#EEE3D1] text-sm bg-white
+                           focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-400/20 transition">
                     <option value="auto">Automática (según días de anticipación)</option>
-                    <option value="true">Aplicar penalización (20% del adelanto)</option>
+                    <option value="true">Aplicar penalización</option>
                     <option value="false">Exonerar penalización (devolución total)</option>
                   </select>
-                  <span class="hint">
+                  <p class="text-[11px] text-[#8E6F2E] mt-1.5">
                     @if (form.get('aplicarPenalizacion')?.value === 'false') {
-                      El cliente recibirá devolución total del adelanto: S/ {{ reserva()!.adelanto | number:'1.2-2' }}
+                      El cliente recibirá devolución total: S/ {{ reserva()!.adelanto | number:'1.2-2' }}
                     } @else if (form.get('aplicarPenalizacion')?.value === 'true') {
-                      Penalización estimada: S/ {{ reserva()!.adelanto * 0.2 | number:'1.2-2' }} — Devolución: S/ {{ reserva()!.adelanto * 0.8 | number:'1.2-2' }}
+                      Penalización estimada: S/ {{ reserva()!.adelanto * 0.2 | number:'1.2-2' }}
+                      — Devolución: S/ {{ reserva()!.adelanto * 0.8 | number:'1.2-2' }}
                     } @else {
-                      La penalización se calculará automáticamente según la política del hotel.
+                      La penalización se calculará según la política del hotel.
                     }
-                  </span>
+                  </p>
                 </div>
               }
 
-              <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" (click)="onClose.emit()">
+              <!-- Acciones -->
+              <div class="flex justify-end gap-3 pt-2 border-t border-[#EEE3D1]">
+                <button type="button" (click)="onClose.emit()"
+                  class="h-9 px-4 rounded-xl border border-[#EEE3D1] text-sm font-semibold
+                         text-[#2D2926] hover:border-[#C5A048] hover:bg-[#F9F5F0] transition-colors">
                   Cancelar
                 </button>
-                <button type="submit" class="btn btn-danger" [disabled]="form.invalid">
+                <button type="submit" [disabled]="form.invalid"
+                  class="h-9 px-5 rounded-xl text-sm font-semibold text-white transition-colors
+                         bg-red-600 hover:bg-red-700 disabled:bg-red-200 disabled:cursor-not-allowed">
                   Confirmar cancelación
                 </button>
               </div>
+
             </form>
           </div>
         </div>
       </div>
     }
   `,
-  styles: `
-    @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100..900;1,100..900&display=swap');
-    * { font-family: 'Inter', sans-serif; }
-
-    .modal-overlay {
-      position: fixed; inset: 0;
-      background: rgba(45,41,38,0.75);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 1100; animation: overlayIn 0.2s ease;
-    }
-
-    @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
-
-    .modal-content {
-      background: white; border-radius: 1rem;
-      max-width: 520px; width: 90%; max-height: 90vh; overflow-y: auto;
-      position: relative;
-      animation: slideIn 0.25s ease;
-      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3);
-    }
-
-    @keyframes slideIn {
-      from { transform: translateY(-30px) scale(0.97); opacity: 0; }
-      to   { transform: translateY(0) scale(1); opacity: 1; }
-    }
-
-    .modal-close {
-      position: absolute; top: 1rem; right: 1rem;
-      background: #F9F5F0; border: 1px solid #EEE3D1;
-      font-size: 1.125rem; cursor: pointer; color: #8E6F2E;
-      width: 32px; height: 32px;
-      display: flex; align-items: center; justify-content: center;
-      border-radius: 50%; transition: all 0.2s; z-index: 10;
-    }
-    .modal-close:hover { background: #DC2626; border-color: #DC2626; color: white; }
-
-    .modal-header {
-      padding: 1.5rem 1.5rem 1rem;
-      border-bottom: 2px solid #DC2626;
-      display: flex; align-items: flex-start; gap: 0.875rem;
-    }
-
-    .header-icon { font-size: 2rem; margin-top: 0.125rem; }
-
-    .modal-header h2 {
-      margin: 0; font-size: 1.25rem; font-weight: 700; color: #2D2926;
-    }
-
-    .cod-badge {
-      margin: 0.25rem 0 0;
-      font-family: monospace; font-size: 0.8125rem;
-      color: #DC2626; font-weight: 600;
-    }
-
-    .modal-body { padding: 1.5rem; }
-
-    .warning-box {
-      background: #FFF5F5; border: 1px solid #FECACA;
-      border-radius: 0.5rem; padding: 1rem;
-      margin-bottom: 1.25rem;
-      font-size: 0.875rem; color: #2D2926; line-height: 1.5;
-    }
-
-    .warning-box p { margin: 0 0 0.5rem; }
-    .warning-box p:last-child { margin-bottom: 0; }
-
-    .adelanto-info { color: #DC2626; font-weight: 500; }
-
-    .form-group { margin-bottom: 1.25rem; }
-
-    label {
-      display: block; margin-bottom: 0.375rem;
-      font-weight: 600; color: #8E6F2E;
-      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;
-    }
-
-    .req { color: #DC2626; }
-
-    .form-control {
-      width: 100%; padding: 0.625rem 0.875rem;
-      border: 1.5px solid #EEE3D1; border-radius: 0.5rem;
-      font-size: 0.875rem; transition: all 0.2s;
-      background: white; color: #2D2926;
-      box-sizing: border-box;
-    }
-
-    .form-control:focus {
-      outline: none; border-color: #DC2626;
-      box-shadow: 0 0 0 3px rgba(220,38,38,0.1);
-    }
-
-    .form-control.is-invalid { border-color: #DC2626; }
-    textarea.form-control { resize: vertical; min-height: 80px; }
-
-    select.form-control {
-      cursor: pointer; appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238E6F2E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1rem;
-      padding-right: 2.5rem;
-    }
-
-    .char-count { display: block; text-align: right; font-size: 0.7rem; color: #8E6F2E; margin-top: 0.25rem; }
-    .error-msg { display: block; font-size: 0.75rem; color: #DC2626; margin-top: 0.25rem; }
-    .hint { display: block; font-size: 0.75rem; color: #8E6F2E; margin-top: 0.375rem; }
-
-    .modal-actions {
-      display: flex; gap: 0.75rem; justify-content: flex-end;
-      margin-top: 1.5rem; padding-top: 1.25rem;
-      border-top: 1px solid #EEE3D1;
-    }
-
-    .btn {
-      padding: 0.625rem 1.5rem; border-radius: 0.5rem;
-      font-size: 0.875rem; font-weight: 600;
-      cursor: pointer; transition: all 0.2s; border: none;
-      display: inline-flex; align-items: center; gap: 0.5rem;
-    }
-
-    .btn-secondary { background: white; color: #2D2926; border: 1.5px solid #EEE3D1; }
-    .btn-secondary:hover { background: #F9F5F0; border-color: #C5A048; }
-
-    .btn-danger { background: #DC2626; color: white; }
-    .btn-danger:hover:not(:disabled) {
-      background: #B91C1C; transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(220,38,38,0.3);
-    }
-    .btn-danger:disabled { background: #FECACA; cursor: not-allowed; }
-  `
 })
 export class CancelarModalComponent {
   private readonly fb = inject(FormBuilder);
@@ -232,8 +151,8 @@ export class CancelarModalComponent {
   onCancelar = output<CancelarReservaPayload>();
 
   form = this.fb.group({
-    motivo:               ['', [Validators.required, Validators.maxLength(500)]],
-    aplicarPenalizacion:  ['auto'],
+    motivo:              ['', [Validators.required, Validators.maxLength(500)]],
+    aplicarPenalizacion: ['auto'],
   });
 
   constructor() {
@@ -247,7 +166,9 @@ export class CancelarModalComponent {
   huespedPrincipal(): string {
     const r = this.reserva();
     if (!r) return '';
-    return r.huespedes.find(h => h.esPrincipal)?.nombreCompleto ?? r.huespedes[0]?.nombreCompleto ?? '—';
+    return r.huespedes.find(h => h.esPrincipal)?.nombreCompleto
+        ?? r.huespedes.at(0)?.nombreCompleto
+        ?? '—';
   }
 
   formatFecha(fecha: string): string {
