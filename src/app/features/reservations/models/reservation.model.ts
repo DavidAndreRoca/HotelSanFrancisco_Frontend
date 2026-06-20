@@ -56,6 +56,7 @@ export interface Reserva {
   canalNombre: string | null;
   habitaciones: ReservaHabitacion[];
   huespedes: DetalleHuesped[];
+  servicios?: { servicioId: number; nombre: string }[] | null;
   fechaCreacion: string; // ISO datetime
   fechaModificacion: string;
 }
@@ -120,6 +121,20 @@ export interface CambiarEstadoPayload {
 export interface CancelarReservaPayload {
   motivo: string;
   aplicarPenalizacion: boolean | null;
+}
+
+// ---------- Pagos ----------------------------------------------------------
+
+export interface PagoReserva {
+  pagoId: number;
+  metodoPagoId: number;
+  metodoPagoNombre: string;
+  tipoPago: string;
+  fecha: string;
+  monto: number;
+  comprobante: string | null;
+  reservaId: number | null;
+  fechaCreacion: string;
 }
 
 // ---------- Filtros y estadísticas ----------------------------------------
