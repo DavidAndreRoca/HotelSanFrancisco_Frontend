@@ -227,6 +227,14 @@ export const routes: Routes = [
           import('./features/incidencias/pages/incidencias.page').then((m) => m.IncidenciasPage),
         title: 'Incidencias · Hotel San Francisco',
       },
+      {
+        path: 'solicitudes',
+        loadComponent: () =>
+          import('./features/solicitudes/pages/gestion-global/gestion-global.page').then(
+            (m) => m.GestionGlobalSolicitudesPage,
+          ),
+        title: 'Solicitudes de Servicio · Hotel San Francisco',
+      },
     ],
   },
 
