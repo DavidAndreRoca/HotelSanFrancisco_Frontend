@@ -57,6 +57,8 @@ export interface Reserva {
   habitaciones: ReservaHabitacion[];
   huespedes: DetalleHuesped[];
   servicios?: { servicioId: number; nombre: string }[] | null;
+  /** 1:1 con la reserva; presente cuando hay CHECK_IN activo. Null en listados. */
+  estanciaId?: number | null;
   fechaCreacion: string; // ISO datetime
   fechaModificacion: string;
 }
