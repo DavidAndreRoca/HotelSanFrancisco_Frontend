@@ -1,5 +1,27 @@
 // features/notifications/models/notification.model.ts
 
+// ── Notificaciones inbox del huésped ──────────────────────────────────────────
+
+export type TipoNotificacion =
+  | 'CHECK_IN'
+  | 'CHECK_OUT'
+  | 'PAGO'
+  | 'SERVICIO'
+  | 'CONFIRMACION'
+  | 'FACTURA';
+
+export interface NotificacionHuesped {
+  notificacionId: number;
+  tipo: TipoNotificacion;
+  titulo: string;
+  mensaje: string;
+  leida: boolean;
+  fechaCreacion: string;
+  referenciaId?: number | null;
+}
+
+// ── Admin: configuración SMTP / email ─────────────────────────────────────────
+
 export type SmtpSecurity = 'NONE' | 'SSL' | 'TLS';
 
 /** Coincide con SmtpConfigResponse del backend */
