@@ -5,17 +5,10 @@ import { AuthStore } from './auth.store';
 import {
   AuthUser,
   ChangePasswordRequest,
-  DashboardClienteResponse,
-  ForgotPasswordRequest,
   LoginRequest,
   LoginResponseBody,
-  MiDashboardResponse,
-  MiReservaItem,
-  PerfilUsuarioResponse,
   PublicDocumentType,
   RegisterRequest,
-  ResetPasswordRequest,
-  UpdatePerfilRequest,
 } from './auth-user.interface';
 
 @Injectable({ providedIn: 'root' })
@@ -74,40 +67,5 @@ export class AuthService {
 
   changePassword(payload: ChangePasswordRequest): Observable<void> {
     return this.api.post<void, ChangePasswordRequest>('/auth/change-password', payload);
-  }
-
-  /** Resumen del dashboard para el cliente (stats + próxima reserva). */
-  getMiDashboard(): Observable<MiDashboardResponse> {
-    return this.api.get<MiDashboardResponse>('/auth/me/dashboard');
-  }
-
-  /** Lista de reservas del cliente logueado. */
-  getMisReservas(params?: { estado?: string }): Observable<MiReservaItem[]> {
-    return this.api.get<MiReservaItem[]>('/api/v1/me/reservas', { params });
-  }
-
-  /** Perfil extendido del usuario logueado (teléfono, doc, dirección, fechaCreacion). */
-  getMyProfile(): Observable<PerfilUsuarioResponse> {
-    return this.api.get<PerfilUsuarioResponse>('/auth/me/perfil');
-  }
-
-  /** Editar datos personales propios sin permisos administrativos. */
-  updateMyProfile(payload: UpdatePerfilRequest): Observable<PerfilUsuarioResponse> {
-    return this.api.patch<PerfilUsuarioResponse, UpdatePerfilRequest>('/auth/me', payload);
-  }
-
-  /** Resumen del dashboard para el cliente logueado. */
-  getMyDashboard(): Observable<DashboardClienteResponse> {
-    return this.api.get<DashboardClienteResponse>('/auth/me/dashboard');
-  }
-
-  /** Paso 1: solicita el envío del enlace de recuperación al correo. */
-  forgotPassword(payload: ForgotPasswordRequest): Observable<void> {
-    return this.api.post<void, ForgotPasswordRequest>('/auth/forgot-password', payload);
-  }
-
-  /** Paso 2: establece la nueva contraseña usando el token recibido por correo. */
-  resetPassword(payload: ResetPasswordRequest): Observable<void> {
-    return this.api.post<void, ResetPasswordRequest>('/auth/reset-password', payload);
   }
 }
