@@ -97,19 +97,12 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
                   class="text-[13px] font-medium text-[var(--color-ink-soft)]">
                   Contraseña <span class="text-[var(--color-danger-500)]">*</span>
                 </label>
-                <div class="flex items-center gap-3">
-                  <a
-                    routerLink="/recuperar-contrasena"
-                    class="text-[12px] text-[var(--color-primary-700)] hover:underline">
-                    ¿Olvidaste tu contraseña?
-                  </a>
-                  <button
-                    type="button"
-                    class="text-[12px] text-[var(--color-primary-700)] hover:underline"
-                    (click)="togglePassword()">
-                    {{ showPassword() ? 'Ocultar' : 'Mostrar' }}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  class="text-[12px] text-[var(--color-primary-700)] hover:underline"
+                  (click)="togglePassword()">
+                  {{ showPassword() ? 'Ocultar' : 'Mostrar' }}
+                </button>
               </div>
               <input
                 id="contrasena"

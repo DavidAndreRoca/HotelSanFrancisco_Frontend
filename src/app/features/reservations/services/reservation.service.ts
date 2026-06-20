@@ -1,136 +1,203 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
-import { Observable, tap } from 'rxjs';
-import { ApiClient } from '../../../core/http/http-client.service';
-import { PageResponse } from '../../../core/api/api-response.interface';
-import {
-  Reserva, ReservaStats, EstadoReserva,
-  CreateReservaPayload, UpdateReservaPayload,
-  CambiarEstadoPayload, CancelarReservaPayload,
-  CancelacionResponse, HistorialReserva,
-  PagoReserva,
-} from '../models/reservation.model';
+// features/reservations/services/reservation.service.ts
+import { Injectable, signal, computed } from '@angular/core';
+import { Reservation, ReservationStatus, ReservationStats } from '../models/reservation.model';
+import { PaymentStatus } from '../models/reservation.model';
 
 @Injectable({ providedIn: 'root' })
 export class ReservationService {
-  private readonly api = inject(ApiClient);
+  private reservations = signal<Reservation[]>([
+    {
+      id: 1,
+      roomNumber: '101',
+      roomType: 'Simple',
+      guestName: 'María Estela García Pérez',
+      guestDocument: '45678901',
+      guestPhone: '956123456',
+      checkIn: new Date(2026, 3, 1),
+      checkOut: new Date(2026, 3, 5),
+      status: 'checked-in',
+      paymentStatus: 'paid',
+      totalAmount: 480,
+      paidAmount: 480,
+      adults: 2,
+      children: 1
+    },
+    {
+      id: 2,
+      roomNumber: '102',
+      roomType: 'Simple',
+      guestName: 'María Estela García Pérez',
+      guestDocument: '45678901',
+      guestPhone: '956123456',
+      checkIn: new Date(2026, 3, 2),
+      checkOut: new Date(2026, 3, 6),
+      status: 'confirmed',
+      paymentStatus: 'pending',
+      totalAmount: 480,
+      paidAmount: 0,
+      adults: 2,
+      children: 0
+    },
+    {
+      id: 3,
+      roomNumber: '103',
+      roomType: 'Doble',
+      guestName: 'Carlos López Mendoza',
+      guestDocument: '78912345',
+      guestPhone: '987654321',
+      checkIn: new Date(2026, 3, 3),
+      checkOut: new Date(2026, 3, 7),
+      status: 'confirmed',
+      paymentStatus: 'partial',
+      totalAmount: 720,
+      paidAmount: 360,
+      adults: 2,
+      children: 2
+    },
+    {
+      id: 4,
+      roomNumber: '104',
+      roomType: 'Suite',
+      guestName: 'Ana María Rodríguez',
+      guestDocument: '12345678',
+      guestPhone: '912345678',
+      checkIn: new Date(2026, 3, 1),
+      checkOut: new Date(2026, 3, 3),
+      status: 'checked-out',
+      paymentStatus: 'paid',
+      totalAmount: 500,
+      paidAmount: 500,
+      adults: 2,
+      children: 0
+    },
+    {
+      id: 5,
+      roomNumber: '105',
+      roomType: 'Simple',
+      guestName: 'Pedro Ruiz Fernández',
+      guestDocument: '56789012',
+      guestPhone: '945678901',
+      checkIn: new Date(2026, 3, 4),
+      checkOut: new Date(2026, 3, 8),
+      status: 'pending',
+      paymentStatus: 'pending',
+      totalAmount: 480,
+      paidAmount: 0,
+      adults: 1,
+      children: 0
+    },
+    {
+      id: 6,
+      roomNumber: '106',
+      roomType: 'Doble',
+      guestName: 'Elena Vargas Soto',
+      guestDocument: '90123456',
+      guestPhone: '923456789',
+      checkIn: new Date(2026, 3, 5),
+      checkOut: new Date(2026, 3, 9),
+      status: 'confirmed',
+      paymentStatus: 'paid',
+      totalAmount: 720,
+      paidAmount: 720,
+      adults: 2,
+      children: 1
+    },
+    {
+      id: 7,
+      roomNumber: '107',
+      roomType: 'Simple',
+      guestName: 'Jose Villegas',
+      guestDocument: '34567890',
+      guestPhone: '934567890',
+      checkIn: new Date(2026, 3, 10),
+      checkOut: new Date(2026, 3, 12),
+      status: 'confirmed',
+      paymentStatus: 'pending',
+      totalAmount: 240,
+      paidAmount: 0,
+      adults: 1,
+      children: 0
+    }
+  ]);
 
-  private readonly _reservas     = signal<Reserva[]>([]);
-  private readonly _loading      = signal(false);
-  private readonly _searchTerm   = signal<string>('');
-  private readonly _estadoFilter = signal<EstadoReserva | 'all'>('all');
+  private searchTerm = signal<string>('');
+  private statusFilter = signal<ReservationStatus | 'all'>('all');
 
-  readonly reservas = this._reservas.asReadonly();
-  readonly loading  = this._loading.asReadonly();
+  // Signals individuales para los contadores
+  confirmedCount = computed(() => this.reservations().filter(r => r.status === 'confirmed').length);
+  checkedInCount = computed(() => this.reservations().filter(r => r.status === 'checked-in').length);
+  checkedOutCount = computed(() => this.reservations().filter(r => r.status === 'checked-out').length);
+  pendingCount = computed(() => this.reservations().filter(r => r.status === 'pending').length);
+  cancelledCount = computed(() => this.reservations().filter(r => r.status === 'cancelled').length);
 
-  readonly pendienteCount  = computed(() => this._reservas().filter(r => r.estado === 'PENDIENTE').length);
-  readonly confirmadaCount = computed(() => this._reservas().filter(r => r.estado === 'CONFIRMADA').length);
-  readonly checkInCount    = computed(() => this._reservas().filter(r => r.estado === 'CHECK_IN').length);
-  readonly checkOutCount   = computed(() => this._reservas().filter(r => r.estado === 'CHECK_OUT').length);
-  readonly canceladaCount  = computed(() => this._reservas().filter(r => r.estado === 'CANCELADA').length);
-  readonly noShowCount     = computed(() => this._reservas().filter(r => r.estado === 'NO_SHOW').length);
-
-  readonly filteredReservas = computed(() => {
-    const term   = this._searchTerm().toLowerCase();
-    const estado = this._estadoFilter();
-    let list = this._reservas();
+  filteredReservations = computed(() => {
+    const term = this.searchTerm().toLowerCase();
+    const status = this.statusFilter();
+    let filtered = this.reservations();
 
     if (term) {
-      list = list.filter(r =>
-        r.codReserva.toLowerCase().includes(term) ||
-        r.huespedes.some(h => h.nombreCompleto.toLowerCase().includes(term) || h.numeroDocumento.includes(term)) ||
-        r.habitaciones.some(h => h.habitacionNumero.includes(term))
+      filtered = filtered.filter(res =>
+        res.guestName.toLowerCase().includes(term) ||
+        res.guestDocument.includes(term) ||
+        res.roomNumber.includes(term)
       );
     }
 
-    if (estado !== 'all') {
-      list = list.filter(r => r.estado === estado);
+    if (status !== 'all') {
+      filtered = filtered.filter(res => res.status === status);
     }
 
-    return list;
+    return filtered;
   });
 
-  readonly stats = computed<ReservaStats>(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    const list  = this._reservas();
+  stats = computed<ReservationStats>(() => {
+    const reservations = this.reservations();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     return {
-      total:          list.length,
-      pendiente:      list.filter(r => r.estado === 'PENDIENTE').length,
-      confirmada:     list.filter(r => r.estado === 'CONFIRMADA').length,
-      checkIn:        list.filter(r => r.estado === 'CHECK_IN').length,
-      checkOut:       list.filter(r => r.estado === 'CHECK_OUT').length,
-      cancelada:      list.filter(r => r.estado === 'CANCELADA').length,
-      noShow:         list.filter(r => r.estado === 'NO_SHOW').length,
-      todayCheckIns:  list.filter(r => r.fechaInicio === today).length,
-      todayCheckOuts: list.filter(r => r.fechaFin === today).length,
+      total: reservations.length,
+      confirmed: reservations.filter(r => r.status === 'confirmed').length,
+      checkedIn: reservations.filter(r => r.status === 'checked-in').length,
+      checkedOut: reservations.filter(r => r.status === 'checked-out').length,
+      cancelled: reservations.filter(r => r.status === 'cancelled').length,
+      pending: reservations.filter(r => r.status === 'pending').length,
+      todayCheckIns: reservations.filter(r => {
+        const checkIn = new Date(r.checkIn);
+        checkIn.setHours(0, 0, 0, 0);
+        return checkIn.getTime() === today.getTime();
+      }).length,
+      todayCheckOuts: reservations.filter(r => {
+        const checkOut = new Date(r.checkOut);
+        checkOut.setHours(0, 0, 0, 0);
+        return checkOut.getTime() === today.getTime();
+      }).length
     };
   });
 
-  constructor() {
-    this.cargarTodas();
+  setSearchTerm(term: string) {
+    this.searchTerm.set(term);
   }
 
-  cargarTodas(): void {
-    this._loading.set(true);
-    this.api.get<PageResponse<Reserva>>('/api/v1/reservas', {
-      params: { size: 500, sort: 'fechaCreacion,desc' },
-    }).subscribe({
-      next: (page) => { this._reservas.set(page.content); this._loading.set(false); },
-      error: ()     => { this._loading.set(false); },
-    });
+  setStatusFilter(status: ReservationStatus | 'all') {
+    this.statusFilter.set(status);
   }
 
-  // ── Filtros ──────────────────────────────────────────────────────────────────
-  setSearchTerm(term: string): void               { this._searchTerm.set(term); }
-  setEstadoFilter(e: EstadoReserva | 'all'): void { this._estadoFilter.set(e); }
-
-  // ── Consultas (síncronas desde signal) ───────────────────────────────────────
-  findById(id: number): Reserva | undefined       { return this._reservas().find(r => r.reservaId === id); }
-  findByCodigo(cod: string): Reserva | undefined  { return this._reservas().find(r => r.codReserva === cod); }
-  findByUsuario(uid: number): Reserva[]           { return this._reservas().filter(r => r.usuarioId === uid); }
-
-  getById(id: number): Observable<Reserva> {
-    return this.api.get<Reserva>(`/api/v1/reservas/${id}`);
-  }
-
-  getPagos(reservaId: number): Observable<PagoReserva[]> {
-    return this.api.get<PagoReserva[]>(`/api/v1/pagos/reserva/${reservaId}`);
-  }
-
-  obtenerHistorial(reservaId: number): Observable<HistorialReserva[]> {
-    return this.api.get<HistorialReserva[]>(`/api/v1/reservas/${reservaId}/historial`);
-  }
-
-  // ── Mutaciones (retornan Observable, actualizan signal via tap) ──────────────
-  create(payload: CreateReservaPayload): Observable<Reserva> {
-    return this.api.post<Reserva>('/api/v1/reservas', payload).pipe(
-      tap(nueva => this._reservas.update(list => [nueva, ...list]))
+  updateReservationStatus(id: number, status: ReservationStatus) {
+    this.reservations.update(reservations =>
+      reservations.map(res =>
+        res.id === id ? { ...res, status } : res
+      )
     );
   }
 
-  update(id: number, payload: UpdateReservaPayload): Observable<Reserva> {
-    return this.api.put<Reserva>(`/api/v1/reservas/${id}`, payload).pipe(
-      tap(updated => this._reservas.update(list => list.map(r => r.reservaId === id ? updated : r)))
+  updatePaymentStatus(id: number, paymentStatus: PaymentStatus, paidAmount?: number) {
+    this.reservations.update(reservations =>
+      reservations.map(res =>
+        res.id === id 
+          ? { ...res, paymentStatus, paidAmount: paidAmount ?? res.paidAmount }
+          : res
+      )
     );
   }
-
-  cambiarEstado(id: number, payload: CambiarEstadoPayload): Observable<Reserva> {
-    return this.api.patch<Reserva>(`/api/v1/reservas/${id}/estado`, {
-      nuevoEstado: payload.nuevoEstado,
-      motivo:      payload.motivo ?? null,
-    }).pipe(
-      tap(updated => this._reservas.update(list => list.map(r => r.reservaId === id ? updated : r)))
-    );
-  }
-
-  cancelar(id: number, payload: CancelarReservaPayload): Observable<CancelacionResponse> {
-    return this.api.post<CancelacionResponse>(`/api/v1/reservas/${id}/cancelar`, payload).pipe(
-      tap(result => this._reservas.update(list => list.map(r => r.reservaId === id ? result.reserva : r)))
-    );
-  }
-
-  delete(id: number): Observable<void> {
-    return this.api.delete<void>(`/api/v1/reservas/${id}`).pipe(
-      tap(() => this._reservas.update(list => list.filter(r => r.reservaId !== id)))
-    );
-  }
-}
+} 
