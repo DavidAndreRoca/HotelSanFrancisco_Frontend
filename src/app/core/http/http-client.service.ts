@@ -43,9 +43,12 @@ export class ApiClient {
       .pipe(map((res) => this.unwrap(res)));
   }
 
-  delete<T = void>(path: string, options: RequestOptions = {}): Observable<T> {
+  delete<T = void, B = unknown>(
+    path: string,
+    options: RequestOptions & { body?: B } = {},
+  ): Observable<T> {
     return this.http
-      .delete<ApiResponse<T>>(this.url(path), this.opts(options))
+      .delete<ApiResponse<T>>(this.url(path), { ...this.opts(options), body: options.body })
       .pipe(map((res) => this.unwrap(res)));
   }
 
