@@ -229,6 +229,18 @@ export const routes: Routes = [
           ),
         title: 'Empleados',
       },
+      {
+        path: 'products',
+        loadComponent: () =>
+          import('./features/products/pages/products.page').then((m) => m.ProductsPage),
+        title: 'Productos · Hotel San Francisco',
+      },
+      {
+        path: 'purchases',
+        loadComponent: () =>
+          import('./features/purchases/pages/purchases.page').then((m) => m.PurchasesPage),
+        title: 'Compras · Hotel San Francisco',
+      },
     ],
   },
 
