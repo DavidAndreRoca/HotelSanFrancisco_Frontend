@@ -10,6 +10,8 @@ interface NavItem {
   link: string;
   /** Si true, solo visible para el rol ADMIN (Tier 1). */
   soloAdmin?: boolean;
+  /** Si se define, solo visible si el usuario tiene este permiso. */
+  permiso?: string;
 }
 
 @Component({
@@ -151,6 +153,9 @@ export class MainLayoutComponent {
     { label: 'Solicitudes',   icon: '✎', link: '/solicitudes' },
     { label: 'Gestión Solic.',icon: '❖', link: '/solicitudes/gestion', soloAdmin: true },
     { label: 'Auditoría',     icon: '⊡', link: '/auditoria', soloAdmin: true },
+    { label: 'Horarios',      icon: '◷', link: '/horarios', permiso: 'horario:read' },
+    { label: 'Asistencia',    icon: '✓', link: '/asistencias', permiso: 'asistencia:read' },
+    { label: 'Nómina',        icon: '₪', link: '/nomina', permiso: 'nomina:read' },
     { label: 'Gerencial',     icon: '◈', link: '/management' },
     { label: 'Huéspedes',     icon: '☺', link: '/guests' },
     { label: 'Empleados',     icon: '✤', link: '/employees' },
@@ -161,8 +166,13 @@ export class MainLayoutComponent {
     const rol = this.store.rol();
     if (rol === 'CLIENTE') return this.clienteNav;
     // RECEPCION y otros perfiles internos usan el nav admin, pero los ítems
-    // marcados soloAdmin (p. ej. Gestión Global de Solicitudes) son exclusivos de ADMIN.
-    return this.adminNav.filter((item) => !item.soloAdmin || rol === 'ADMIN');
+    // marcados soloAdmin (p. ej. Gestión Global de Solicitudes) son exclusivos de ADMIN,
+    // y los marcados con `permiso` solo aparecen si el usuario tiene ese permiso (RRHH).
+    return this.adminNav.filter(
+      (item) =>
+        (!item.soloAdmin || rol === 'ADMIN') &&
+        (!item.permiso || this.store.hasPermission(item.permiso)),
+    );
   });
 
   readonly initials = computed(() => {
