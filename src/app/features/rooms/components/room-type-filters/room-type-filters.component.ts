@@ -1,6 +1,6 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, input, output } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, input, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { EstadoActivo, RoomTypeFilters } from '../../models/room-type.model';
 
@@ -64,6 +64,7 @@ import { EstadoActivo, RoomTypeFilters } from '../../models/room-type.model';
 })
 export class RoomTypeFiltersComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly initial = input<RoomTypeFilters | null>(null);
   readonly changed = output<Partial<RoomTypeFilters>>();
@@ -84,15 +85,15 @@ export class RoomTypeFiltersComponent implements OnInit {
     }
 
     this.form.controls.search.valueChanges
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe((search) => this.changed.emit({ search, page: 0 }));
 
     this.form.controls.estado.valueChanges
-      .pipe(distinctUntilChanged(), takeUntilDestroyed())
+      .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe((estado) => this.changed.emit({ estado, page: 0 }));
 
     this.form.controls.sort.valueChanges
-      .pipe(distinctUntilChanged(), takeUntilDestroyed())
+      .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe((sort) => this.changed.emit({ sort, page: 0 }));
   }
 }
