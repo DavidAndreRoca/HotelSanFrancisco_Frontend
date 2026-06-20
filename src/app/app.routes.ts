@@ -2,6 +2,9 @@ import { Routes } from '@angular/router';
 import { authGuard, publicOnlyGuard } from './core/guards/auth.guard';
 import { solicitudGestionGuard } from './features/solicitudes/guards/solicitud-gestion.guard';
 import { auditoriaGuard } from './features/auditoria/guards/auditoria.guard';
+import { horariosGuard } from './features/horarios/guards/horarios.guard';
+import { asistenciaGuard } from './features/asistencia/guards/asistencia.guard';
+import { nominaGuard } from './features/nomina/guards/nomina.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -214,6 +217,42 @@ export const routes: Routes = [
             (m) => m.AuditoriaListaPage,
           ),
         title: 'Auditoría · Hotel San Francisco',
+      },
+      {
+        path: 'horarios',
+        canActivate: [horariosGuard],
+        loadComponent: () =>
+          import('./features/horarios/pages/horarios-lista/horarios-lista.page').then(
+            (m) => m.HorariosListaPage,
+          ),
+        title: 'Horarios · Hotel San Francisco',
+      },
+      {
+        path: 'horarios/asignaciones',
+        canActivate: [horariosGuard],
+        loadComponent: () =>
+          import('./features/horarios/pages/asignaciones/asignaciones-horario.page').then(
+            (m) => m.AsignacionesHorarioPage,
+          ),
+        title: 'Asignación de horarios · Hotel San Francisco',
+      },
+      {
+        path: 'asistencias',
+        canActivate: [asistenciaGuard],
+        loadComponent: () =>
+          import('./features/asistencia/pages/asistencia-lista/asistencia-lista.page').then(
+            (m) => m.AsistenciaListaPage,
+          ),
+        title: 'Asistencia · Hotel San Francisco',
+      },
+      {
+        path: 'nomina',
+        canActivate: [nominaGuard],
+        loadComponent: () =>
+          import('./features/nomina/pages/nomina-lista/nomina-lista.page').then(
+            (m) => m.NominaListaPage,
+          ),
+        title: 'Nómina · Hotel San Francisco',
       },
       {
         path: 'reservations',
