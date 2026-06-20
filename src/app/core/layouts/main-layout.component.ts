@@ -150,6 +150,7 @@ export class MainLayoutComponent {
     { label: 'Notificaciones',icon: '✉', link: '/notifications' },
     { label: 'Solicitudes',   icon: '✎', link: '/solicitudes' },
     { label: 'Gestión Solic.',icon: '❖', link: '/solicitudes/gestion', soloAdmin: true },
+    { label: 'Auditoría',     icon: '⊡', link: '/auditoria', soloAdmin: true },
     { label: 'Gerencial',     icon: '◈', link: '/management' },
     { label: 'Huéspedes',     icon: '☺', link: '/guests' },
     { label: 'Empleados',     icon: '✤', link: '/employees' },
