@@ -148,6 +148,8 @@ export class MainLayoutComponent {
     { label: 'Gerencial',     icon: '◈', link: '/management' },
     { label: 'Huéspedes',     icon: '☺', link: '/guests' },
     { label: 'Empleados',     icon: '✤', link: '/employees' },
+    { label: 'Productos',     icon: '◫', link: '/products' },
+    { label: 'Compras',       icon: '⇪', link: '/purchases' },
     { label: 'Usuarios',      icon: '⚙', link: '/users' },
   ];
 
