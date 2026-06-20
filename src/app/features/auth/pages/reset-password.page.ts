@@ -1,5 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
@@ -22,14 +28,17 @@ function matchPasswords(group: AbstractControl): ValidationErrors | null {
         <div
           class="absolute inset-0 bg-cover bg-center"
           style="background-image:url('https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=1400&q=80')"
-          aria-hidden="true"></div>
+          aria-hidden="true"
+        ></div>
         <div
           class="absolute inset-0 bg-gradient-to-br from-[var(--color-ink)]/85 via-[var(--color-ink)]/60 to-[var(--color-primary-700)]/55"
-          aria-hidden="true"></div>
+          aria-hidden="true"
+        ></div>
         <div class="relative h-full flex flex-col justify-between p-12 text-white">
           <a routerLink="/home" class="inline-flex items-center gap-3 group">
             <div
-              class="w-12 h-12 rounded-full bg-[var(--color-primary-500)] text-[var(--color-ink)] flex items-center justify-center font-extrabold shadow-lg">
+              class="w-12 h-12 rounded-full bg-[var(--color-primary-500)] text-[var(--color-ink)] flex items-center justify-center font-extrabold shadow-lg"
+            >
               SF
             </div>
             <div class="leading-tight">
@@ -47,29 +56,38 @@ function matchPasswords(group: AbstractControl): ValidationErrors | null {
 
       <section
         class="flex items-center justify-center px-6 py-12 sm:px-12"
-        aria-label="Restablecer contraseña">
+        aria-label="Restablecer contraseña"
+      >
         <div class="w-full max-w-md">
           @if (!token) {
-            <div class="rounded-lg border border-[var(--color-danger-500)]/40 bg-white p-5" role="alert">
+            <div
+              class="rounded-lg border border-[var(--color-danger-500)]/40 bg-white p-5"
+              role="alert"
+            >
               <p class="font-semibold text-[var(--color-ink)]">Enlace no válido</p>
               <p class="mt-2 text-[15px] text-[var(--color-ink-muted)]">
                 El enlace de recuperación es inválido o ha expirado. Solicita uno nuevo.
               </p>
               <a
                 routerLink="/recuperar-contrasena"
-                class="mt-5 inline-flex text-[var(--color-primary-700)] font-medium hover:underline">
+                class="mt-5 inline-flex text-[var(--color-primary-700)] font-medium hover:underline"
+              >
                 Solicitar nuevo enlace
               </a>
             </div>
           } @else if (done()) {
-            <div class="rounded-lg border border-[var(--color-border-soft)] bg-white p-5" role="status">
+            <div
+              class="rounded-lg border border-[var(--color-border-soft)] bg-white p-5"
+              role="status"
+            >
               <p class="font-semibold text-[var(--color-ink)]">Contraseña actualizada</p>
               <p class="mt-2 text-[15px] text-[var(--color-ink-muted)]">
                 Ya puedes iniciar sesión con tu nueva contraseña.
               </p>
               <a
                 routerLink="/login"
-                class="mt-5 inline-flex text-[var(--color-primary-700)] font-medium hover:underline">
+                class="mt-5 inline-flex text-[var(--color-primary-700)] font-medium hover:underline"
+              >
                 Ir a iniciar sesión
               </a>
             </div>
@@ -86,7 +104,8 @@ function matchPasswords(group: AbstractControl): ValidationErrors | null {
               (ngSubmit)="onSubmit()"
               novalidate
               class="space-y-5"
-              aria-label="Formulario de nueva contraseña">
+              aria-label="Formulario de nueva contraseña"
+            >
               <div>
                 <label for="nueva" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
                   Nueva contraseña <span class="text-[var(--color-danger-500)]">*</span>
@@ -97,7 +116,8 @@ function matchPasswords(group: AbstractControl): ValidationErrors | null {
                   formControlName="nuevaContrasena"
                   placeholder="Mínimo 6 caracteres"
                   autocomplete="new-password"
-                  [class]="inputClass(showError('nuevaContrasena'))" />
+                  [class]="inputClass(showError('nuevaContrasena'))"
+                />
                 @if (showError('nuevaContrasena')) {
                   <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">
                     La contraseña debe tener al menos 6 caracteres.
@@ -115,7 +135,8 @@ function matchPasswords(group: AbstractControl): ValidationErrors | null {
                   formControlName="confirmarContrasena"
                   placeholder="Repite la contraseña"
                   autocomplete="new-password"
-                  [class]="inputClass(mismatch())" />
+                  [class]="inputClass(mismatch())"
+                />
                 @if (mismatch()) {
                   <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">
                     Las contraseñas no coinciden.
@@ -127,7 +148,8 @@ function matchPasswords(group: AbstractControl): ValidationErrors | null {
                 type="submit"
                 [block]="true"
                 [loading]="loading()"
-                [disabled]="form.invalid">
+                [disabled]="form.invalid"
+              >
                 Restablecer contraseña
               </ui-button>
             </form>
@@ -150,7 +172,10 @@ export class ResetPasswordPage {
 
   readonly form = this.fb.nonNullable.group(
     {
-      nuevaContrasena: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(100)]],
+      nuevaContrasena: [
+        '',
+        [Validators.required, Validators.minLength(6), Validators.maxLength(100)],
+      ],
       confirmarContrasena: ['', [Validators.required]],
     },
     { validators: matchPasswords },
@@ -182,7 +207,10 @@ export class ResetPasswordPage {
 
     this.loading.set(true);
     this.auth
-      .resetPassword({ token: this.token, nuevaContrasena: this.form.getRawValue().nuevaContrasena })
+      .resetPassword({
+        token: this.token,
+        nuevaContrasena: this.form.getRawValue().nuevaContrasena,
+      })
       .subscribe({
         next: () => {
           this.loading.set(false);
