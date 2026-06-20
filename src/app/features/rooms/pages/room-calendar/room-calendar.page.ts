@@ -94,7 +94,7 @@ const ESTADO_DOT: Record<string, string> = {
             class="h-9 px-3 pr-8 rounded-lg border border-[#EEE3D1] bg-white
                    text-sm text-[#2D2926] focus:outline-none focus:border-[#C5A048]
                    appearance-none cursor-pointer"
-            style="background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%232D2926' stroke-width='2'%3E%3Cpath stroke-linecap='round' d='M6 9l6 6 6-6'/%3E%3C/svg%3E\");
+            style="background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 24 24%27 stroke=%27%232D2926%27 stroke-width=%272%27%3E%3Cpath stroke-linecap=%27round%27 d=%27M6 9l6 6 6-6%27/%3E%3C/svg%3E');
                    background-repeat:no-repeat;background-position:right 8px center;background-size:16px">
             <option value="TODOS">Todos</option>
             @for (tipo of tipos(); track tipo) {

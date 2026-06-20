@@ -8,6 +8,8 @@ interface NavItem {
   label: string;
   icon: string;
   link: string;
+  /** Si true, solo visible para el rol ADMIN (Tier 1). */
+  soloAdmin?: boolean;
 }
 
 @Component({
@@ -135,6 +137,7 @@ export class MainLayoutComponent {
     { label: 'Mis Reservas',    icon: '☷', link: '/reservations/mis-reservas' },
     { label: 'Notificaciones',  icon: '✉', link: '/notifications' },
     { label: 'Pagos y facturas',icon: '✦', link: '/mis-pagos' },
+    { label: 'Solicitudes',     icon: '✎', link: '/solicitudes' },
     { label: 'Mi Perfil',       icon: '☺', link: '/mi-cuenta' },
   ];
 
@@ -145,15 +148,21 @@ export class MainLayoutComponent {
     { label: 'Pagos',         icon: '✦', link: '/payments' },
     { label: 'Reportes',      icon: '▣', link: '/reports' },
     { label: 'Notificaciones',icon: '✉', link: '/notifications' },
+    { label: 'Solicitudes',   icon: '✎', link: '/solicitudes' },
+    { label: 'Gestión Solic.',icon: '❖', link: '/solicitudes/gestion', soloAdmin: true },
     { label: 'Gerencial',     icon: '◈', link: '/management' },
     { label: 'Huéspedes',     icon: '☺', link: '/guests' },
     { label: 'Empleados',     icon: '✤', link: '/employees' },
     { label: 'Usuarios',      icon: '⚙', link: '/users' },
   ];
 
-  readonly nav = computed<NavItem[]>(() =>
-    this.store.rol() === 'CLIENTE' ? this.clienteNav : this.adminNav
-  );
+  readonly nav = computed<NavItem[]>(() => {
+    const rol = this.store.rol();
+    if (rol === 'CLIENTE') return this.clienteNav;
+    // RECEPCION y otros perfiles internos usan el nav admin, pero los ítems
+    // marcados soloAdmin (p. ej. Gestión Global de Solicitudes) son exclusivos de ADMIN.
+    return this.adminNav.filter((item) => !item.soloAdmin || rol === 'ADMIN');
+  });
 
   readonly initials = computed(() => {
     const u = this.user();
