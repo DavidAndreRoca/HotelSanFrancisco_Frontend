@@ -1,102 +1,102 @@
-// features/reservations/components/reservation-table/reservation-table.component.ts
 import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
-import { Reservation, ReservationStatus } from '../../models/reservation.model';
+import { DecimalPipe } from '@angular/common';
+import { Reserva, EstadoReserva } from '../../models/reservation.model';
 
 @Component({
   selector: 'app-reservation-table',
   standalone: true,
+  imports: [DecimalPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="table-container">
       <table class="reservation-table">
         <thead>
           <tr>
-            <th>Huésped</th>
-            <th>Documento</th>
+            <th>Código</th>
+            <th>Huésped principal</th>
             <th>Habitación</th>
             <th>Check-in</th>
             <th>Check-out</th>
             <th>Estado</th>
-            <th>Monto</th>
+            <th>Monto total</th>
             <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
-          @for (reservation of reservations(); track reservation.id) {
+          @for (reserva of reservas(); track reserva.reservaId) {
             <tr>
-              <td class="guest-cell">
-                <div class="guest-name">{{ reservation.guestName }}</div>
-                <div class="guest-phone">{{ reservation.guestPhone }}</div>
+              <td>
+                <span class="cod-reserva">{{ reserva.codReserva }}</span>
               </td>
-              <td>{{ reservation.guestDocument }}</td>
+              <td class="guest-cell">
+                <div class="guest-name">{{ huesped(reserva).nombreCompleto }}</div>
+                <div class="guest-doc">{{ huesped(reserva).numeroDocumento }}</div>
+              </td>
               <td>
                 <div class="room-info">
-                  <span class="room-number">{{ reservation.roomNumber }}</span>
-                  <span class="room-type">{{ reservation.roomType }}</span>
+                  <span class="room-number">{{ habitacion(reserva).habitacionNumero }}</span>
+                  <span class="room-type">{{ habitacion(reserva).tipoHabitacionNombre }}</span>
                 </div>
               </td>
-              <td>{{ formatDate(reservation.checkIn) }}</td>
-              <td>{{ formatDate(reservation.checkOut) }}</td>
+              <td>{{ formatFecha(reserva.fechaInicio) }}</td>
+              <td>{{ formatFecha(reserva.fechaFin) }}</td>
               <td>
-                <span class="status-badge" [class]="getStatusClass(reservation.status)">
-                  {{ getStatusLabel(reservation.status) }}
-                </span>
-                <span class="payment-badge" [class]="getPaymentClass(reservation.paymentStatus)">
-                  {{ getPaymentLabel(reservation.paymentStatus) }}
+                <span [className]="getEstadoClass(reserva.estado)">
+                  {{ getEstadoLabel(reserva.estado) }}
                 </span>
               </td>
               <td>
                 <div class="amount-info">
-                  <span class="total-amount">S/ {{ reservation.totalAmount }}</span>
-                  @if (reservation.paidAmount > 0 && reservation.paidAmount < reservation.totalAmount) {
-                    <span class="paid-amount">Pagado: S/ {{ reservation.paidAmount }}</span>
+                  <span class="total-amount">S/ {{ reserva.montoTotal | number:'1.2-2' }}</span>
+                  @if (reserva.adelanto > 0) {
+                    <span class="adelanto-amount">Adelanto: S/ {{ reserva.adelanto | number:'1.2-2' }}</span>
                   }
                 </div>
               </td>
               <td>
                 <div class="action-buttons">
-                  <button 
+                  <button
                     class="action-btn view-btn"
-                    (click)="onViewReservation.emit(reservation.id)"
+                    (click)="onVerReserva.emit(reserva.reservaId)"
                     title="Ver detalles">
                     👁️
                   </button>
-                  <button 
+                  <button
                     class="action-btn edit-btn"
-                    (click)="onEditReservation.emit(reservation.id)"
+                    (click)="onEditarReserva.emit(reserva.reservaId)"
                     title="Editar reserva">
                     ✏️
                   </button>
-                  @if (reservation.status === 'confirmed') {
-                    <button 
+                  @if (reserva.estado === 'CONFIRMADA' || reserva.estado === 'PENDIENTE') {
+                    <button
                       class="action-btn checkin-btn"
-                      (click)="onCheckIn.emit(reservation.id)"
+                      (click)="onCheckIn.emit(reserva.reservaId)"
                       title="Realizar check-in">
                       🏨
                     </button>
                   }
-                  @if (reservation.status === 'checked-in') {
-                    <button 
+                  @if (reserva.estado === 'CHECK_IN') {
+                    <button
                       class="action-btn checkout-btn"
-                      (click)="onCheckOut.emit(reservation.id)"
+                      (click)="onCheckOut.emit(reserva.reservaId)"
                       title="Realizar check-out">
                       🚪
                     </button>
                   }
-                  <button 
-                    class="action-btn cancel-btn"
-                    (click)="onCancelReservation.emit(reservation.id)"
-                    title="Cancelar reserva">
-                    ❌
-                  </button>
+                  @if (reserva.estado !== 'CANCELADA' && reserva.estado !== 'CHECK_OUT') {
+                    <button
+                      class="action-btn cancel-btn"
+                      (click)="onCancelarReserva.emit(reserva.reservaId)"
+                      title="Cancelar reserva">
+                      ❌
+                    </button>
+                  }
                 </div>
               </td>
             </tr>
           } @empty {
             <tr>
-              <td colspan="8" class="empty-table">
-                No se encontraron reservas
-              </td>
+              <td colspan="8" class="empty-table">No se encontraron reservas</td>
             </tr>
           }
         </tbody>
@@ -104,53 +104,16 @@ import { Reservation, ReservationStatus } from '../../models/reservation.model';
     </div>
   `,
   styles: `
-    /* Importar fuente Inter */
     @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100..900;1,100..900&display=swap');
 
-    * {
-      font-family: 'Inter', sans-serif;
-    }
+    * { font-family: 'Inter', sans-serif; }
 
     .table-container {
       background: white;
       border-radius: 0.75rem;
       overflow-x: auto;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
-      border: 1px solid #EEE3D1; /* Details: Crema Suave */
-    }
-
-    .table-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem 1.25rem;
-      background: #F9F5F0;
-      border-bottom: 2px solid #C5A048; /* Primary: Dorado Principal */
-    }
-
-    .table-title {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .title-icon {
-      font-size: 1.25rem;
-    }
-
-    .table-title h3 {
-      margin: 0;
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: #2D2926;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .table-info {
-      font-size: 0.75rem;
-      color: #8E6F2E;
-      font-weight: 500;
+      border: 1px solid #EEE3D1;
     }
 
     .reservation-table {
@@ -179,30 +142,17 @@ import { Reservation, ReservationStatus } from '../../models/reservation.model';
       color: #2D2926;
     }
 
-    .reservation-table tr {
-      transition: background 0.2s ease;
+    .reservation-table tr { transition: background 0.2s ease; }
+    .reservation-table tr:hover { background: #F9F5F0; }
+
+    .cod-reserva {
+      font-family: monospace;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: #8E6F2E;
     }
 
-    .reservation-table tr:hover {
-      background: #F9F5F0;
-    }
-
-    /* Estilo para filas según estado */
-    .reservation-table tr.row-confirmed:hover {
-      background: #FFFDF5;
-    }
-
-    .reservation-table tr.row-checked-in:hover {
-      background: #FEF9E7;
-    }
-
-    .reservation-table tr.row-checked-out:hover {
-      background: #F5F3F0;
-    }
-
-    .guest-cell {
-      min-width: 180px;
-    }
+    .guest-cell { min-width: 180px; }
 
     .guest-name {
       font-weight: 600;
@@ -210,22 +160,13 @@ import { Reservation, ReservationStatus } from '../../models/reservation.model';
       font-size: 0.875rem;
     }
 
-    .guest-phone {
+    .guest-doc {
       font-size: 0.7rem;
       color: #8E6F2E;
-      margin-top: 0.25rem;
+      margin-top: 0.125rem;
     }
 
-    .document-cell {
-      font-family: monospace;
-      font-size: 0.8125rem;
-      color: #6B7280;
-    }
-
-    .room-info {
-      display: flex;
-      flex-direction: column;
-    }
+    .room-info { display: flex; flex-direction: column; }
 
     .room-number {
       font-weight: 700;
@@ -239,13 +180,7 @@ import { Reservation, ReservationStatus } from '../../models/reservation.model';
       margin-top: 0.125rem;
     }
 
-    .badges-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .status-badge, .payment-badge {
+    .status-badge {
       display: inline-block;
       padding: 0.25rem 0.625rem;
       border-radius: 0.375rem;
@@ -255,52 +190,14 @@ import { Reservation, ReservationStatus } from '../../models/reservation.model';
       letter-spacing: 0.3px;
     }
 
-    /* Estados de reserva */
-    .status-confirmed {
-      background: #E8F5E9;
-      color: #2E7D32;
-    }
+    .estado-CONFIRMADA  { background: #E8F5E9; color: #2E7D32; }
+    .estado-CHECK_IN    { background: #FFF8E1; color: #C5A048; }
+    .estado-CHECK_OUT   { background: #F5F5F5; color: #6B7280; }
+    .estado-CANCELADA   { background: #FFEBEE; color: #C62828; }
+    .estado-PENDIENTE   { background: #FFF3E0; color: #E6A017; }
+    .estado-NO_SHOW     { background: #F3E5F5; color: #6A1B9A; }
 
-    .status-checked-in {
-      background: #FFF8E1;
-      color: #C5A048;
-    }
-
-    .status-checked-out {
-      background: #F5F5F5;
-      color: #6B7280;
-    }
-
-    .status-cancelled {
-      background: #FFEBEE;
-      color: #C62828;
-    }
-
-    .status-pending {
-      background: #FFF3E0;
-      color: #E6A017;
-    }
-
-    /* Estados de pago */
-    .payment-paid {
-      background: #E8F5E9;
-      color: #2E7D32;
-    }
-
-    .payment-pending {
-      background: #FFF3E0;
-      color: #E6A017;
-    }
-
-    .payment-partial {
-      background: #FFF8E1;
-      color: #C5A048;
-    }
-
-    .amount-info {
-      display: flex;
-      flex-direction: column;
-    }
+    .amount-info { display: flex; flex-direction: column; }
 
     .total-amount {
       font-weight: 700;
@@ -308,22 +205,13 @@ import { Reservation, ReservationStatus } from '../../models/reservation.model';
       font-size: 0.875rem;
     }
 
-    .paid-amount {
+    .adelanto-amount {
       font-size: 0.7rem;
       color: #2E7D32;
       margin-top: 0.125rem;
     }
 
-    .paid-full {
-      color: #059669;
-      font-weight: 500;
-    }
-
-    .action-buttons {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
+    .action-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
     .action-btn {
       background: transparent;
@@ -340,120 +228,66 @@ import { Reservation, ReservationStatus } from '../../models/reservation.model';
       justify-content: center;
     }
 
-    .action-btn:hover {
-      transform: scale(1.05);
-    }
+    .action-btn:hover { transform: scale(1.05); }
+    .view-btn:hover     { background: #E3F2FD; }
+    .edit-btn:hover     { background: #FFF8E1; }
+    .checkin-btn:hover  { background: #E8F5E9; }
+    .checkout-btn:hover { background: #E0E7FF; }
+    .cancel-btn:hover   { background: #FFEBEE; }
 
-    .view-btn:hover { 
-      background: #E3F2FD; 
-      color: #1565C0;
-    }
-    .edit-btn:hover { 
-      background: #FFF8E1; 
-      color: #C5A048;
-    }
-    .checkin-btn:hover { 
-      background: #E8F5E9; 
-      color: #2E7D32;
-    }
-    .checkout-btn:hover { 
-      background: #E0E7FF; 
-      color: #4338CA;
-    }
-    .cancel-btn:hover { 
-      background: #FFEBEE; 
-      color: #C62828;
-    }
-
-    /* Estado vacío */
     .empty-table {
       text-align: center;
       padding: 3rem !important;
-    }
-
-    .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .empty-icon {
-      font-size: 3rem;
-      opacity: 0.5;
-    }
-
-    .empty-state p {
-      margin: 0;
-      color: #2D2926;
-      font-weight: 500;
-    }
-
-    .empty-hint {
-      font-size: 0.75rem;
       color: #8E6F2E;
     }
 
-    /* Responsive */
     @media (max-width: 768px) {
-      .table-header {
-        padding: 0.75rem 1rem;
-      }
-
       .reservation-table th,
-      .reservation-table td {
-        padding: 0.75rem;
-      }
-
-      .action-buttons {
-        flex-direction: column;
-        gap: 0.25rem;
-      }
-
-      .action-btn {
-        width: 32px;
-        height: 32px;
-      }
+      .reservation-table td { padding: 0.75rem; }
+      .action-buttons { flex-direction: column; gap: 0.25rem; }
+      .action-btn { width: 32px; height: 32px; }
     }
   `
 })
 export class ReservationTableComponent {
-  reservations = input.required<Reservation[]>();
-  onViewReservation = output<number>();
-  onEditReservation = output<number>();
-  onCheckIn = output<number>();
-  onCheckOut = output<number>();
-  onCancelReservation = output<number>();
+  reservas = input.required<Reserva[]>();
 
-  formatDate(date: Date): string {
-    return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-  }
+  onVerReserva      = output<number>();
+  onEditarReserva   = output<number>();
+  onCheckIn         = output<number>();
+  onCheckOut        = output<number>();
+  onCancelarReserva = output<number>();
 
-  getStatusClass(status: ReservationStatus): string {
-    return `status-${status}`;
-  }
-
-  getStatusLabel(status: ReservationStatus): string {
-    const labels = {
-      'confirmed': 'Confirmada',
-      'checked-in': 'Check-in',
-      'checked-out': 'Check-out',
-      'cancelled': 'Cancelada',
-      'pending': 'Pendiente'
+  huesped(reserva: Reserva) {
+    return reserva.huespedes.find(h => h.esPrincipal) ?? reserva.huespedes[0] ?? {
+      nombreCompleto: '—', numeroDocumento: '—', correo: null, telefono: null, esPrincipal: true, huespedId: 0
     };
-    return labels[status];
   }
 
-  getPaymentClass(paymentStatus: string): string {
-    return `payment-${paymentStatus}`;
-  }
-
-  getPaymentLabel(paymentStatus: string): string {
-    const labels = {
-      'paid': 'Pagado',
-      'pending': 'Pendiente',
-      'partial': 'Parcial'
+  habitacion(reserva: Reserva) {
+    return reserva.habitaciones[0] ?? {
+      habitacionNumero: '—', tipoHabitacionNombre: '—'
     };
-    return labels[paymentStatus as keyof typeof labels];
+  }
+
+  formatFecha(fecha: string): string {
+    const [y, m, d] = fecha.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  getEstadoClass(estado: EstadoReserva): string {
+    return `status-badge estado-${estado}`;
+  }
+
+  getEstadoLabel(estado: EstadoReserva): string {
+    const labels: Record<EstadoReserva, string> = {
+      PENDIENTE:  'Pendiente',
+      CONFIRMADA: 'Confirmada',
+      CHECK_IN:   'Check-in',
+      CHECK_OUT:  'Check-out',
+      CANCELADA:  'Cancelada',
+      NO_SHOW:    'No show',
+    };
+    return labels[estado];
   }
 }
