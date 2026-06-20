@@ -7,6 +7,7 @@ import {
   CreateReservaPayload, UpdateReservaPayload,
   CambiarEstadoPayload, CancelarReservaPayload,
   CancelacionResponse, HistorialReserva,
+  PagoReserva,
 } from '../models/reservation.model';
 
 @Injectable({ providedIn: 'root' })
@@ -86,6 +87,14 @@ export class ReservationService {
   findById(id: number): Reserva | undefined       { return this._reservas().find(r => r.reservaId === id); }
   findByCodigo(cod: string): Reserva | undefined  { return this._reservas().find(r => r.codReserva === cod); }
   findByUsuario(uid: number): Reserva[]           { return this._reservas().filter(r => r.usuarioId === uid); }
+
+  getById(id: number): Observable<Reserva> {
+    return this.api.get<Reserva>(`/api/v1/reservas/${id}`);
+  }
+
+  getPagos(reservaId: number): Observable<PagoReserva[]> {
+    return this.api.get<PagoReserva[]>(`/api/v1/pagos/reserva/${reservaId}`);
+  }
 
   obtenerHistorial(reservaId: number): Observable<HistorialReserva[]> {
     return this.api.get<HistorialReserva[]>(`/api/v1/reservas/${reservaId}/historial`);
