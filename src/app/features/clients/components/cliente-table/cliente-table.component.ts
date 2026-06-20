@@ -1,248 +1,119 @@
 import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
-import { Cliente, EstadoActivo } from '../../models/cliente.model';
+import { Cliente } from '../../models/cliente.model';
 
 @Component({
   selector: 'app-cliente-table',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="table-container">
-      <div class="table-header">
-        <span class="table-title">Listado de clientes</span>
-        <button class="add-btn" (click)="onNuevoCliente.emit()">
-          ➕ Nuevo Cliente
-        </button>
-      </div>
+    <div class="bg-white rounded-2xl border border-[#EEE3D1] overflow-hidden">
 
-      <table class="cliente-table">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Documento</th>
-            <th>Nacionalidad</th>
-            <th>Correo</th>
-            <th>Teléfono</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (cliente of clientes(); track cliente.huespedId) {
-            <tr>
-              <td class="name-cell">
-                <div class="cliente-nombre">{{ cliente.nombreCompleto }}</div>
-              </td>
-              <td>
-                <span class="doc-text">{{ cliente.numeroDocumento }}</span>
-              </td>
-              <td>{{ cliente.nacionalidad ?? '—' }}</td>
-              <td>
-                <span class="correo-text">{{ cliente.correo ?? '—' }}</span>
-              </td>
-              <td>{{ cliente.telefono ?? '—' }}</td>
-              <td>
-                <span [className]="getEstadoClass(cliente.estado)">
-                  {{ cliente.estado === 'ACTIVO' ? 'Activo' : 'Inactivo' }}
-                </span>
-              </td>
-              <td>
-                <div class="action-buttons">
-                  <button
-                    class="action-btn view-btn"
-                    (click)="onVerCliente.emit(cliente.huespedId)"
-                    title="Ver detalles">
-                    👁️
-                  </button>
-                  <button
-                    class="action-btn edit-btn"
-                    (click)="onEditarCliente.emit(cliente.huespedId)"
-                    title="Editar cliente">
-                    ✏️
-                  </button>
-                  <button
-                    class="action-btn toggle-btn"
-                    (click)="onToggleEstado.emit(cliente.huespedId)"
-                    [title]="cliente.estado === 'ACTIVO' ? 'Desactivar' : 'Activar'">
-                    {{ cliente.estado === 'ACTIVO' ? '🔴' : '🟢' }}
-                  </button>
-                  <button
-                    class="action-btn delete-btn"
-                    (click)="onEliminarCliente.emit(cliente.huespedId)"
-                    title="Eliminar cliente">
-                    🗑️
-                  </button>
-                </div>
-              </td>
-            </tr>
-          } @empty {
-            <tr>
-              <td colspan="7" class="empty-table">No se encontraron clientes</td>
-            </tr>
-          }
-        </tbody>
-      </table>
+      @if (clientes().length === 0) {
+        <div class="py-16 text-center">
+          <p class="text-sm font-semibold text-[#2D2926]">Sin clientes</p>
+          <p class="text-xs text-[#2D2926]/45 mt-1">No se encontraron clientes con los filtros aplicados.</p>
+        </div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[800px] text-sm">
+            <thead>
+              <tr class="border-b border-[#EEE3D1] text-left text-[11px] uppercase tracking-wide
+                         text-[#2D2926]/50">
+                <th class="px-4 py-3 font-semibold">Nombre</th>
+                <th class="px-4 py-3 font-semibold">Documento</th>
+                <th class="px-4 py-3 font-semibold">Nacionalidad</th>
+                <th class="px-4 py-3 font-semibold">Correo</th>
+                <th class="px-4 py-3 font-semibold">Teléfono</th>
+                <th class="px-4 py-3 font-semibold">Estado</th>
+                <th class="px-4 py-3 font-semibold text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of clientes(); track c.huespedId) {
+                <tr class="border-b border-[#EEE3D1] last:border-0 hover:bg-[#F9F5F0] transition-colors">
+
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-2.5">
+                      <div class="w-8 h-8 rounded-full bg-[#C5A048] text-white shrink-0
+                                  flex items-center justify-center font-bold text-xs">
+                        {{ c.nombreCompleto.charAt(0) }}
+                      </div>
+                      <span class="font-semibold text-[#2D2926]">{{ c.nombreCompleto }}</span>
+                    </div>
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <span class="font-mono text-xs text-[#2D2926]/60">{{ c.numeroDocumento }}</span>
+                  </td>
+
+                  <td class="px-4 py-3 text-[#2D2926]/70">{{ c.nacionalidad ?? '—' }}</td>
+
+                  <td class="px-4 py-3 text-xs text-[#2D2926]/60">{{ c.correo ?? '—' }}</td>
+
+                  <td class="px-4 py-3 text-[#2D2926]/70">{{ c.telefono ?? '—' }}</td>
+
+                  <td class="px-4 py-3">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
+                                 text-[11px] font-semibold border"
+                          [class]="c.estado === 'ACTIVO'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-red-50 text-red-700 border-red-200'">
+                      <span class="w-1.5 h-1.5 rounded-full"
+                            [class]="c.estado === 'ACTIVO' ? 'bg-emerald-500' : 'bg-red-500'">
+                      </span>
+                      {{ c.estado === 'ACTIVO' ? 'Activo' : 'Inactivo' }}
+                    </span>
+                  </td>
+
+                  <td class="px-4 py-3">
+                    <div class="flex items-center justify-end gap-1.5">
+                      <button type="button"
+                        (click)="onVerCliente.emit(c.huespedId)"
+                        class="h-7 px-2.5 rounded-lg border border-[#EEE3D1] text-[11px] font-medium
+                               text-[#2D2926]/60 hover:border-[#C5A048] hover:text-[#C5A048] transition-colors"
+                        title="Ver detalles">
+                        Ver
+                      </button>
+                      <button type="button"
+                        (click)="onEditarCliente.emit(c.huespedId)"
+                        class="h-7 px-2.5 rounded-lg border border-[#EEE3D1] text-[11px] font-medium
+                               text-[#2D2926]/60 hover:border-[#C5A048] hover:text-[#C5A048] transition-colors"
+                        title="Editar">
+                        Editar
+                      </button>
+                      <button type="button"
+                        (click)="onToggleEstado.emit(c.huespedId)"
+                        class="h-7 px-2.5 rounded-lg border text-[11px] font-medium transition-colors"
+                        [class]="c.estado === 'ACTIVO'
+                          ? 'border-red-100 text-red-500 hover:bg-red-50'
+                          : 'border-emerald-100 text-emerald-600 hover:bg-emerald-50'"
+                        [title]="c.estado === 'ACTIVO' ? 'Desactivar' : 'Activar'">
+                        {{ c.estado === 'ACTIVO' ? 'Desactivar' : 'Activar' }}
+                      </button>
+                      <button type="button"
+                        (click)="onEliminarCliente.emit(c.huespedId)"
+                        class="h-7 px-2.5 rounded-lg border border-red-100 text-[11px] font-medium
+                               text-red-500 hover:bg-red-50 transition-colors"
+                        title="Eliminar">
+                        Eliminar
+                      </button>
+                    </div>
+                  </td>
+
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
     </div>
   `,
-  styles: `
-    @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100..900;1,100..900&display=swap');
-    * { font-family: 'Inter', sans-serif; }
-
-    .table-container {
-      background: white;
-      border-radius: 0.75rem;
-      overflow-x: auto;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-      border: 1px solid #EEE3D1;
-    }
-
-    .table-header {
-      padding: 1rem 1.25rem;
-      border-bottom: 2px solid #C5A048;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-      background: #F9F5F0;
-    }
-
-    .table-title {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: #2D2926;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .add-btn {
-      padding: 0.5rem 1.25rem;
-      background: #C5A048;
-      color: white;
-      border: none;
-      border-radius: 0.5rem;
-      cursor: pointer;
-      font-size: 0.8125rem;
-      font-weight: 600;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .add-btn:hover {
-      background: #8E6F2E;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(197,160,72,0.3);
-    }
-
-    .cliente-table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 800px;
-    }
-
-    .cliente-table th {
-      text-align: left;
-      padding: 0.875rem 1rem;
-      background: #F9F5F0;
-      font-weight: 600;
-      font-size: 0.75rem;
-      color: #8E6F2E;
-      border-bottom: 1px solid #EEE3D1;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .cliente-table td {
-      padding: 1rem;
-      border-bottom: 1px solid #EEE3D1;
-      vertical-align: middle;
-      font-size: 0.875rem;
-      color: #2D2926;
-    }
-
-    .cliente-table tr { transition: background 0.2s ease; }
-    .cliente-table tr:hover { background: #F9F5F0; }
-
-    .name-cell { min-width: 200px; }
-
-    .cliente-nombre {
-      font-weight: 600;
-      color: #2D2926;
-    }
-
-    .doc-text {
-      font-family: monospace;
-      font-size: 0.8125rem;
-      color: #6B7280;
-    }
-
-    .correo-text {
-      font-size: 0.8125rem;
-      color: #6B7280;
-    }
-
-    .estado-ACTIVO {
-      display: inline-block;
-      padding: 0.25rem 0.625rem;
-      border-radius: 2rem;
-      font-size: 0.7rem;
-      font-weight: 600;
-      background: #E8F5E9;
-      color: #2E7D32;
-    }
-
-    .estado-INACTIVO {
-      display: inline-block;
-      padding: 0.25rem 0.625rem;
-      border-radius: 2rem;
-      font-size: 0.7rem;
-      font-weight: 600;
-      background: #FFEBEE;
-      color: #C62828;
-    }
-
-    .action-buttons { display: flex; gap: 0.5rem; }
-
-    .action-btn {
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      font-size: 1rem;
-      padding: 0.375rem;
-      transition: all 0.2s ease;
-      border-radius: 0.375rem;
-      width: 28px; height: 28px;
-      display: flex; align-items: center; justify-content: center;
-    }
-
-    .action-btn:hover { transform: scale(1.05); }
-    .view-btn:hover   { background: #E3F2FD; }
-    .edit-btn:hover   { background: #FFF8E1; }
-    .toggle-btn:hover { background: #F3E5F5; }
-    .delete-btn:hover { background: #FFEBEE; }
-
-    .empty-table {
-      text-align: center;
-      padding: 3rem !important;
-      color: #8E6F2E;
-    }
-
-    @media (max-width: 768px) {
-      .cliente-table th, .cliente-table td { padding: 0.75rem; }
-      .action-buttons { flex-direction: column; gap: 0.25rem; }
-    }
-  `
 })
 export class ClienteTableComponent {
   clientes = input.required<Cliente[]>();
 
-  onNuevoCliente   = output<void>();
-  onVerCliente     = output<number>();
-  onEditarCliente  = output<number>();
-  onToggleEstado   = output<number>();
+  onVerCliente      = output<number>();
+  onEditarCliente   = output<number>();
+  onToggleEstado    = output<number>();
   onEliminarCliente = output<number>();
-
-  getEstadoClass(estado: EstadoActivo): string {
-    return `estado-${estado}`;
-  }
 }

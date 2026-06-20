@@ -8,6 +8,12 @@ import { AuthStore } from '../auth/auth.store';
 
 const SUPPRESS_TOAST_PATHS = ['/auth/me', '/auth/refresh'];
 
+// Rutas públicas que no deben redirigir al login ante un 401
+const PUBLIC_API_PATHS = [
+  '/api/v1/tipos-habitacion',
+  '/api/v1/booking',
+];
+
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const toastr = inject(ToastrService);
   const router = inject(Router);
@@ -19,11 +25,13 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       const path = new URL(req.url, window.location.origin).pathname;
       const suppress = SUPPRESS_TOAST_PATHS.some((p) => path.endsWith(p));
 
+      const isPublicPath = PUBLIC_API_PATHS.some((p) => path.startsWith(p));
+
       if (err.status === 0) {
         if (!suppress) toastr.error('No se pudo conectar con el servidor.', 'Sin conexión');
       } else if (err.status === 401) {
-        auth.clear();
-        if (!path.endsWith('/auth/login') && !suppress) {
+        if (!isPublicPath) auth.clear();
+        if (!path.endsWith('/auth/login') && !suppress && !isPublicPath) {
           toastr.warning('Tu sesión ha expirado. Inicia sesión nuevamente.');
           router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
         }

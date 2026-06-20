@@ -31,7 +31,7 @@ import { EstadoActivo, RoomType, RoomTypeCreatePayload } from '../../models/room
           }
         </div>
 
-        <div class="grid sm:grid-cols-3 gap-4">
+        <div [class]="editing() ? 'grid sm:grid-cols-3 gap-4' : 'grid sm:grid-cols-2 gap-4'">
           <div>
             <label for="precioBase" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
               Precio base <span class="text-[var(--color-danger-500)]">*</span>
@@ -71,18 +71,20 @@ import { EstadoActivo, RoomType, RoomTypeCreatePayload } from '../../models/room
             }
           </div>
 
-          <div>
-            <label for="estado" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
-              Estado <span class="text-[var(--color-danger-500)]">*</span>
-            </label>
-            <select
-              id="estado"
-              formControlName="estado"
-              [class]="inputCls(form.controls.estado)">
-              <option value="ACTIVO">Activo</option>
-              <option value="INACTIVO">Inactivo</option>
-            </select>
-          </div>
+          @if (editing()) {
+            <div>
+              <label for="estado" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
+                Estado <span class="text-[var(--color-danger-500)]">*</span>
+              </label>
+              <select
+                id="estado"
+                formControlName="estado"
+                [class]="inputCls(form.controls.estado)">
+                <option value="ACTIVO">Activo</option>
+                <option value="INACTIVO">Inactivo</option>
+              </select>
+            </div>
+          }
         </div>
 
         <div>
@@ -197,7 +199,7 @@ export class RoomTypeFormComponent implements OnInit {
       nombre: v.nombre.trim(),
       precioBase: Number(v.precioBase),
       capacidadMaxima: Number(v.capacidadMaxima),
-      estado: v.estado,
+      estado: this.editing() ? v.estado : 'ACTIVO',
       descripcion: v.descripcion?.trim() || null,
     };
     this.submitting.set(true);
