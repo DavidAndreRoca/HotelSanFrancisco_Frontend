@@ -7,6 +7,10 @@ export interface Habitacion {
   estado: EstadoHabitacion;
   descripcion: string | null;
   observaciones: string | null;
+  tipoHabitacionId: number | null;
+  tipoHabitacionNombre: string | null;
+  precioBase: number | null;
+  capacidadMaxima: number | null;
   fechaCreacion: string | null;
   fechaModificacion: string | null;
 }
@@ -15,6 +19,7 @@ export interface CreateHabitacionPayload {
   numero: string;
   piso: number;
   estado: EstadoHabitacion;
+  tipoHabitacionId?: number | null;
   descripcion?: string;
   observaciones?: string;
 }
@@ -23,6 +28,7 @@ export interface UpdateHabitacionPayload {
   numero?: string;
   piso?: number;
   estado?: EstadoHabitacion;
+  tipoHabitacionId?: number | null;
   descripcion?: string;
   observaciones?: string;
 }

@@ -5,50 +5,65 @@ import { ClienteFiltersComponent } from '../../components/cliente-filters/client
 import { ClienteTableComponent } from '../../components/cliente-table/cliente-table.component';
 import { ClienteModalComponent, ClienteModalSaveEvent } from '../../components/cliente-modal/cliente-modal.component';
 import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
-import { RoomSidebarComponent } from '../../../rooms/components/room-sidebar/room-sidebar.component';
 import { Cliente, EstadoActivo } from '../../models/cliente.model';
 
 @Component({
   selector: 'app-clientes-dashboard',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    RoomSidebarComponent,
     ClienteStatsComponent,
     ClienteFiltersComponent,
     ClienteTableComponent,
     ClienteModalComponent,
   ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="dashboard-layout">
-      <app-room-sidebar />
+    <div class="space-y-6">
 
-      <main class="main-content">
-        <div class="header">
-          <div>
-            <h1>Gestión de Clientes</h1>
-            <p class="subtitle">Registro y administración de clientes / huéspedes</p>
-          </div>
+      <!-- Cabecera -->
+      <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <p class="text-[11px] uppercase tracking-[0.3em] text-[#C5A048] font-semibold mb-1">
+            Recepción
+          </p>
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-[#2D2926]">
+            Gestión de clientes
+          </h1>
+          <p class="text-[15px] text-[#2D2926]/55 mt-1">
+            Registro y administración de clientes / huéspedes.
+          </p>
         </div>
+        <button type="button" (click)="abrirCrear()"
+          class="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[#C5A048] text-white
+                 text-sm font-semibold hover:bg-[#8E6F2E] transition-colors shrink-0">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.5" aria-hidden="true">
+            <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
+          </svg>
+          Nuevo cliente
+        </button>
+      </header>
 
-        <app-cliente-stats [stats]="svc.stats()" />
+      <!-- Stats -->
+      <app-cliente-stats [stats]="svc.stats()" />
 
-        <app-cliente-filters
-          [activosCount]="svc.activosCount()"
-          [inactivosCount]="svc.inactivosCount()"
-          (onSearch)="svc.setSearchTerm($event)"
-          (onEstadoFilter)="svc.setEstadoFilter($event)" />
+      <!-- Filtros -->
+      <app-cliente-filters
+        [activosCount]="svc.activosCount()"
+        [inactivosCount]="svc.inactivosCount()"
+        (onSearch)="svc.setSearchTerm($event)"
+        (onEstadoFilter)="svc.setEstadoFilter($event)" />
 
-        <app-cliente-table
-          [clientes]="svc.filteredClientes()"
-          (onNuevoCliente)="abrirCrear()"
-          (onVerCliente)="abrirVer($event)"
-          (onEditarCliente)="abrirEditar($event)"
-          (onToggleEstado)="toggleEstado($event)"
-          (onEliminarCliente)="eliminar($event)" />
-      </main>
+      <!-- Tabla -->
+      <app-cliente-table
+        [clientes]="svc.filteredClientes()"
+        (onVerCliente)="abrirVer($event)"
+        (onEditarCliente)="abrirEditar($event)"
+        (onToggleEstado)="toggleEstado($event)"
+        (onEliminarCliente)="eliminar($event)" />
+
     </div>
 
+    <!-- Modal -->
     <app-cliente-modal
       [isOpen]="modalAbierto()"
       [cliente]="clienteSeleccionado()"
@@ -56,79 +71,10 @@ import { Cliente, EstadoActivo } from '../../models/cliente.model';
       (onClose)="cerrarModal()"
       (onSave)="guardar($event)" />
   `,
-  styles: `
-    @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100..900;1,100..900&display=swap');
-    * { font-family: 'Inter', sans-serif; }
-
-    .dashboard-layout {
-      display: flex;
-      min-height: 100vh;
-      background: #F9F5F0;
-    }
-
-    .main-content {
-      flex: 1;
-      margin-left: 260px;
-      padding: 2rem;
-      background: #F9F5F0;
-      min-height: 100vh;
-      animation: fadeIn 0.4s ease-out;
-    }
-
-    .header {
-      margin-bottom: 2rem;
-      padding-bottom: 1rem;
-      border-bottom: 2px solid #C5A048;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-
-    .header h1 {
-      margin: 0;
-      font-size: 1.875rem;
-      font-weight: 700;
-      color: #2D2926;
-      letter-spacing: -0.02em;
-    }
-
-    .header h1::before {
-      content: '👤';
-      font-size: 1.5rem;
-      margin-right: 0.75rem;
-      vertical-align: middle;
-    }
-
-    .subtitle { color: #8E6F2E; margin: 0.25rem 0 0; font-size: 1rem; }
-
-    app-cliente-stats   { display: block; margin-bottom: 1.5rem; }
-    app-cliente-filters { display: block; margin-bottom: 1.5rem; }
-    app-cliente-table   { display: block; }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    :focus-visible { outline: 2px solid #C5A048; outline-offset: 2px; }
-
-    @media (max-width: 1024px) {
-      .main-content { margin-left: 72px; padding: 1.5rem; }
-      .header h1 { font-size: 1.5rem; }
-    }
-
-    @media (max-width: 768px) {
-      .main-content { margin-left: 0; padding: 1rem; padding-bottom: 80px; }
-      .header { flex-direction: column; align-items: flex-start; }
-      .header h1 { font-size: 1.25rem; }
-    }
-  `
 })
 export class ClientesDashboardComponent {
-  protected svc     = inject(ClienteService);
-  private confirm   = inject(ConfirmDialogService);
+  protected svc   = inject(ClienteService);
+  private confirm = inject(ConfirmDialogService);
 
   modalAbierto        = signal(false);
   clienteSeleccionado = signal<Cliente | null>(null);
@@ -142,20 +88,12 @@ export class ClientesDashboardComponent {
 
   abrirVer(id: number): void {
     const c = this.svc.findById(id);
-    if (c) {
-      this.clienteSeleccionado.set(c);
-      this.modoModal.set('view');
-      this.modalAbierto.set(true);
-    }
+    if (c) { this.clienteSeleccionado.set(c); this.modoModal.set('view'); this.modalAbierto.set(true); }
   }
 
   abrirEditar(id: number): void {
     const c = this.svc.findById(id);
-    if (c) {
-      this.clienteSeleccionado.set(c);
-      this.modoModal.set('edit');
-      this.modalAbierto.set(true);
-    }
+    if (c) { this.clienteSeleccionado.set(c); this.modoModal.set('edit'); this.modalAbierto.set(true); }
   }
 
   cerrarModal(): void {
@@ -179,11 +117,11 @@ export class ClientesDashboardComponent {
 
   async eliminar(id: number): Promise<void> {
     const ok = await this.confirm.ask({
-      title: 'Eliminar cliente',
-      message: '¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer.',
+      title:       'Eliminar cliente',
+      message:     '¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer.',
       confirmText: 'Eliminar',
-      cancelText: 'Cancelar',
-      variant: 'danger',
+      cancelText:  'Cancelar',
+      variant:     'danger',
     });
     if (ok) this.svc.delete(id).subscribe();
   }

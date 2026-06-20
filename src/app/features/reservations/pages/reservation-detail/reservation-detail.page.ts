@@ -10,7 +10,7 @@ import { ActivatedRoute } from '@angular/router';
 import { forkJoin, catchError, of } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { ReservationService } from '../../services/reservation.service';
-import { EstadoReserva, PagoReserva, Reserva } from '../../models/reservation.model';
+import { DetalleHuesped, EstadoReserva, PagoReserva, Reserva, ReservaHabitacion } from '../../models/reservation.model';
 
 const ROOM_IMAGES = [
   'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=900&q=80',
@@ -310,12 +310,12 @@ export class ReservationDetailPage {
     return ROOM_IMAGES[id % ROOM_IMAGES.length];
   }
 
-  primerHab(r: Reserva) {
-    return r.habitaciones[0] ?? null;
+  primerHab(r: Reserva): ReservaHabitacion | null {
+    return r.habitaciones.at(0) ?? null;
   }
 
-  huespedPrincipal(r: Reserva) {
-    return r.huespedes.find((h) => h.esPrincipal) ?? r.huespedes[0] ?? null;
+  huespedPrincipal(r: Reserva): DetalleHuesped | null {
+    return r.huespedes.find((h) => h.esPrincipal) ?? r.huespedes.at(0) ?? null;
   }
 
   formatFecha(fecha: string): string {

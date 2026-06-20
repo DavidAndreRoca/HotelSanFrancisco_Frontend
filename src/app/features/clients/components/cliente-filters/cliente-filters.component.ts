@@ -6,112 +6,47 @@ import { EstadoActivo } from '../../models/cliente.model';
 
 @Component({
   selector: 'app-cliente-filters',
-  standalone: true,
-  imports: [ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ReactiveFormsModule],
   template: `
-    <div class="filters-bar">
-      <div class="search-box">
-        <span class="search-icon">🔍</span>
+    <div class="bg-white rounded-2xl border border-[#EEE3D1] p-4 space-y-3">
+
+      <!-- Búsqueda -->
+      <div class="relative">
+        <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#2D2926]/40"
+             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"/>
+          <path stroke-linecap="round" d="m21 21-3.5-3.5"/>
+        </svg>
         <input
-          type="text"
+          type="search"
           [formControl]="searchControl"
           placeholder="Buscar por nombre, documento, correo o teléfono..."
-          class="search-input"
-          aria-label="Buscar clientes">
+          aria-label="Buscar clientes"
+          class="w-full h-10 pl-9 pr-3 rounded-lg border border-[#EEE3D1] bg-[#F9F5F0] text-sm
+                 focus:outline-none focus:border-[#C5A048] focus:ring-2 focus:ring-[#C5A048]/20
+                 focus:bg-white transition" />
       </div>
 
-      <div class="status-filters">
+      <!-- Filtros de estado -->
+      <div class="flex flex-wrap gap-2">
         @for (f of filtros; track f.value) {
-          <button
-            class="filter-btn"
-            [class.active]="selected === f.value"
+          <button type="button"
+            class="h-8 px-3 rounded-lg text-xs font-semibold border transition-colors"
+            [class]="selected === f.value
+              ? 'bg-[#C5A048] border-[#C5A048] text-white'
+              : 'bg-[#F9F5F0] border-[#EEE3D1] text-[#2D2926] hover:border-[#C5A048] hover:bg-white'"
             (click)="cambiarFiltro(f.value)">
             {{ f.label }}
             @if (f.value !== 'all') {
-              <span class="filter-count">{{ getCount(f.value) }}</span>
+              <span class="ml-1 opacity-75">{{ getCount(f.value) }}</span>
             }
           </button>
         }
       </div>
+
     </div>
   `,
-  styles: `
-    @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100..900;1,100..900&display=swap');
-    * { font-family: 'Inter', sans-serif; }
-
-    .filters-bar {
-      background: white;
-      padding: 1.25rem;
-      border-radius: 0.75rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-      border: 1px solid #EEE3D1;
-    }
-
-    .search-box { position: relative; margin-bottom: 1.25rem; }
-
-    .search-icon {
-      position: absolute; left: 1rem; top: 50%;
-      transform: translateY(-50%);
-      font-size: 1.125rem; color: #8E6F2E; pointer-events: none;
-    }
-
-    .search-input {
-      width: 100%;
-      padding: 0.75rem 1rem 0.75rem 2.75rem;
-      border: 1.5px solid #EEE3D1;
-      border-radius: 0.5rem;
-      font-size: 0.875rem;
-      transition: all 0.2s ease;
-      background: #F9F5F0;
-      color: #2D2926;
-    }
-
-    .search-input:focus {
-      outline: none;
-      border-color: #C5A048;
-      box-shadow: 0 0 0 3px rgba(197,160,72,0.1);
-      background: white;
-    }
-
-    .search-input::placeholder { color: #8E6F2E; opacity: 0.6; }
-
-    .status-filters { display: flex; flex-wrap: wrap; gap: 0.75rem; }
-
-    .filter-btn {
-      padding: 0.625rem 1.25rem;
-      border: 1.5px solid #EEE3D1;
-      background: #F9F5F0;
-      border-radius: 0.5rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: #2D2926;
-    }
-
-    .filter-btn:hover {
-      background: white; border-color: #C5A048;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(197,160,72,0.15);
-    }
-
-    .filter-btn.active {
-      background: #C5A048; border-color: #C5A048;
-      color: white;
-      box-shadow: 0 2px 8px rgba(197,160,72,0.3);
-    }
-
-    .filter-count { margin-left: 0.375rem; font-size: 0.7rem; font-weight: 600; opacity: 0.8; }
-    .filter-btn.active .filter-count { color: white; opacity: 0.95; }
-
-    @media (max-width: 768px) {
-      .filters-bar { padding: 1rem; }
-      .status-filters { gap: 0.5rem; }
-      .filter-btn { padding: 0.5rem 0.875rem; font-size: 0.75rem; }
-    }
-  `
 })
 export class ClienteFiltersComponent {
   onSearch       = output<string>();
@@ -124,8 +59,8 @@ export class ClienteFiltersComponent {
   selected: EstadoActivo | 'all' = 'all';
 
   readonly filtros: { label: string; value: EstadoActivo | 'all' }[] = [
-    { label: 'Todos',    value: 'all' },
-    { label: 'Activos',  value: 'ACTIVO' },
+    { label: 'Todos',     value: 'all'      },
+    { label: 'Activos',   value: 'ACTIVO'   },
     { label: 'Inactivos', value: 'INACTIVO' },
   ];
 
@@ -133,7 +68,7 @@ export class ClienteFiltersComponent {
     this.searchControl.valueChanges.pipe(
       debounceTime(300),
       distinctUntilChanged(),
-      takeUntilDestroyed()
+      takeUntilDestroyed(),
     ).subscribe(v => this.onSearch.emit(v ?? ''));
   }
 

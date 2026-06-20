@@ -42,6 +42,6 @@ export const DEFAULT_ROOM_TYPE_FILTERS: RoomTypeFilters = {
   search: '',
   estado: '',
   page: 0,
-  size: 12,
+  size: 100,
   sort: 'nombre,asc',
 };
