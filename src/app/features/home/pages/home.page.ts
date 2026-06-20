@@ -1,16 +1,19 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component';
+import { RoomTypesService } from '../../rooms/services/room-types.service';
+import { RoomType } from '../../rooms/models/room-type.model';
 
-interface Room {
-  name: string;
-  price: number;
-  description: string;
-  image: string;
-  features: readonly string[];
-}
+const ROOM_IMAGES = [
+  'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1560347876-aeef00ee58a1?auto=format&fit=crop&w=800&q=80',
+];
 
 interface Service {
   image: string;
@@ -24,10 +27,11 @@ interface Service {
   imports: [RouterLink, ReactiveFormsModule, UiButtonComponent],
   templateUrl: './home.page.html',
 })
-export class HomeComponent {
+export class HomeComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly toastr = inject(ToastrService);
+  private readonly roomTypesSvc = inject(RoomTypesService);
 
   readonly searchForm = this.fb.nonNullable.group({
     checkIn: ['', Validators.required],
@@ -35,38 +39,50 @@ export class HomeComponent {
     guests: ['2', Validators.required],
   });
 
-  readonly rooms = signal<Room[]>([
-    {
-      name: 'Habitación Simple',
-      price: 60,
-      description: 'Ideal para viajeros individuales',
-      image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=800&q=80',
-      features: ['1 cama individual', 'Baño privado', 'Wi-Fi gratis'],
-    },
-    {
-      name: 'Habitación Matrimonial',
-      price: 80,
-      description: 'Confort para dos personas',
-      image: 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80',
-      features: ['1 cama queen', 'Baño privado', 'TV smart'],
-    },
-    {
-      name: 'Habitación Doble',
-      price: 100,
-      description: 'Espacio amplio y luminoso',
-      image: 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=800&q=80',
-      features: ['2 camas', 'Baño privado', 'Vista a la ciudad'],
-    },
-  ]);
+  readonly roomTypes = this.roomTypesSvc.items;
+  readonly loadingRooms = this.roomTypesSvc.loading;
 
   readonly currentYear = new Date().getFullYear();
 
   readonly services = signal<Service[]>([
-    { image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=600&q=80', title: 'Wi-Fi gratis', description: 'Conexión de alta velocidad en todo el hotel' },
-    { image: 'https://images.unsplash.com/photo-1598908314732-07113901949e?auto=format&fit=crop&w=600&q=80', title: 'Room Service', description: 'Atención 24/7 directo a tu habitación' },
-    { image: 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=600&q=80', title: 'Estacionamiento', description: 'Privado, seguro y vigilado' },
-    { image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=600&q=80', title: 'Recepción 24h', description: 'Equipo bilingüe a tu disposición' },
+    {
+      image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=600&q=80',
+      title: 'Wi-Fi gratis',
+      description: 'Conexión de alta velocidad en todo el hotel',
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1598908314732-07113901949e?auto=format&fit=crop&w=600&q=80',
+      title: 'Room Service',
+      description: 'Atención 24/7 directo a tu habitación',
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=600&q=80',
+      title: 'Estacionamiento',
+      description: 'Privado, seguro y vigilado',
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=600&q=80',
+      title: 'Recepción 24h',
+      description: 'Equipo bilingüe a tu disposición',
+    },
   ]);
+
+  ngOnInit(): void {
+    this.roomTypesSvc.load({ size: 6, sort: 'precioBase,asc' });
+  }
+
+  roomImage(index: number): string {
+    return ROOM_IMAGES[index % ROOM_IMAGES.length];
+  }
+
+  roomFeatures(room: RoomType): string[] {
+    const features: string[] = [`Capacidad: ${room.capacidadMaxima} persona${room.capacidadMaxima > 1 ? 's' : ''}`];
+    if (room.descripcion) {
+      const parts = room.descripcion.split(',').map(s => s.trim()).filter(Boolean);
+      features.push(...parts.slice(0, 2));
+    }
+    return features;
+  }
 
   onSearch(): void {
     if (this.searchForm.invalid) {
@@ -77,8 +93,8 @@ export class HomeComponent {
     this.router.navigate(['/booking'], { queryParams: this.searchForm.getRawValue() });
   }
 
-  onReserve(room: Room): void {
-    this.router.navigate(['/reservations/new'], { queryParams: { habitacion: room.name } });
+  onReserve(_room: RoomType): void {
+    this.router.navigate(['/booking']);
   }
 
   scrollTo(id: string, event: Event): void {

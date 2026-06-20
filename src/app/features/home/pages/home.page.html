@@ -167,48 +167,70 @@
       </p>
     </div>
 
-    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      @for (room of rooms(); track room.name) {
-        <article
-          class="group bg-white rounded-2xl overflow-hidden border border-[var(--color-border-soft)] shadow-[var(--shadow-card)] hover:-translate-y-1 hover:shadow-[var(--shadow-elevated)] transition-all duration-300"
-        >
-          <div class="relative aspect-[4/3] overflow-hidden">
-            <img
-              [src]="room.image"
-              [alt]="room.name"
-              loading="lazy"
-              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-            <span
-              class="absolute top-3 left-3 bg-[var(--color-primary-500)] text-[var(--color-ink)] text-xs font-semibold px-3 py-1 rounded-full"
-            >
-              Desde S/ {{ room.price }}
-            </span>
+    @if (loadingRooms()) {
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        @for (i of [1,2,3]; track i) {
+          <div class="bg-white rounded-2xl overflow-hidden border border-[var(--color-border-soft)] animate-pulse">
+            <div class="aspect-[4/3] bg-gray-200"></div>
+            <div class="p-5 space-y-3">
+              <div class="h-5 bg-gray-200 rounded w-3/4"></div>
+              <div class="h-4 bg-gray-100 rounded w-full"></div>
+              <div class="h-4 bg-gray-100 rounded w-5/6"></div>
+              <div class="h-9 bg-gray-100 rounded-xl mt-4"></div>
+            </div>
           </div>
-          <div class="p-5">
-            <h3 class="text-lg font-semibold">{{ room.name }}</h3>
-            <p class="text-sm text-[var(--color-ink-muted)] mt-1">{{ room.description }}</p>
-            <ul class="mt-4 space-y-1.5 text-[13px] text-[var(--color-ink-soft)]">
-              @for (feature of room.features; track feature) {
-                <li class="flex items-center gap-2">
-                  <span class="text-[var(--color-primary-500)]" aria-hidden="true">✓</span>
-                  {{ feature }}
-                </li>
-              }
-            </ul>
-            <ui-button
-              variant="outline"
-              size="sm"
-              [block]="true"
-              (click)="onReserve(room)"
-              class="block mt-5"
-            >
-              Reservar
-            </ui-button>
-          </div>
-        </article>
-      }
-    </div>
+        }
+      </div>
+    } @else if (roomTypes().length > 0) {
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        @for (room of roomTypes(); track room.tipoHabitacionId; let i = $index) {
+          <article
+            class="group bg-white rounded-2xl overflow-hidden border border-[var(--color-border-soft)] shadow-[var(--shadow-card)] hover:-translate-y-1 hover:shadow-[var(--shadow-elevated)] transition-all duration-300"
+          >
+            <div class="relative aspect-[4/3] overflow-hidden">
+              <img
+                [src]="roomImage(i)"
+                [alt]="room.nombre"
+                loading="lazy"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <span
+                class="absolute top-3 left-3 bg-[var(--color-primary-500)] text-[var(--color-ink)] text-xs font-semibold px-3 py-1 rounded-full"
+              >
+                Desde S/ {{ room.precioBase }}
+              </span>
+            </div>
+            <div class="p-5">
+              <h3 class="text-lg font-semibold">{{ room.nombre }}</h3>
+              <p class="text-sm text-[var(--color-ink-muted)] mt-1 line-clamp-2">
+                {{ room.descripcion || 'Habitación cómoda y bien equipada para tu estadía.' }}
+              </p>
+              <ul class="mt-4 space-y-1.5 text-[13px] text-[var(--color-ink-soft)]">
+                @for (feature of roomFeatures(room); track feature) {
+                  <li class="flex items-center gap-2">
+                    <span class="text-[var(--color-primary-500)]" aria-hidden="true">✓</span>
+                    {{ feature }}
+                  </li>
+                }
+              </ul>
+              <ui-button
+                variant="outline"
+                size="sm"
+                [block]="true"
+                (click)="onReserve(room)"
+                class="block mt-5"
+              >
+                Reservar
+              </ui-button>
+            </div>
+          </article>
+        }
+      </div>
+    } @else {
+      <div class="text-center py-10 text-[var(--color-ink-muted)] text-sm">
+        Habitaciones disponibles próximamente.
+      </div>
+    }
   </div>
 </section>
 
