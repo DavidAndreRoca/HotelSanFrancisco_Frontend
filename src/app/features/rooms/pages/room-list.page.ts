@@ -182,7 +182,9 @@ export class RoomsListPage implements OnInit {
 
   onFiltersChanged(patch: Partial<RoomTypeFilters>): void {
     this.filters.update((f) => ({ ...f, ...patch }));
-    if (patch.sort !== undefined || patch.page !== undefined) {
+    // search y estado se resuelven client-side en visible(); solo recargamos
+    // del backend cuando cambia el orden o la página explícitamente.
+    if (patch.sort !== undefined || (patch.page !== undefined && patch.search === undefined && patch.estado === undefined)) {
       this.fetch();
     }
   }

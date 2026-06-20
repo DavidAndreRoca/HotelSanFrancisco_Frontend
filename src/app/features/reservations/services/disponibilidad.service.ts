@@ -8,6 +8,10 @@ export interface HabitacionDisponible {
   estado: string;
   descripcion: string | null;
   observaciones: string | null;
+  tipoHabitacionId: number | null;
+  tipoHabitacionNombre: string | null;
+  precioBase: number | null;
+  capacidadMaxima: number | null;
 }
 
 export interface TipoHabitacion {

@@ -79,7 +79,7 @@ const PAGE_SIZE = 10;
                          [style.width.%]="pct(r.porEstado[e], r.total)"></div>
                   </div>
                   <span class="w-8 text-right text-xs font-semibold text-[#2D2926]">
-                    {{ r.porEstado[e] ?? 0 }}
+                    {{ r.porEstado[e] }}
                   </span>
                 </div>
               }
@@ -98,7 +98,7 @@ const PAGE_SIZE = 10;
                          [style.width.%]="pct(r.porTipo[t], r.total)"></div>
                   </div>
                   <span class="w-8 text-right text-xs font-semibold text-[#2D2926]">
-                    {{ r.porTipo[t] ?? 0 }}
+                    {{ r.porTipo[t] }}
                   </span>
                 </div>
               }
