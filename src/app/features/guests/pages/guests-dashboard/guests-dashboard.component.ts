@@ -1,4 +1,6 @@
-// features/guests/pages/guests-dashboard/guests-dashboard.component.ts
+// OBSOLETO: esta página ya no se usa en el router.
+// La ruta /guests ahora carga ClientesDashboardComponent (features/clients).
+// @deprecated
 import { Component, inject, ChangeDetectionStrategy, signal } from '@angular/core';
 import { GuestService } from '../../services/guest.service';
 import { GuestStatsComponent } from '../../components/guest-stats/guest-stats.component';
