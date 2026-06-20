@@ -139,9 +139,10 @@ export class MainLayoutComponent {
   ];
 
   private readonly adminNav: NavItem[] = [
-    { label: 'Dashboard',     icon: '◆', link: '/dashboard' },
-    { label: 'Habitaciones',  icon: '◇', link: '/rooms' },
-    { label: 'Reservas',      icon: '☷', link: '/reservations' },
+    { label: 'Dashboard',        icon: '◆', link: '/dashboard' },
+    { label: 'Tipos de hab.',    icon: '◇', link: '/rooms' },
+    { label: 'Habitaciones',     icon: '▣', link: '/habitaciones', permiso: 'habitacion:read' },
+    { label: 'Reservas',         icon: '☷', link: '/reservations' },
     { label: 'Pagos',         icon: '✦', link: '/payments' },
     { label: 'Reportes',      icon: '▣', link: '/reports' },
     { label: 'Notificaciones',icon: '✉', link: '/notifications' },

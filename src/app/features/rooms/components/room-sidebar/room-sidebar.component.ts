@@ -325,14 +325,14 @@ export class RoomSidebarComponent {
       items: [
         { path: '/reservations',              label: 'Reservas',      icon: '📅', exact: true  },
         { path: '/reservations/mis-reservas', label: 'Mis Reservas',  icon: '📋', exact: true, sub: true },
-        { path: '/clients',                   label: 'Clientes',      icon: '👤', exact: false },
+        { path: '/guests',                    label: 'Huéspedes',     icon: '👥', exact: false },
       ],
     },
     {
       title: 'Hotel',
       items: [
-        { path: '/rooms',   label: 'Habitaciones', icon: '🛏️', exact: false },
-        { path: '/guests',  label: 'Huéspedes',    icon: '👥', exact: false },
+        { path: '/rooms',        label: 'Tipos de habitación', icon: '🛏️', exact: false },
+        { path: '/habitaciones', label: 'Habitaciones',        icon: '🚪', exact: false },
       ],
     },
     {

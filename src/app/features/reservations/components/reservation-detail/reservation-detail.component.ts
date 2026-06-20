@@ -3,13 +3,27 @@ import { DecimalPipe, DatePipe } from '@angular/common';
 import { toSignal, toObservable } from '@angular/core/rxjs-interop';
 import { switchMap, of, distinctUntilChanged } from 'rxjs';
 import { ReservationService } from '../../services/reservation.service';
-import { EstadoReserva, HistorialReserva } from '../../models/reservation.model';
+import { EstadoReserva, EstadoReservaHabitacion, HistorialReserva } from '../../models/reservation.model';
+
+const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: string }> = {
+  PENDIENTE:  { label: 'Pendiente',  badge: 'bg-amber-50 text-amber-700 border-amber-200',     dot: 'bg-amber-500'   },
+  CONFIRMADA: { label: 'Confirmada', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
+  CHECK_IN:   { label: 'Check-in',   badge: 'bg-[#FFF8E1] text-[#8E6F2E] border-[#FDE68A]',   dot: 'bg-[#C5A048]'   },
+  CHECK_OUT:  { label: 'Check-out',  badge: 'bg-slate-50 text-slate-600 border-slate-200',      dot: 'bg-slate-400'   },
+  CANCELADA:  { label: 'Cancelada',  badge: 'bg-red-50 text-red-700 border-red-200',            dot: 'bg-red-500'     },
+  NO_SHOW:    { label: 'No show',    badge: 'bg-purple-50 text-purple-700 border-purple-200',   dot: 'bg-purple-500'  },
+};
+
+const HAB_ESTADO: Record<EstadoReservaHabitacion, string> = {
+  ACTIVA:    'bg-emerald-50 text-emerald-700',
+  CANCELADA: 'bg-red-50 text-red-700',
+  CHECK_OUT: 'bg-slate-50 text-slate-500',
+};
 
 @Component({
   selector: 'app-reservation-detail',
-  standalone: true,
-  imports: [DecimalPipe, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [DecimalPipe, DatePipe],
   host: {
     '(document:keydown.escape)': 'isOpen() && onClose.emit()',
     role: 'dialog',
@@ -17,405 +31,273 @@ import { EstadoReserva, HistorialReserva } from '../../models/reservation.model'
   },
   template: `
     @if (isOpen() && reserva()) {
-      <div class="modal-overlay" (click)="onClose.emit()">
-        <div class="modal-content" (click)="$event.stopPropagation()">
-          <button class="modal-close" (click)="onClose.emit()" aria-label="Cerrar">✕</button>
+      <div class="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-[#2D2926]/75"
+           (click)="onClose.emit()">
+        <div class="w-full max-w-3xl bg-[#F9F5F0] rounded-2xl shadow-2xl flex flex-col
+                    max-h-[92vh] overflow-y-auto relative"
+             (click)="$event.stopPropagation()">
+
+          <!-- Cerrar -->
+          <button type="button" (click)="onClose.emit()" aria-label="Cerrar"
+            class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white border border-[#EEE3D1]
+                   flex items-center justify-center text-[#2D2926]/40
+                   hover:bg-[#C5A048] hover:border-[#C5A048] hover:text-white transition-colors z-10">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+          </button>
 
           <!-- Header -->
-          <div class="modal-header">
-            <div class="header-info">
-              <span class="cod-text">{{ reserva()!.codReserva }}</span>
-              <span [className]="'estado-badge ' + estadoClass(reserva()!.estado)">
+          <div class="flex items-center justify-between flex-wrap gap-3 px-6 py-5
+                      bg-white border-b-2 border-[#C5A048] rounded-t-2xl">
+            <div class="flex items-center gap-3">
+              <span class="font-mono text-base font-bold text-[#2D2926]">
+                {{ reserva()!.codReserva }}
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
+                           text-[11px] font-semibold border"
+                    [class]="estadoBadge(reserva()!.estado)">
+                <span class="w-1.5 h-1.5 rounded-full" [class]="estadoDot(reserva()!.estado)"></span>
                 {{ estadoLabel(reserva()!.estado) }}
               </span>
             </div>
-            <div class="header-actions">
+            <div class="flex items-center gap-2 flex-wrap">
               @if (puedeCheckIn()) {
-                <button class="action-chip chip-checkin" (click)="onCheckIn.emit(reserva()!.reservaId)">
-                  🏨 Check-in
+                <button type="button" (click)="onCheckIn.emit(reserva()!.reservaId)"
+                  class="h-8 px-3 rounded-lg border border-emerald-200 text-[12px] font-semibold
+                         text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white
+                         hover:border-emerald-600 transition-colors">
+                  Check-in
                 </button>
               }
               @if (puedeCheckOut()) {
-                <button class="action-chip chip-checkout" (click)="onCheckOut.emit(reserva()!.reservaId)">
-                  🚪 Check-out
+                <button type="button" (click)="onCheckOut.emit(reserva()!.reservaId)"
+                  class="h-8 px-3 rounded-lg border border-slate-200 text-[12px] font-semibold
+                         text-slate-600 bg-slate-50 hover:bg-slate-600 hover:text-white
+                         hover:border-slate-600 transition-colors">
+                  Check-out
                 </button>
               }
               @if (puedeCancelar()) {
-                <button class="action-chip chip-cancelar" (click)="onCancelar.emit(reserva()!.reservaId)">
-                  ❌ Cancelar
+                <button type="button" (click)="onCancelar.emit(reserva()!.reservaId)"
+                  class="h-8 px-3 rounded-lg border border-red-200 text-[12px] font-semibold
+                         text-red-600 bg-red-50 hover:bg-red-600 hover:text-white
+                         hover:border-red-600 transition-colors">
+                  Cancelar
                 </button>
               }
-              <button class="action-chip chip-editar" (click)="onEditar.emit(reserva()!.reservaId)">
-                ✏️ Editar
+              <button type="button" (click)="onEditar.emit(reserva()!.reservaId)"
+                class="h-8 px-3 rounded-lg border border-[#EEE3D1] text-[12px] font-semibold
+                       text-[#8E6F2E] bg-[#FFF8E1] hover:bg-[#C5A048] hover:text-white
+                       hover:border-[#C5A048] transition-colors">
+                Editar
               </button>
             </div>
           </div>
 
-          <div class="modal-body">
-            <!-- Info general -->
-            <div class="section">
-              <div class="section-title">Información general</div>
-              <div class="info-grid">
-                <div class="info-item">
-                  <span class="info-label">Check-in</span>
-                  <span class="info-value date">{{ formatFecha(reserva()!.fechaInicio) }}</span>
+          <!-- Body -->
+          <div class="p-6 space-y-6">
+
+            <!-- Información general -->
+            <section>
+              <p class="text-[10px] uppercase tracking-[0.25em] font-semibold text-[#C5A048]
+                         pb-2 mb-3 border-b border-[#EEE3D1]">
+                Información general
+              </p>
+              <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div>
+                  <p class="text-[10px] uppercase tracking-wider font-semibold text-[#8E6F2E] mb-0.5">Check-in</p>
+                  <p class="text-sm font-bold text-[#C5A048]">{{ formatFecha(reserva()!.fechaInicio) }}</p>
                 </div>
-                <div class="info-item">
-                  <span class="info-label">Check-out</span>
-                  <span class="info-value date">{{ formatFecha(reserva()!.fechaFin) }}</span>
+                <div>
+                  <p class="text-[10px] uppercase tracking-wider font-semibold text-[#8E6F2E] mb-0.5">Check-out</p>
+                  <p class="text-sm font-bold text-[#C5A048]">{{ formatFecha(reserva()!.fechaFin) }}</p>
                 </div>
-                <div class="info-item">
-                  <span class="info-label">Adultos / Niños</span>
-                  <span class="info-value">{{ reserva()!.nroAdultos }} / {{ reserva()!.nroNinos }}</span>
+                <div>
+                  <p class="text-[10px] uppercase tracking-wider font-semibold text-[#8E6F2E] mb-0.5">Adultos / Niños</p>
+                  <p class="text-sm font-semibold text-[#2D2926]">{{ reserva()!.nroAdultos }} / {{ reserva()!.nroNinos }}</p>
                 </div>
-                <div class="info-item">
-                  <span class="info-label">Canal</span>
-                  <span class="info-value">{{ reserva()!.canalNombre ?? 'Sin canal' }}</span>
+                <div>
+                  <p class="text-[10px] uppercase tracking-wider font-semibold text-[#8E6F2E] mb-0.5">Canal</p>
+                  <p class="text-sm text-[#2D2926]">{{ reserva()!.canalNombre ?? 'Sin canal' }}</p>
                 </div>
-                <div class="info-item">
-                  <span class="info-label">Registrado por</span>
-                  <span class="info-value">{{ reserva()!.usuarioNombre }}</span>
+                <div>
+                  <p class="text-[10px] uppercase tracking-wider font-semibold text-[#8E6F2E] mb-0.5">Registrado por</p>
+                  <p class="text-sm text-[#2D2926]">{{ reserva()!.usuarioNombre }}</p>
                 </div>
-                <div class="info-item">
-                  <span class="info-label">Creado</span>
-                  <span class="info-value small">{{ reserva()!.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</span>
+                <div>
+                  <p class="text-[10px] uppercase tracking-wider font-semibold text-[#8E6F2E] mb-0.5">Creado</p>
+                  <p class="text-[11px] text-[#2D2926]/60">{{ reserva()!.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</p>
                 </div>
               </div>
               @if (reserva()!.observaciones) {
-                <div class="observaciones">
-                  <span class="info-label">Observaciones</span>
-                  <p>{{ reserva()!.observaciones }}</p>
+                <div class="mt-3 p-3 bg-white rounded-xl border border-[#EEE3D1]">
+                  <p class="text-[10px] uppercase tracking-wider font-semibold text-[#8E6F2E] mb-1">Observaciones</p>
+                  <p class="text-sm text-[#2D2926]">{{ reserva()!.observaciones }}</p>
                 </div>
               }
-            </div>
+            </section>
 
             <!-- Habitaciones -->
-            <div class="section">
-              <div class="section-title">Habitaciones</div>
-              <table class="mini-table">
-                <thead>
-                  <tr>
-                    <th>N°</th><th>Tipo</th><th>Tarifa/noche</th><th>Noches</th><th>Subtotal</th><th>Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (hab of reserva()!.habitaciones; track hab.reservaHabitacionId) {
-                    <tr>
-                      <td><strong>{{ hab.habitacionNumero }}</strong></td>
-                      <td>{{ hab.tipoHabitacionNombre }}</td>
-                      <td>S/ {{ hab.tarifaPactada | number:'1.2-2' }}</td>
-                      <td>{{ hab.noches }}</td>
-                      <td>S/ {{ hab.subtotal | number:'1.2-2' }}</td>
-                      <td>
-                        <span [className]="'mini-badge hab-' + hab.estado">{{ hab.estado }}</span>
-                      </td>
+            <section>
+              <p class="text-[10px] uppercase tracking-[0.25em] font-semibold text-[#C5A048]
+                         pb-2 mb-3 border-b border-[#EEE3D1]">
+                Habitaciones
+              </p>
+              <div class="bg-white rounded-xl border border-[#EEE3D1] overflow-hidden">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="border-b border-[#EEE3D1] text-left text-[10px] uppercase tracking-wider
+                               text-[#8E6F2E]">
+                      <th class="px-4 py-2.5 font-semibold">N°</th>
+                      <th class="px-4 py-2.5 font-semibold">Tipo</th>
+                      <th class="px-4 py-2.5 font-semibold">Tarifa/noche</th>
+                      <th class="px-4 py-2.5 font-semibold">Noches</th>
+                      <th class="px-4 py-2.5 font-semibold">Subtotal</th>
+                      <th class="px-4 py-2.5 font-semibold">Estado</th>
                     </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    @for (hab of reserva()!.habitaciones; track hab.reservaHabitacionId) {
+                      <tr class="border-b border-[#EEE3D1] last:border-0">
+                        <td class="px-4 py-2.5 font-bold text-[#C5A048]">{{ hab.habitacionNumero }}</td>
+                        <td class="px-4 py-2.5 text-[#2D2926]/80">{{ hab.tipoHabitacionNombre }}</td>
+                        <td class="px-4 py-2.5 text-[#2D2926]">S/ {{ hab.tarifaPactada | number:'1.2-2' }}</td>
+                        <td class="px-4 py-2.5 text-[#2D2926]">{{ hab.noches }}</td>
+                        <td class="px-4 py-2.5 font-semibold text-[#2D2926]">S/ {{ hab.subtotal | number:'1.2-2' }}</td>
+                        <td class="px-4 py-2.5">
+                          <span class="px-2 py-0.5 rounded text-[10px] font-semibold uppercase"
+                                [class]="habEstadoCls(hab.estado)">
+                            {{ hab.estado }}
+                          </span>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </section>
 
             <!-- Huéspedes -->
-            <div class="section">
-              <div class="section-title">Huéspedes</div>
-              <div class="huesped-list">
+            <section>
+              <p class="text-[10px] uppercase tracking-[0.25em] font-semibold text-[#C5A048]
+                         pb-2 mb-3 border-b border-[#EEE3D1]">
+                Huéspedes
+              </p>
+              <div class="space-y-2">
                 @for (h of reserva()!.huespedes; track h.huespedId) {
-                  <div class="huesped-card" [class.principal]="h.esPrincipal">
-                    <div class="huesped-avatar">{{ h.nombreCompleto[0] }}</div>
-                    <div class="huesped-info">
-                      <span class="huesped-nombre">
-                        {{ h.nombreCompleto }}
-                        @if (h.esPrincipal) { <span class="tag-principal">Principal</span> }
-                      </span>
-                      <span class="huesped-doc">{{ h.numeroDocumento }}</span>
-                      @if (h.correo) { <span class="huesped-extra">{{ h.correo }}</span> }
-                      @if (h.telefono) { <span class="huesped-extra">{{ h.telefono }}</span> }
+                  <div class="flex items-center gap-3 p-3 bg-white rounded-xl border transition-colors"
+                       [class]="h.esPrincipal ? 'border-[#C5A048]' : 'border-[#EEE3D1]'">
+                    <div class="w-9 h-9 rounded-full bg-[#C5A048] text-white flex items-center justify-center
+                                font-bold text-sm shrink-0">
+                      {{ h.nombreCompleto.charAt(0) }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm font-semibold text-[#2D2926] truncate">{{ h.nombreCompleto }}</span>
+                        @if (h.esPrincipal) {
+                          <span class="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-bold
+                                       bg-[#FFF8E1] text-[#C5A048] border border-[#FDE68A]">
+                            Principal
+                          </span>
+                        }
+                      </div>
+                      <p class="text-[11px] text-[#8E6F2E]">{{ h.numeroDocumento }}</p>
+                      @if (h.correo || h.telefono) {
+                        <p class="text-[11px] text-[#2D2926]/50">
+                          {{ h.correo }}{{ h.correo && h.telefono ? ' · ' : '' }}{{ h.telefono }}
+                        </p>
+                      }
                     </div>
                   </div>
                 }
               </div>
-            </div>
+            </section>
 
-            <!-- Montos -->
-            <div class="section">
-              <div class="section-title">Resumen económico</div>
-              <div class="montos-grid">
-                <div class="monto-row">
+            <!-- Resumen económico -->
+            <section>
+              <p class="text-[10px] uppercase tracking-[0.25em] font-semibold text-[#C5A048]
+                         pb-2 mb-3 border-b border-[#EEE3D1]">
+                Resumen económico
+              </p>
+              <div class="bg-white rounded-xl border border-[#EEE3D1] overflow-hidden">
+                <div class="flex justify-between items-center px-4 py-2.5 border-b border-[#F9F5F0] text-sm text-[#2D2926]">
                   <span>Subtotal</span>
                   <span>S/ {{ reserva()!.subtotal | number:'1.2-2' }}</span>
                 </div>
-                <div class="monto-row">
+                <div class="flex justify-between items-center px-4 py-2.5 border-b border-[#F9F5F0] text-sm text-[#2D2926]">
                   <span>Descuento</span>
-                  <span class="negativo">- S/ {{ reserva()!.descuento | number:'1.2-2' }}</span>
+                  <span class="text-emerald-600">- S/ {{ reserva()!.descuento | number:'1.2-2' }}</span>
                 </div>
-                <div class="monto-row">
+                <div class="flex justify-between items-center px-4 py-2.5 border-b border-[#F9F5F0] text-sm text-[#2D2926]">
                   <span>Impuesto</span>
                   <span>S/ {{ reserva()!.impuesto | number:'1.2-2' }}</span>
                 </div>
-                <div class="monto-row total">
+                <div class="flex justify-between items-center px-4 py-3 border-b-2 border-[#EEE3D1]
+                            bg-[#F9F5F0] font-bold text-base text-[#2D2926]">
                   <span>Total</span>
                   <span>S/ {{ reserva()!.montoTotal | number:'1.2-2' }}</span>
                 </div>
-                <div class="monto-row">
+                <div class="flex justify-between items-center px-4 py-2.5 border-b border-[#F9F5F0] text-sm text-[#2D2926]">
                   <span>Adelanto pagado</span>
-                  <span class="positivo">S/ {{ reserva()!.adelanto | number:'1.2-2' }}</span>
+                  <span class="text-emerald-600 font-semibold">S/ {{ reserva()!.adelanto | number:'1.2-2' }}</span>
                 </div>
-                <div class="monto-row saldo">
+                <div class="flex justify-between items-center px-4 py-2.5 text-sm font-semibold text-[#C5A048]">
                   <span>Saldo pendiente</span>
                   <span>S/ {{ (reserva()!.montoTotal - reserva()!.adelanto) | number:'1.2-2' }}</span>
                 </div>
               </div>
-            </div>
+            </section>
 
             <!-- Historial -->
             @if (historial().length > 0) {
-              <div class="section">
-                <div class="section-title">Historial de cambios</div>
-                <div class="timeline">
-                  @for (h of historial(); track h.historialId) {
-                    <div class="timeline-item">
-                      <div class="timeline-dot"></div>
-                      <div class="timeline-content">
-                        <div class="timeline-estados">
-                          <span [className]="'mini-badge estado-' + h.estadoAnterior">{{ estadoLabel(h.estadoAnterior) }}</span>
-                          <span class="timeline-arrow">→</span>
-                          <span [className]="'mini-badge estado-' + h.estadoNuevo">{{ estadoLabel(h.estadoNuevo) }}</span>
+              <section>
+                <p class="text-[10px] uppercase tracking-[0.25em] font-semibold text-[#C5A048]
+                           pb-2 mb-3 border-b border-[#EEE3D1]">
+                  Historial de cambios
+                </p>
+                <div class="space-y-0">
+                  @for (h of historial(); track h.historialId; let last = $last) {
+                    <div class="flex gap-4" [class]="last ? '' : 'pb-4'">
+                      <div class="flex flex-col items-center">
+                        <div class="w-2.5 h-2.5 rounded-full bg-[#C5A048] shrink-0 mt-1"></div>
+                        @if (!last) {
+                          <div class="w-px flex-1 bg-[#EEE3D1] mt-1"></div>
+                        }
+                      </div>
+                      <div class="flex-1 pb-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                          <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border"
+                                [class]="estadoBadge(h.estadoAnterior)">
+                            {{ estadoLabel(h.estadoAnterior) }}
+                          </span>
+                          <svg class="w-3 h-3 text-[#8E6F2E]" viewBox="0 0 24 24" fill="none"
+                               stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" d="M5 12h14M13 6l6 6-6 6"/>
+                          </svg>
+                          <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border"
+                                [class]="estadoBadge(h.estadoNuevo)">
+                            {{ estadoLabel(h.estadoNuevo) }}
+                          </span>
                         </div>
                         @if (h.motivo) {
-                          <p class="timeline-motivo">{{ h.motivo }}</p>
+                          <p class="text-[11px] text-[#2D2926]/55 italic mt-1">{{ h.motivo }}</p>
                         }
-                        <span class="timeline-fecha">{{ h.fechaCambio | date:'dd/MM/yyyy HH:mm' }}</span>
+                        <span class="text-[10px] text-[#8E6F2E] mt-0.5 block">
+                          {{ h.fechaCambio | date:'dd/MM/yyyy HH:mm' }}
+                        </span>
                       </div>
                     </div>
                   }
                 </div>
-              </div>
+              </section>
             }
+
           </div>
         </div>
       </div>
     }
   `,
-  styles: `
-    @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,100..900;1,100..900&display=swap');
-    * { font-family: 'Inter', sans-serif; }
-
-    .modal-overlay {
-      position: fixed; inset: 0;
-      background: rgba(45,41,38,0.75);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 1100; animation: overlayIn 0.2s ease;
-    }
-    @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
-
-    .modal-content {
-      background: #F9F5F0; border-radius: 1rem;
-      max-width: 800px; width: 95%; max-height: 92vh; overflow-y: auto;
-      position: relative;
-      animation: slideIn 0.25s ease;
-      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3);
-    }
-    @keyframes slideIn {
-      from { transform: translateY(-30px); opacity: 0; }
-      to   { transform: translateY(0); opacity: 1; }
-    }
-
-    .modal-close {
-      position: absolute; top: 1rem; right: 1rem;
-      background: white; border: 1px solid #EEE3D1;
-      font-size: 1.125rem; cursor: pointer; color: #8E6F2E;
-      width: 32px; height: 32px;
-      display: flex; align-items: center; justify-content: center;
-      border-radius: 50%; transition: all 0.2s; z-index: 10;
-    }
-    .modal-close:hover { background: #C5A048; border-color: #C5A048; color: white; }
-
-    .modal-header {
-      padding: 1.25rem 1.5rem;
-      border-bottom: 2px solid #C5A048;
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 0.75rem;
-      background: white; border-radius: 1rem 1rem 0 0;
-    }
-
-    .header-info { display: flex; align-items: center; gap: 0.75rem; }
-
-    .cod-text {
-      font-family: monospace; font-size: 1rem; font-weight: 700; color: #2D2926;
-    }
-
-    .estado-badge {
-      display: inline-block; padding: 0.25rem 0.75rem;
-      border-radius: 2rem; font-size: 0.7rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .estado-CONFIRMADA  { background: #E8F5E9; color: #2E7D32; }
-    .estado-CHECK_IN    { background: #FFF8E1; color: #C5A048; }
-    .estado-CHECK_OUT   { background: #F5F5F5; color: #6B7280; }
-    .estado-CANCELADA   { background: #FFEBEE; color: #C62828; }
-    .estado-PENDIENTE   { background: #FFF3E0; color: #E6A017; }
-    .estado-NO_SHOW     { background: #F3E5F5; color: #6A1B9A; }
-
-    .header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-
-    .action-chip {
-      padding: 0.375rem 0.875rem; border-radius: 2rem;
-      font-size: 0.8rem; font-weight: 600; cursor: pointer;
-      border: none; transition: all 0.2s; display: flex; align-items: center; gap: 0.375rem;
-    }
-    .chip-checkin  { background: #E8F5E9; color: #2E7D32; }
-    .chip-checkin:hover  { background: #2E7D32; color: white; }
-    .chip-checkout { background: #E0E7FF; color: #4338CA; }
-    .chip-checkout:hover { background: #4338CA; color: white; }
-    .chip-cancelar { background: #FFEBEE; color: #C62828; }
-    .chip-cancelar:hover { background: #C62828; color: white; }
-    .chip-editar   { background: #FFF8E1; color: #C5A048; }
-    .chip-editar:hover   { background: #C5A048; color: white; }
-
-    .modal-body { padding: 1.5rem; }
-
-    .section { margin-bottom: 1.75rem; }
-
-    .section-title {
-      font-size: 0.7rem; font-weight: 700; color: #C5A048;
-      text-transform: uppercase; letter-spacing: 1px;
-      padding-bottom: 0.5rem; margin-bottom: 1rem;
-      border-bottom: 1px solid #EEE3D1;
-    }
-
-    .info-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
-    }
-
-    .info-item { display: flex; flex-direction: column; gap: 0.25rem; }
-
-    .info-label {
-      font-size: 0.7rem; font-weight: 600; color: #8E6F2E;
-      text-transform: uppercase; letter-spacing: 0.5px;
-    }
-
-    .info-value { font-size: 0.9rem; font-weight: 500; color: #2D2926; }
-    .info-value.date { font-weight: 700; color: #C5A048; }
-    .info-value.small { font-size: 0.8rem; }
-
-    .observaciones {
-      margin-top: 1rem;
-      padding: 0.75rem; background: white;
-      border-radius: 0.5rem; border: 1px solid #EEE3D1;
-    }
-    .observaciones p { margin: 0.375rem 0 0; font-size: 0.875rem; color: #2D2926; }
-
-    .mini-table { width: 100%; border-collapse: collapse; }
-    .mini-table th {
-      text-align: left; padding: 0.625rem 0.75rem;
-      font-size: 0.7rem; font-weight: 600; color: #8E6F2E;
-      background: white; border-bottom: 1px solid #EEE3D1;
-      text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .mini-table td {
-      padding: 0.625rem 0.75rem;
-      font-size: 0.8375rem; color: #2D2926;
-      border-bottom: 1px solid #EEE3D1;
-      background: white;
-    }
-
-    .mini-badge {
-      display: inline-block; padding: 0.125rem 0.5rem;
-      border-radius: 0.25rem; font-size: 0.65rem; font-weight: 600;
-      text-transform: uppercase;
-    }
-    .hab-ACTIVA    { background: #E8F5E9; color: #2E7D32; }
-    .hab-CANCELADA { background: #FFEBEE; color: #C62828; }
-    .hab-CHECK_OUT { background: #F5F5F5; color: #6B7280; }
-
-    .huesped-list { display: flex; flex-direction: column; gap: 0.75rem; }
-
-    .huesped-card {
-      display: flex; align-items: center; gap: 0.875rem;
-      padding: 0.875rem; background: white;
-      border-radius: 0.625rem; border: 1px solid #EEE3D1;
-    }
-    .huesped-card.principal { border-color: #C5A048; border-width: 1.5px; }
-
-    .huesped-avatar {
-      width: 36px; height: 36px; border-radius: 50%;
-      background: #C5A048; color: white;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1rem; font-weight: 700; flex-shrink: 0;
-    }
-
-    .huesped-info { display: flex; flex-direction: column; gap: 0.2rem; }
-
-    .huesped-nombre {
-      font-size: 0.875rem; font-weight: 600; color: #2D2926;
-      display: flex; align-items: center; gap: 0.5rem;
-    }
-
-    .tag-principal {
-      background: #FFF8E1; color: #C5A048;
-      font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.4rem;
-      border-radius: 2rem; border: 1px solid #FDE68A;
-    }
-
-    .huesped-doc { font-size: 0.75rem; color: #8E6F2E; }
-    .huesped-extra { font-size: 0.75rem; color: #6B7280; }
-
-    .montos-grid {
-      background: white; border-radius: 0.625rem;
-      border: 1px solid #EEE3D1; overflow: hidden;
-    }
-
-    .monto-row {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 0.625rem 1rem;
-      font-size: 0.875rem; color: #2D2926;
-      border-bottom: 1px solid #F9F5F0;
-    }
-    .monto-row:last-child { border-bottom: none; }
-    .monto-row.total {
-      font-weight: 700; font-size: 1rem;
-      background: #F9F5F0; border-top: 2px solid #EEE3D1;
-    }
-    .monto-row.saldo { color: #C5A048; font-weight: 600; }
-    .negativo { color: #2E7D32; }
-    .positivo { color: #2E7D32; }
-
-    .timeline { display: flex; flex-direction: column; gap: 0; }
-
-    .timeline-item {
-      display: flex; gap: 1rem;
-      padding-bottom: 1.25rem; position: relative;
-    }
-    .timeline-item:last-child { padding-bottom: 0; }
-
-    .timeline-dot {
-      width: 10px; height: 10px; border-radius: 50%;
-      background: #C5A048; flex-shrink: 0; margin-top: 0.35rem;
-      position: relative; z-index: 1;
-    }
-    .timeline-item:not(:last-child) .timeline-dot::after {
-      content: ''; position: absolute;
-      top: 10px; left: 50%; transform: translateX(-50%);
-      width: 2px; height: calc(100% + 1rem);
-      background: #EEE3D1;
-    }
-
-    .timeline-content { flex: 1; }
-    .timeline-estados { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-    .timeline-arrow { color: #8E6F2E; font-size: 0.875rem; }
-    .timeline-motivo { margin: 0.375rem 0 0; font-size: 0.8125rem; color: #6B7280; font-style: italic; }
-    .timeline-fecha { display: block; font-size: 0.7rem; color: #8E6F2E; margin-top: 0.25rem; }
-
-    .modal-content::-webkit-scrollbar { width: 6px; }
-    .modal-content::-webkit-scrollbar-track { background: #EEE3D1; }
-    .modal-content::-webkit-scrollbar-thumb { background: #C5A048; border-radius: 3px; }
-
-    @media (max-width: 640px) {
-      .info-grid { grid-template-columns: repeat(2, 1fr); }
-      .header-actions { width: 100%; }
-      .modal-body { padding: 1rem; }
-    }
-  `
 })
 export class ReservationDetailComponent {
   private readonly svc = inject(ReservationService);
@@ -423,8 +305,8 @@ export class ReservationDetailComponent {
   isOpen    = input.required<boolean>();
   reservaId = input<number | null>(null);
 
-  onClose   = output<void>();
-  onEditar  = output<number>();
+  onClose    = output<void>();
+  onEditar   = output<number>();
   onCheckIn  = output<number>();
   onCheckOut = output<number>();
   onCancelar = output<number>();
@@ -461,16 +343,8 @@ export class ReservationDetailComponent {
     return `${d}/${m}/${y}`;
   }
 
-  estadoClass(estado: EstadoReserva): string {
-    return `estado-${estado}`;
-  }
-
-  estadoLabel(estado: EstadoReserva): string {
-    const labels: Record<EstadoReserva, string> = {
-      PENDIENTE: 'Pendiente', CONFIRMADA: 'Confirmada',
-      CHECK_IN: 'Check-in',  CHECK_OUT: 'Check-out',
-      CANCELADA: 'Cancelada', NO_SHOW: 'No show',
-    };
-    return labels[estado];
-  }
+  estadoBadge(estado: EstadoReserva): string  { return ESTADO_CFG[estado].badge; }
+  estadoDot(estado: EstadoReserva): string    { return ESTADO_CFG[estado].dot;   }
+  estadoLabel(estado: EstadoReserva): string  { return ESTADO_CFG[estado].label; }
+  habEstadoCls(estado: EstadoReservaHabitacion): string { return HAB_ESTADO[estado] ?? 'bg-slate-50 text-slate-500'; }
 }

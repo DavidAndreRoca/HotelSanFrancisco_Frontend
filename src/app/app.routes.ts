@@ -37,6 +37,12 @@ export const routes: Routes = [
         title: 'Recuperar contraseña · Hotel San Francisco',
       },
       {
+        path: 'booking',
+        loadComponent: () =>
+          import('./features/booking/pages/booking-flow/booking-flow.page').then((m) => m.BookingFlowPage),
+        title: 'Reservar · Hotel San Francisco',
+      },
+      {
         path: 'reset-password',
         canActivate: [publicOnlyGuard],
         loadComponent: () =>
@@ -83,7 +89,15 @@ export const routes: Routes = [
         path: 'rooms',
         loadComponent: () =>
           import('./features/rooms/pages/room-list.page').then((m) => m.RoomsListPage),
-        title: 'Habitaciones',
+        title: 'Tipos de habitación',
+      },
+      {
+        path: 'habitaciones',
+        loadComponent: () =>
+          import('./features/habitaciones/pages/habitaciones-list/habitaciones-list.page').then(
+            (m) => m.HabitacionesListPage,
+          ),
+        title: 'Habitaciones · Hotel San Francisco',
       },
       {
         path: 'rooms/calendar',
@@ -182,10 +196,10 @@ export const routes: Routes = [
       {
         path: 'guests',
         loadComponent: () =>
-          import('./features/guests/pages/guests-dashboard/guests-dashboard.component').then(
-            (m) => m.GuestsDashboardComponent,
+          import('./features/clients/pages/clientes-dashboard/clientes-dashboard.component').then(
+            (m) => m.ClientesDashboardComponent,
           ),
-        title: 'Huéspedes',
+        title: 'Huéspedes · Hotel San Francisco',
       },
       {
         path: 'employees',
