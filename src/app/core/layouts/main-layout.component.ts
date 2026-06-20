@@ -8,6 +8,8 @@ interface NavItem {
   label: string;
   icon: string;
   link: string;
+  /** Si se define, el ítem solo aparece si el usuario tiene este permiso. */
+  permiso?: string;
 }
 
 @Component({
@@ -152,12 +154,21 @@ export class MainLayoutComponent {
     { label: 'Productos',     icon: '◫', link: '/products' },
     { label: 'Compras',       icon: '⇪', link: '/purchases' },
     { label: 'Incidencias',   icon: '⚠', link: '/incidencias' },
-    { label: 'Usuarios',      icon: '⚙', link: '/users' },
+    { label: 'Usuarios',      icon: '⚙', link: '/users', permiso: 'usuario:read' },
+    { label: 'Roles',         icon: '⛨', link: '/roles', permiso: 'rol:read' },
+    { label: 'Servicios',     icon: '✦', link: '/servicios', permiso: 'servicio:read' },
+    { label: 'Catálogo serv.',icon: '☰', link: '/tipos-servicio', permiso: 'tipo-servicio:read' },
+    { label: 'Punto de venta',icon: '✚', link: '/pos', permiso: 'venta:read' },
   ];
 
-  readonly nav = computed<NavItem[]>(() =>
-    this.store.rol() === 'CLIENTE' ? this.clienteNav : this.adminNav
-  );
+  readonly nav = computed<NavItem[]>(() => {
+    const rol = this.store.rol();
+    if (rol === 'CLIENTE') return this.clienteNav;
+    // Ítems con `permiso` solo aparecen si el usuario lo tiene; el resto siempre.
+    return this.adminNav.filter(
+      (item) => !item.permiso || this.store.hasPermission(item.permiso),
+    );
+  });
 
   readonly initials = computed(() => {
     const u = this.user();
