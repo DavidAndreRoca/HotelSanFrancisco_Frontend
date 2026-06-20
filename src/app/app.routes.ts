@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard, publicOnlyGuard } from './core/guards/auth.guard';
 import { solicitudGestionGuard } from './features/solicitudes/guards/solicitud-gestion.guard';
+import { auditoriaGuard } from './features/auditoria/guards/auditoria.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -204,6 +205,15 @@ export const routes: Routes = [
             (m) => m.DetalleSolicitudPage,
           ),
         title: 'Detalle de solicitud · Hotel San Francisco',
+      },
+      {
+        path: 'auditoria',
+        canActivate: [auditoriaGuard],
+        loadComponent: () =>
+          import('./features/auditoria/pages/auditoria-lista/auditoria-lista.page').then(
+            (m) => m.AuditoriaListaPage,
+          ),
+        title: 'Auditoría · Hotel San Francisco',
       },
       {
         path: 'reservations',
