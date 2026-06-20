@@ -15,7 +15,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UiModalComponent } from '../../../shared/ui/modal/ui-modal.component';
 import { AuthStore } from '../../../core/auth/auth.store';
 import { SolicitudService } from '../services/solicitud.service';
-import { UsuarioLookupService, UsuarioResumen } from '../services/usuario-lookup.service';
+import { UsuarioLookupService, UsuarioResumen } from '../../../core/usuarios/usuario-lookup.service';
 import { EstadoSolicitud, SolicitudResponse } from '../models/solicitud.model';
 import {
   ESTADO_LABEL,
@@ -230,7 +230,7 @@ export class AtenderSolicitudModalComponent {
             return of<UsuarioResumen[]>([]);
           }
           this.buscando.set(true);
-          return this.usuarios.buscarResponsables(q);
+          return this.usuarios.buscarEmpleadosActivos(q);
         }),
         takeUntilDestroyed(),
       )
