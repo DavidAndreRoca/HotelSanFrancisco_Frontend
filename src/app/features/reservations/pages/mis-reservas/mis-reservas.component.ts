@@ -1,14 +1,23 @@
 import {
   Component, inject, signal, computed, ChangeDetectionStrategy,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ToastrService } from 'ngx-toastr';
 import { AuthStore } from '../../../../core/auth/auth.store';
-import { ReservationService } from '../../services/reservation.service';
+import { MisReservasService } from '../../services/mis-reservas.service';
 import { ReservationDetailComponent } from '../../components/reservation-detail/reservation-detail.component';
 import { CancelarModalComponent } from '../../components/cancelar-modal/cancelar-modal.component';
-import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
-import { Reserva, EstadoReserva, CancelarReservaPayload } from '../../models/reservation.model';
+import {
+  ReservationFormComponent,
+  ReservaFormSaveEvent,
+} from '../../components/reservation-form/reservation-form.component';
+import {
+  CancelarReservaPayload,
+  CreateReservaPayload,
+  EstadoReserva,
+  Reserva,
+} from '../../models/reservation.model';
 
 type FiltroMisReservas = EstadoReserva | 'todas' | 'activas';
 
@@ -24,7 +33,7 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
 @Component({
   selector: 'app-mis-reservas',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, DecimalPipe, ReservationDetailComponent, CancelarModalComponent],
+  imports: [DecimalPipe, ReservationDetailComponent, CancelarModalComponent, ReservationFormComponent],
   template: `
     <div class="space-y-6">
 
@@ -41,16 +50,14 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
             </p>
           }
         </div>
-        <a routerLink="/reservations"
-          class="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-[#EEE3D1]
-                 text-sm font-semibold text-[#8E6F2E] bg-white hover:border-[#C5A048]
-                 hover:text-[#C5A048] hover:bg-[#FFFDF5] transition-colors shrink-0">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-            <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        <button type="button" (click)="abrirNuevaReserva()"
+          class="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[#C5A048] text-white
+                 text-sm font-semibold hover:bg-[#8E6F2E] transition-colors shrink-0">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
           </svg>
-          Panel completo
-        </a>
+          Reservar
+        </button>
       </header>
 
       <!-- Stats -->
@@ -91,10 +98,28 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
       </div>
 
       <!-- Lista -->
-      @if (reservasFiltradas().length === 0) {
+      @if (loading()) {
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          @for (_ of [1,2,3]; track $index) {
+            <div class="bg-white rounded-2xl border border-[#EEE3D1] h-48 animate-pulse"></div>
+          }
+        </div>
+      } @else if (error()) {
+        <div class="bg-white rounded-2xl border border-[#EEE3D1] py-16 text-center">
+          <p class="text-sm font-semibold text-red-600">{{ error() }}</p>
+          <button type="button" (click)="cargar()"
+            class="mt-3 text-sm text-[#C5A048] hover:underline font-medium">Reintentar</button>
+        </div>
+      } @else if (reservasFiltradas().length === 0) {
         <div class="bg-white rounded-2xl border border-[#EEE3D1] py-16 text-center">
           <p class="text-sm font-semibold text-[#2D2926]">Sin reservas</p>
-          <p class="text-xs text-[#2D2926]/45 mt-1">No hay reservas con el filtro seleccionado.</p>
+          <p class="text-xs text-[#2D2926]/45 mt-1">
+            @if (misReservas().length === 0) {
+              Aún no tienes reservas. Usa “Reservar” para crear una.
+            } @else {
+              No hay reservas con el filtro seleccionado.
+            }
+          </p>
         </div>
       } @else {
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -197,22 +222,6 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
                            text-[#8E6F2E] hover:border-[#C5A048] hover:text-[#C5A048] transition-colors">
                     Ver
                   </button>
-                  @if (r.estado === 'CONFIRMADA' || r.estado === 'PENDIENTE') {
-                    <button type="button" (click)="handleCheckIn(r.reservaId)"
-                      class="h-7 px-2.5 rounded-lg border border-emerald-200 text-[11px] font-semibold
-                             text-emerald-700 hover:bg-emerald-600 hover:text-white
-                             hover:border-emerald-600 transition-colors">
-                      Check-in
-                    </button>
-                  }
-                  @if (r.estado === 'CHECK_IN') {
-                    <button type="button" (click)="handleCheckOut(r.reservaId)"
-                      class="h-7 px-2.5 rounded-lg border border-slate-200 text-[11px] font-semibold
-                             text-slate-600 hover:bg-slate-600 hover:text-white
-                             hover:border-slate-600 transition-colors">
-                      Check-out
-                    </button>
-                  }
                   @if (puedeCancelar(r.estado)) {
                     <button type="button" (click)="iniciarCancelacion(r)"
                       class="h-7 px-2.5 rounded-lg border border-red-100 text-[11px] font-semibold
@@ -237,8 +246,6 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
       [reservaId]="reservaIdDetalle()"
       (onClose)="detailAbierto.set(false)"
       (onEditar)="detailAbierto.set(false)"
-      (onCheckIn)="handleCheckIn($event)"
-      (onCheckOut)="handleCheckOut($event)"
       (onCancelar)="iniciarCancelacionById($event)" />
 
     <app-cancelar-modal
@@ -246,26 +253,62 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
       [reserva]="reservaACancelar()"
       (onClose)="cancelarAbierto.set(false)"
       (onCancelar)="confirmarCancelacion($event)" />
+
+    <app-reservation-form
+      [isOpen]="formAbierto()"
+      [reserva]="null"
+      (onClose)="formAbierto.set(false)"
+      (onSave)="guardarReserva($event)" />
   `,
 })
 export class MisReservasComponent {
   protected readonly auth   = inject(AuthStore);
-  private  readonly svc     = inject(ReservationService);
-  private  readonly confirm = inject(ConfirmDialogService);
+  private  readonly misSvc  = inject(MisReservasService);
+  private  readonly toastr  = inject(ToastrService);
 
   readonly filtroActivo = signal<FiltroMisReservas>('todas');
+
+  // ── Estado de datos ──────────────────────────────────────────────────────────
+  readonly reservas = signal<Reserva[]>([]);
+  readonly loading  = signal(true);
+  readonly error    = signal<string | null>(null);
 
   readonly detailAbierto    = signal(false);
   readonly reservaIdDetalle = signal<number | null>(null);
   readonly cancelarAbierto  = signal(false);
   readonly reservaACancelar = signal<Reserva | null>(null);
+  readonly formAbierto      = signal(false);
+
+  constructor() {
+    this.cargar();
+  }
+
+  /** Carga las reservas del usuario autenticado desde /api/v1/mis-reservas. */
+  cargar(): void {
+    this.loading.set(true);
+    this.error.set(null);
+    this.misSvc.listar(0, 100).subscribe({
+      next: (page) => {
+        this.reservas.set(page.content ?? []);
+        this.loading.set(false);
+      },
+      error: (err: HttpErrorResponse & { friendlyMessage?: string }) => {
+        this.loading.set(false);
+        this.reservas.set([]);
+        this.error.set(this.mensajeError(err));
+      },
+    });
+  }
+
+  private mensajeError(err: HttpErrorResponse & { friendlyMessage?: string }): string {
+    if (err.status === 403) return 'No tienes permiso para ver estas reservas.';
+    if (err.status === 404) return 'El servicio de reservas no está disponible.';
+    return err.friendlyMessage ?? 'No se pudieron cargar tus reservas.';
+  }
 
   // ── Computed ───────────────────────────────────────────────────────────────
 
-  readonly misReservas = computed(() => {
-    const uid = this.auth.user()?.usuarioId;
-    return uid != null ? this.svc.findByUsuario(uid) : [];
-  });
+  readonly misReservas = computed(() => this.reservas());
 
   readonly activasCount = computed(() =>
     this.misReservas().filter(r =>
@@ -344,46 +387,42 @@ export class MisReservasComponent {
 
   iniciarCancelacionById(id: number): void {
     this.detailAbierto.set(false);
-    const r = this.svc.findById(id);
+    const r = this.reservas().find((x) => x.reservaId === id);
     if (r) this.iniciarCancelacion(r);
   }
 
   confirmarCancelacion(payload: CancelarReservaPayload): void {
     const r = this.reservaACancelar();
     if (!r) return;
-    this.svc.cancelar(r.reservaId, payload).subscribe(() => {
-      this.cancelarAbierto.set(false);
-      this.reservaACancelar.set(null);
+    this.misSvc.cancelar(r.reservaId, payload.motivo ?? '').subscribe({
+      next: () => {
+        this.cancelarAbierto.set(false);
+        this.reservaACancelar.set(null);
+        this.toastr.success('Reserva cancelada.');
+        this.cargar();
+      },
+      error: (err: HttpErrorResponse & { friendlyMessage?: string }) => {
+        this.toastr.error(err.friendlyMessage ?? 'No se pudo cancelar la reserva.', 'Error');
+      },
     });
   }
 
-  async handleCheckIn(id: number): Promise<void> {
-    const r = this.svc.findById(id);
-    const nombre = r ? this.huespedPrincipal(r) : '';
-    const ok = await this.confirm.ask({
-      title:       'Confirmar Check-in',
-      message:     `¿Registrar el ingreso de ${nombre}?`,
-      confirmText: 'Sí, Check-in',
-      cancelText:  'Cancelar',
-    });
-    if (ok) {
-      this.svc.cambiarEstado(id, { nuevoEstado: 'CHECK_IN' }).subscribe();
-      this.detailAbierto.set(false);
-    }
+  // ── Crear reserva ────────────────────────────────────────────────────────────
+
+  abrirNuevaReserva(): void {
+    this.formAbierto.set(true);
   }
 
-  async handleCheckOut(id: number): Promise<void> {
-    const r = this.svc.findById(id);
-    const nombre = r ? this.huespedPrincipal(r) : '';
-    const ok = await this.confirm.ask({
-      title:       'Confirmar Check-out',
-      message:     `¿Registrar la salida de ${nombre}?`,
-      confirmText: 'Sí, Check-out',
-      cancelText:  'Cancelar',
+  guardarReserva(event: ReservaFormSaveEvent): void {
+    this.misSvc.crear(event.payload as CreateReservaPayload).subscribe({
+      next: (creada) => {
+        this.formAbierto.set(false);
+        this.toastr.success(`Reserva ${creada.codReserva} creada.`);
+        this.cargar();
+      },
+      error: (err: HttpErrorResponse & { friendlyMessage?: string }) => {
+        this.toastr.error(err.friendlyMessage ?? 'No se pudo crear la reserva.', 'Error');
+      },
     });
-    if (ok) {
-      this.svc.cambiarEstado(id, { nuevoEstado: 'CHECK_OUT' }).subscribe();
-      this.detailAbierto.set(false);
-    }
   }
 }
