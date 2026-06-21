@@ -5,7 +5,6 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { forkJoin, catchError, of } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { AuthStore } from '../../../../core/auth/auth.store';
@@ -14,7 +13,7 @@ import { MiDashboardResponse, MiReservaItem } from '../../../../core/auth/auth-u
 @Component({
   selector: 'app-dashboard-cliente',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink],
+  imports: [],
   template: `
     <div class="space-y-6">
 
@@ -23,17 +22,6 @@ import { MiDashboardResponse, MiReservaItem } from '../../../../core/auth/auth-u
         <h1 class="text-2xl font-bold text-[#2D2926]">
           Bienvenido, {{ firstName() }}
         </h1>
-        <a
-          routerLink="/reservar"
-          class="inline-flex items-center gap-2 h-10 px-5 rounded-lg bg-[#C5A048]
-                 text-white text-sm font-medium hover:bg-[#8E6F2E] transition-colors">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-               stroke-width="2" aria-hidden="true">
-            <rect x="3" y="4" width="18" height="18" rx="2"/>
-            <path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18"/>
-          </svg>
-          Nueva reserva
-        </a>
       </div>
 
       <!-- ── Stat cards ────────────────────────────────────────────── -->
@@ -71,10 +59,6 @@ import { MiDashboardResponse, MiReservaItem } from '../../../../core/auth/auth-u
         } @else if (reservasVisibles().length === 0) {
           <div class="bg-white rounded-xl border border-[#EEE3D1] p-8 text-center">
             <p class="text-[#2D2926]/45 text-sm">No tienes estadías activas ni próximas reservas.</p>
-            <a routerLink="/reservar"
-               class="mt-3 inline-block text-sm text-[#C5A048] hover:underline font-medium">
-              Hacer una reserva
-            </a>
           </div>
         } @else {
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -200,8 +184,8 @@ export class DashboardClientePage {
   readonly stats = computed(() => {
     const d = this.dashboard();
     return [
-      { icon: '🛏', value: String(d?.reservas.activas ?? 0), label: 'Reservas Activas' },
-      { icon: '💳', value: d ? `S/${d.montoDeuda.toFixed(2)}` : 'S/0.00', label: 'Pagos pendientes' },
+      { icon: '🛏', value: String(d?.reservas?.activas ?? 0), label: 'Reservas Activas' },
+      { icon: '💳', value: d ? `S/${(d.montoDeuda ?? 0).toFixed(2)}` : 'S/0.00', label: 'Pagos pendientes' },
       { icon: '📅', value: String(this.proximasCount()), label: 'Próximas reservas' },
       { icon: '⏱', value: String(this.diasEnHotel()), label: 'Días en hotel' },
     ];
@@ -219,7 +203,7 @@ export class DashboardClientePage {
       this.loading.set(false);
       this.loadingReservas.set(false);
       this.dashboard.set(dashboard);
-      this.reservas.set(reservas ?? []);
+      this.reservas.set(Array.isArray(reservas) ? reservas : (reservas as any)?.content ?? []);
     });
   }
 
