@@ -271,7 +271,7 @@ export class NotificationsListPage {
 
   private load(): void {
     this.api
-      .get<{ content: NotificacionHuesped[] }>('/api/v1/me/notificaciones')
+      .get<{ content: NotificacionHuesped[] }>('/api/v1/notificaciones')
       .pipe(
         map((res) => res.content ?? []),
         catchError(() => of(this.mockData())),
@@ -286,7 +286,7 @@ export class NotificationsListPage {
     if (this.marcando() || this.sinLeer() === 0) return;
     this.marcando.set(true);
     this.api
-      .patch<void, null>('/api/v1/me/notificaciones/leer-todas', null)
+      .patch<void, null>('/api/v1/notificaciones/leer-todas', null)
       .pipe(catchError(() => of(undefined)))
       .subscribe(() => {
         this.notificaciones.update((ns) => ns.map((n) => ({ ...n, leida: true })));
