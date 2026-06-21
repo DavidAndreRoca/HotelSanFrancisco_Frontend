@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, publicOnlyGuard } from './core/guards/auth.guard';
+import { noClienteGuard } from './core/guards/permission.guard';
 import { usuariosGuard } from './features/usuarios/guards/usuarios.guard';
 import { rolesGuard } from './features/roles/guards/roles.guard';
 import { serviciosGuard, tiposServicioGuard } from './features/servicios/guards/servicios.guard';
@@ -135,6 +136,7 @@ export const routes: Routes = [
       },
       {
         path: 'reports',
+        canActivate: [noClienteGuard],
         loadComponent: () =>
           import('./features/reports/pages/reports-dashboard/reports-dashboard.component').then(
             (m) => m.ReportsDashboardComponent,
@@ -151,6 +153,7 @@ export const routes: Routes = [
       },
       {
         path: 'management',
+        canActivate: [noClienteGuard],
         loadComponent: () =>
           import('./features/reports/pages/management-dashboard/management-dashboard.component').then(
             (m) => m.ManagementDashboardComponent,
@@ -167,6 +170,7 @@ export const routes: Routes = [
       },
       {
         path: 'notifications/settings',
+        canActivate: [noClienteGuard],
         loadComponent: () =>
           import('./features/notifications/pages/notifications-settings/notifications-settings.component').then(
             (m) => m.NotificationsSettingsComponent,
