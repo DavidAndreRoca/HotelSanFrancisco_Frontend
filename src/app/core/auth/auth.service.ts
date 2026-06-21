@@ -88,7 +88,7 @@ export class AuthService {
 
   /** Perfil extendido del usuario logueado (teléfono, doc, dirección, fechaCreacion). */
   getMyProfile(): Observable<PerfilUsuarioResponse> {
-    return this.api.get<PerfilUsuarioResponse>('/auth/me/perfil');
+    return this.api.get<PerfilUsuarioResponse>('/auth/me');
   }
 
   /** Editar datos personales propios sin permisos administrativos. */
