@@ -300,6 +300,8 @@ export const routes: Routes = [
             (m) => m.VentaDetallePage,
           ),
         title: 'Detalle de venta · Hotel San Francisco',
+      },
+      {
         path: 'solicitudes',
         loadComponent: () =>
           import('./features/solicitudes/pages/gestion-global/gestion-global.page').then(
