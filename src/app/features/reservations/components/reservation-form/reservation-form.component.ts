@@ -121,7 +121,7 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                   <div class="grid sm:grid-cols-2 gap-4">
                     <div>
                       <label class="text-[13px] font-medium text-[#2D2926]/70">
-                        Check-in <span class="text-red-500">*</span>
+                        Fecha de llegada <span class="text-red-500">*</span>
                       </label>
                       <input type="date" formControlName="fechaInicio"
                         [min]="hoy()"
@@ -133,7 +133,7 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                     </div>
                     <div>
                       <label class="text-[13px] font-medium text-[#2D2926]/70">
-                        Check-out <span class="text-red-500">*</span>
+                        Fecha de salida <span class="text-red-500">*</span>
                       </label>
                       <input type="date" formControlName="fechaFin"
                         [min]="minFechaFin()"
@@ -630,7 +630,7 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                 <div class="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label class="text-[13px] font-medium text-[#2D2926]/70">
-                      Check-in <span class="text-red-500">*</span>
+                      Fecha de llegada <span class="text-red-500">*</span>
                     </label>
                     <input type="date" formControlName="fechaInicio"
                       [min]="hoy()" [class]="icEdit('fechaInicio')" />
@@ -640,7 +640,7 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                   </div>
                   <div>
                     <label class="text-[13px] font-medium text-[#2D2926]/70">
-                      Check-out <span class="text-red-500">*</span>
+                      Fecha de salida <span class="text-red-500">*</span>
                     </label>
                     <input type="date" formControlName="fechaFin" [class]="icEdit('fechaFin')" />
                     @if (invEdit('fechaFin')) {

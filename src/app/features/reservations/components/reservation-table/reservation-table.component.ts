@@ -31,8 +31,8 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; bg: string; text: strin
                 <th class="px-4 py-3 font-semibold">Código</th>
                 <th class="px-4 py-3 font-semibold">Huésped</th>
                 <th class="px-4 py-3 font-semibold">Habitación</th>
-                <th class="px-4 py-3 font-semibold">Check-in</th>
-                <th class="px-4 py-3 font-semibold">Check-out</th>
+                <th class="px-4 py-3 font-semibold">Fecha llegada</th>
+                <th class="px-4 py-3 font-semibold">Fecha salida</th>
                 <th class="px-4 py-3 font-semibold">Estado</th>
                 <th class="px-4 py-3 font-semibold">Monto</th>
                 <th class="px-4 py-3 font-semibold text-right">Acciones</th>

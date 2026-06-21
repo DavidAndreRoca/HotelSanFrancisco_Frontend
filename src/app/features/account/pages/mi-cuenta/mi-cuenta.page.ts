@@ -125,6 +125,31 @@ import { UiButtonComponent } from '../../../../shared/ui/button/ui-button.compon
                          text-[15px] text-[#2D2926]/50 cursor-not-allowed outline-none" />
               </div>
 
+              <!-- Nacionalidad (editable) -->
+              <div>
+                <label for="nacionalidad"
+                       class="flex items-center gap-2 mb-2 text-sm font-semibold text-[#2D2926]">
+                  <svg class="w-4 h-4 text-[#C5A048] shrink-0" fill="none" viewBox="0 0 24 24"
+                       stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6H12.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/>
+                  </svg>
+                  Nacionalidad
+                </label>
+                <input
+                  id="nacionalidad"
+                  type="text"
+                  formControlName="nacionalidad"
+                  placeholder="Ej. Peruana"
+                  autocomplete="country-name"
+                  [class]="fieldClass(showError('nacionalidad'))" />
+                @if (showError('nacionalidad')) {
+                  <p class="text-xs text-red-500 mt-1.5" role="alert">
+                    Máximo 60 caracteres.
+                  </p>
+                }
+              </div>
+
               <!-- Teléfono (editable) -->
               <div>
                 <label for="telefono"
@@ -221,48 +246,53 @@ export class MiCuentaPage {
   readonly form = this.fb.nonNullable.group({
     telefono: ['', [Validators.maxLength(20)]],
     direccion: ['', [Validators.maxLength(200)]],
+    nacionalidad: ['', [Validators.maxLength(60)]],
   });
 
   constructor() {
     this.loadProfile();
   }
 
-  private loadProfile(): void {
-    this.auth
-      .getMyProfile()
-      .pipe(
-        catchError(() => {
-          // GET /auth/me/perfil aún no existe: usa datos básicos del store como fallback
-          const u = this.store.user();
-          return of(
-            u
-              ? ({
-                  usuarioId: u.usuarioId,
-                  nombre: u.nombre,
-                  apellidoPaterno: u.apellidoPaterno,
-                  apellidoMaterno: u.apellidoMaterno,
-                  nombreCompleto: u.nombreCompleto,
-                  correo: u.correo,
-                  rol: u.rol,
-                  permisos: u.permisos,
-                } as PerfilUsuarioResponse)
-              : null,
-          );
-        }),
-      )
-      .subscribe((perfil) => {
-        this.loading.set(false);
-        if (!perfil) return;
-        this.perfil.set(perfil);
-        this.form.patchValue({
-          telefono: perfil.telefono ?? '',
-          direccion: perfil.direccion ?? '',
-        });
-        this.form.markAsPristine();
+private loadProfile(): void {
+  this.auth
+    .getMyProfile()
+    .pipe(
+      catchError(() => {
+        const u = this.store.user();
+        return of(
+          u
+            ? {
+                usuarioId: u.usuarioId,
+                nombre: u.nombre,
+                apellidoPaterno: u.apellidoPaterno,
+                apellidoMaterno: u.apellidoMaterno,
+                nombreCompleto: u.nombreCompleto,
+                correo: u.correo,
+                rol: u.rol,
+                permisos: u.permisos,
+                telefono: u.telefono ?? '',
+                direccion: u.direccion ?? '',
+                nacionalidad: u.nacionalidad ?? '',
+                fechaCreacion: u.fechaCreacion,
+              } as PerfilUsuarioResponse
+            : null,
+        );
+      }),
+    )
+    .subscribe((perfil) => {
+      this.loading.set(false);
+      if (!perfil) return;
+      this.perfil.set(perfil);
+      this.form.patchValue({
+        telefono: perfil.telefono ?? '',
+        direccion: perfil.direccion ?? '',
+        nacionalidad: perfil.nacionalidad ?? '',
       });
-  }
+      this.form.markAsPristine();
+    });
+}
 
-  showError(field: 'telefono' | 'direccion'): boolean {
+  showError(field: 'telefono' | 'direccion' | 'nacionalidad'): boolean {
     const c = this.form.controls[field];
     return c.invalid && (c.touched || c.dirty);
   }
@@ -279,15 +309,14 @@ export class MiCuentaPage {
   onSubmit(): void {
     if (this.form.invalid || this.form.pristine) return;
 
-    const { telefono, direccion } = this.form.getRawValue();
+    const { telefono, direccion, nacionalidad } = this.form.getRawValue();
     this.saving.set(true);
 
-    this.auth.updateMyProfile({ telefono, direccion }).subscribe({
-      next: (updated) => {
+    this.auth.updateMyProfile({ telefono, direccion, nacionalidad }).subscribe({
+      next: () => {
         this.saving.set(false);
-        this.perfil.set(updated);
-        this.form.markAsPristine();
         this.toastr.success('Perfil actualizado correctamente.');
+        this.loadProfile();
       },
       error: (err: HttpErrorResponse & { friendlyMessage?: string }) => {
         this.saving.set(false);

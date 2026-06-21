@@ -106,11 +106,11 @@ const HAB_ESTADO: Record<EstadoReservaHabitacion, string> = {
               </p>
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
-                  <p class="text-[10px] uppercase tracking-wider font-semibold text-[#8E6F2E] mb-0.5">Check-in</p>
+                  <p class="text-[10px] uppercase tracking-wider font-semibold text-[#8E6F2E] mb-0.5">Fecha de llegada</p>
                   <p class="text-sm font-bold text-[#C5A048]">{{ formatFecha(reserva()!.fechaInicio) }}</p>
                 </div>
                 <div>
-                  <p class="text-[10px] uppercase tracking-wider font-semibold text-[#8E6F2E] mb-0.5">Check-out</p>
+                  <p class="text-[10px] uppercase tracking-wider font-semibold text-[#8E6F2E] mb-0.5">Fecha de salida</p>
                   <p class="text-sm font-bold text-[#C5A048]">{{ formatFecha(reserva()!.fechaFin) }}</p>
                 </div>
                 <div>
