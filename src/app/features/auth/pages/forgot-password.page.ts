@@ -17,15 +17,18 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
         <div
           class="absolute inset-0 bg-cover bg-center"
           style="background-image:url('https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=1400&q=80')"
-          aria-hidden="true"></div>
+          aria-hidden="true"
+        ></div>
         <div
           class="absolute inset-0 bg-gradient-to-br from-[var(--color-ink)]/85 via-[var(--color-ink)]/60 to-[var(--color-primary-700)]/55"
-          aria-hidden="true"></div>
+          aria-hidden="true"
+        ></div>
 
         <div class="relative h-full flex flex-col justify-between p-12 text-white">
           <a routerLink="/home" class="inline-flex items-center gap-3 group">
             <div
-              class="w-12 h-12 rounded-full bg-[var(--color-primary-500)] text-[var(--color-ink)] flex items-center justify-center font-extrabold shadow-lg">
+              class="w-12 h-12 rounded-full bg-[var(--color-primary-500)] text-[var(--color-ink)] flex items-center justify-center font-extrabold shadow-lg"
+            >
               SF
             </div>
             <div class="leading-tight">
@@ -48,7 +51,8 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
       <!-- FORMULARIO -->
       <section
         class="flex items-center justify-center px-6 py-12 sm:px-12"
-        aria-label="Recuperar contraseña">
+        aria-label="Recuperar contraseña"
+      >
         <div class="w-full max-w-md">
           <header class="mb-8">
             <h1 class="text-3xl font-bold tracking-tight">Recuperar contraseña</h1>
@@ -60,7 +64,8 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
           @if (sent()) {
             <div
               class="rounded-lg border border-[var(--color-border-soft)] bg-white p-5 text-[15px] leading-relaxed"
-              role="status">
+              role="status"
+            >
               <p class="font-semibold text-[var(--color-ink)]">Revisa tu bandeja de entrada</p>
               <p class="mt-2 text-[var(--color-ink-muted)]">
                 Si <span class="font-medium">{{ sentTo() }}</span> está registrado, recibirás un
@@ -68,7 +73,8 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
               </p>
               <a
                 routerLink="/login"
-                class="mt-5 inline-flex items-center gap-2 text-[var(--color-primary-700)] font-medium hover:underline">
+                class="mt-5 inline-flex items-center gap-2 text-[var(--color-primary-700)] font-medium hover:underline"
+              >
                 ← Volver a iniciar sesión
               </a>
             </div>
@@ -78,7 +84,8 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
               (ngSubmit)="onSubmit()"
               novalidate
               class="space-y-5"
-              aria-label="Formulario de recuperación de contraseña">
+              aria-label="Formulario de recuperación de contraseña"
+            >
               <div>
                 <label for="correo" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
                   Correo electrónico <span class="text-[var(--color-danger-500)]">*</span>
@@ -90,7 +97,8 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
                   placeholder="nombre@hotelsanfrancisco.com"
                   autocomplete="email"
                   [attr.aria-invalid]="showError() || null"
-                  [class]="inputClass(showError())" />
+                  [class]="inputClass(showError())"
+                />
                 @if (showError()) {
                   <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">
                     {{ errorMessage() }}
@@ -102,14 +110,16 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
                 type="submit"
                 [block]="true"
                 [loading]="loading()"
-                [disabled]="form.invalid">
+                [disabled]="form.invalid"
+              >
                 Enviar enlace de recuperación
               </ui-button>
 
               <p class="text-center text-[13px] text-[var(--color-ink-muted)]">
                 <a
                   routerLink="/login"
-                  class="text-[var(--color-primary-700)] font-medium hover:underline">
+                  class="text-[var(--color-primary-700)] font-medium hover:underline"
+                >
                   ← Volver a iniciar sesión
                 </a>
               </p>

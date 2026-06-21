@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -11,10 +18,7 @@ import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../core/auth/auth.service';
-import {
-  PublicDocumentType,
-  RegisterRequest,
-} from '../../../core/auth/auth-user.interface';
+import { PublicDocumentType, RegisterRequest } from '../../../core/auth/auth-user.interface';
 import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component';
 
 function passwordMatchValidator(group: AbstractControl): ValidationErrors | null {
@@ -34,15 +38,18 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
         <div
           class="absolute inset-0 bg-cover bg-center"
           style="background-image:url('https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=1400&q=80')"
-          aria-hidden="true"></div>
+          aria-hidden="true"
+        ></div>
         <div
           class="absolute inset-0 bg-gradient-to-br from-[var(--color-ink)]/85 via-[var(--color-ink)]/55 to-[var(--color-primary-700)]/55"
-          aria-hidden="true"></div>
+          aria-hidden="true"
+        ></div>
 
         <div class="relative h-full flex flex-col justify-between p-12 text-white">
           <a routerLink="/home" class="inline-flex items-center gap-3">
             <div
-              class="w-12 h-12 rounded-full bg-[var(--color-primary-500)] text-[var(--color-ink)] flex items-center justify-center font-extrabold shadow-lg">
+              class="w-12 h-12 rounded-full bg-[var(--color-primary-500)] text-[var(--color-ink)] flex items-center justify-center font-extrabold shadow-lg"
+            >
               SF
             </div>
             <div class="leading-tight">
@@ -57,8 +64,8 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
               <span class="text-[var(--color-primary-300)]">huésped</span>.
             </h2>
             <p class="mt-4 text-white/75 max-w-md text-[15px] leading-relaxed">
-              Reserva tu habitación, gestiona tus pagos y disfruta de beneficios
-              exclusivos como cliente registrado.
+              Reserva tu habitación, gestiona tus pagos y disfruta de beneficios exclusivos como
+              cliente registrado.
             </p>
             <ul class="mt-8 space-y-3 text-[14px] text-white/80">
               <li class="flex items-center gap-3">
@@ -96,15 +103,19 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
                   formControlName="nombre"
                   autocomplete="given-name"
                   [class]="cls(form.controls.nombre)"
-                  placeholder="Juan" />
+                  placeholder="Juan"
+                />
                 @if (errorMsg('nombre'); as msg) {
-                  <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
+                  <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">
+                    {{ msg }}
+                  </p>
                 }
               </div>
               <div>
                 <label
                   for="apellidoPaterno"
-                  class="text-[13px] font-medium text-[var(--color-ink-soft)]">
+                  class="text-[13px] font-medium text-[var(--color-ink-soft)]"
+                >
                   Apellido paterno <span class="text-[var(--color-danger-500)]">*</span>
                 </label>
                 <input
@@ -112,9 +123,12 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
                   formControlName="apellidoPaterno"
                   autocomplete="family-name"
                   [class]="cls(form.controls.apellidoPaterno)"
-                  placeholder="Pérez" />
+                  placeholder="Pérez"
+                />
                 @if (errorMsg('apellidoPaterno'); as msg) {
-                  <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
+                  <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">
+                    {{ msg }}
+                  </p>
                 }
               </div>
             </div>
@@ -122,14 +136,16 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
             <div>
               <label
                 for="apellidoMaterno"
-                class="text-[13px] font-medium text-[var(--color-ink-soft)]">
+                class="text-[13px] font-medium text-[var(--color-ink-soft)]"
+              >
                 Apellido materno
               </label>
               <input
                 id="apellidoMaterno"
                 formControlName="apellidoMaterno"
                 [class]="cls(form.controls.apellidoMaterno)"
-                placeholder="Quispe (opcional)" />
+                placeholder="Quispe (opcional)"
+              />
               @if (errorMsg('apellidoMaterno'); as msg) {
                 <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
               }
@@ -140,27 +156,32 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
               <div>
                 <label
                   for="tipoDocumentoId"
-                  class="text-[13px] font-medium text-[var(--color-ink-soft)]">
+                  class="text-[13px] font-medium text-[var(--color-ink-soft)]"
+                >
                   Tipo de documento <span class="text-[var(--color-danger-500)]">*</span>
                 </label>
                 <select
                   id="tipoDocumentoId"
                   formControlName="tipoDocumentoId"
                   [class]="cls(form.controls.tipoDocumentoId)"
-                  [attr.aria-busy]="loadingTypes() || null">
+                  [attr.aria-busy]="loadingTypes() || null"
+                >
                   <option [ngValue]="null" disabled>Selecciona</option>
                   @for (t of documentTypes(); track t.tipoDocumentoId) {
                     <option [ngValue]="t.tipoDocumentoId">{{ t.acronimo }}</option>
                   }
                 </select>
                 @if (errorMsg('tipoDocumentoId'); as msg) {
-                  <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
+                  <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">
+                    {{ msg }}
+                  </p>
                 }
               </div>
               <div>
                 <label
                   for="numeroDocumento"
-                  class="text-[13px] font-medium text-[var(--color-ink-soft)]">
+                  class="text-[13px] font-medium text-[var(--color-ink-soft)]"
+                >
                   Número de documento <span class="text-[var(--color-danger-500)]">*</span>
                 </label>
                 <input
@@ -169,9 +190,12 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
                   [class]="cls(form.controls.numeroDocumento)"
                   [placeholder]="documentPlaceholder()"
                   [maxlength]="20"
-                  inputmode="text" />
+                  inputmode="text"
+                />
                 @if (errorMsg('numeroDocumento'); as msg) {
-                  <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
+                  <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">
+                    {{ msg }}
+                  </p>
                 }
               </div>
             </div>
@@ -188,9 +212,12 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
                   formControlName="correo"
                   autocomplete="email"
                   [class]="cls(form.controls.correo)"
-                  placeholder="nombre@correo.com" />
+                  placeholder="nombre@correo.com"
+                />
                 @if (errorMsg('correo'); as msg) {
-                  <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
+                  <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">
+                    {{ msg }}
+                  </p>
                 }
               </div>
               <div>
@@ -203,9 +230,12 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
                   formControlName="telefono"
                   autocomplete="tel"
                   [class]="cls(form.controls.telefono)"
-                  placeholder="987 654 321" />
+                  placeholder="987 654 321"
+                />
                 @if (errorMsg('telefono'); as msg) {
-                  <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
+                  <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">
+                    {{ msg }}
+                  </p>
                 }
               </div>
             </div>
@@ -215,7 +245,8 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
               <div>
                 <label
                   for="fechaNacimiento"
-                  class="text-[13px] font-medium text-[var(--color-ink-soft)]">
+                  class="text-[13px] font-medium text-[var(--color-ink-soft)]"
+                >
                   Fecha de nacimiento
                 </label>
                 <input
@@ -223,22 +254,27 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
                   type="date"
                   formControlName="fechaNacimiento"
                   [max]="todayIso"
-                  [class]="cls(form.controls.fechaNacimiento)" />
+                  [class]="cls(form.controls.fechaNacimiento)"
+                />
                 @if (errorMsg('fechaNacimiento'); as msg) {
-                  <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
+                  <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">
+                    {{ msg }}
+                  </p>
                 }
               </div>
               <div>
                 <label
                   for="nacionalidad"
-                  class="text-[13px] font-medium text-[var(--color-ink-soft)]">
+                  class="text-[13px] font-medium text-[var(--color-ink-soft)]"
+                >
                   Nacionalidad
                 </label>
                 <input
                   id="nacionalidad"
                   formControlName="nacionalidad"
                   [class]="cls(form.controls.nacionalidad)"
-                  placeholder="Peruana" />
+                  placeholder="Peruana"
+                />
               </div>
             </div>
 
@@ -247,7 +283,8 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
               <div>
                 <label
                   for="contrasena"
-                  class="text-[13px] font-medium text-[var(--color-ink-soft)]">
+                  class="text-[13px] font-medium text-[var(--color-ink-soft)]"
+                >
                   Contraseña <span class="text-[var(--color-danger-500)]">*</span>
                 </label>
                 <input
@@ -256,15 +293,19 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
                   formControlName="contrasena"
                   autocomplete="new-password"
                   [class]="cls(form.controls.contrasena)"
-                  placeholder="Mín. 6 caracteres" />
+                  placeholder="Mín. 6 caracteres"
+                />
                 @if (errorMsg('contrasena'); as msg) {
-                  <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
+                  <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">
+                    {{ msg }}
+                  </p>
                 }
               </div>
               <div>
                 <label
                   for="confirmarContrasena"
-                  class="text-[13px] font-medium text-[var(--color-ink-soft)]">
+                  class="text-[13px] font-medium text-[var(--color-ink-soft)]"
+                >
                   Confirmar contraseña <span class="text-[var(--color-danger-500)]">*</span>
                 </label>
                 <input
@@ -273,7 +314,8 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
                   formControlName="confirmarContrasena"
                   autocomplete="new-password"
                   [class]="cls(form.controls.confirmarContrasena)"
-                  placeholder="Repite la contraseña" />
+                  placeholder="Repite la contraseña"
+                />
                 @if (showMismatch()) {
                   <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">
                     Las contraseñas no coinciden.
@@ -284,7 +326,12 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
 
             <p class="text-[12px] text-[var(--color-ink-muted)] leading-relaxed">
               Al crear tu cuenta aceptas nuestros
-              <a routerLink="/home" fragment="contact" class="underline hover:text-[var(--color-primary-700)]">términos</a>
+              <a
+                routerLink="/home"
+                fragment="contact"
+                class="underline hover:text-[var(--color-primary-700)]"
+                >términos</a
+              >
               y la política de tratamiento de datos personales.
             </p>
 
@@ -294,7 +341,10 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
 
             <p class="text-center text-[13px] text-[var(--color-ink-muted)]">
               ¿Ya tienes una cuenta?
-              <a routerLink="/login" class="text-[var(--color-primary-700)] font-medium hover:underline">
+              <a
+                routerLink="/login"
+                class="text-[var(--color-primary-700)] font-medium hover:underline"
+              >
                 Inicia sesión
               </a>
             </p>
@@ -319,7 +369,10 @@ export class RegisterComponent implements OnInit {
   readonly form = this.fb.group(
     {
       nombre: this.fb.nonNullable.control('', [Validators.required, Validators.maxLength(80)]),
-      apellidoPaterno: this.fb.nonNullable.control('', [Validators.required, Validators.maxLength(80)]),
+      apellidoPaterno: this.fb.nonNullable.control('', [
+        Validators.required,
+        Validators.maxLength(80),
+      ]),
       apellidoMaterno: this.fb.nonNullable.control('', [Validators.maxLength(80)]),
       tipoDocumentoId: this.fb.control<number | null>(null, [Validators.required]),
       numeroDocumento: this.fb.nonNullable.control('', [
