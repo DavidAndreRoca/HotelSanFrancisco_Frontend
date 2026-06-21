@@ -35,7 +35,9 @@ const STEP_LABELS = ['Seleccionar', 'Datos', 'Resumen', 'Pago', 'Confirmación']
             <div class="w-8 h-8 rounded bg-[#C5A048] flex items-center justify-center">
               <span class="text-white font-bold text-sm">SF</span>
             </div>
-            <span class="font-semibold text-[#2D2926] text-sm tracking-wide">Hotel San Francisco</span>
+            <span class="font-semibold text-[#2D2926] text-sm tracking-wide"
+              >Hotel San Francisco</span
+            >
           </div>
           <span class="text-[var(--color-border-soft)] select-none">|</span>
           <span class="text-sm text-[var(--color-ink-muted)]">Reserva en línea</span>
@@ -52,24 +54,34 @@ const STEP_LABELS = ['Seleccionar', 'Datos', 'Resumen', 'Pago', 'Confirmación']
                   <div class="flex flex-col items-center">
                     <div
                       class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold border-2 transition-colors"
-                      [class]="stepCircleClass($index + 1)">
+                      [class]="stepCircleClass($index + 1)"
+                    >
                       @if ($index + 1 < step()) {
                         <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                          <path
+                            fill-rule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clip-rule="evenodd"
+                          />
                         </svg>
                       } @else {
                         {{ $index + 1 }}
                       }
                     </div>
-                    <span class="text-[11px] mt-1.5 font-medium whitespace-nowrap hidden sm:block"
-                      [class]="stepLabelClass($index + 1)">
+                    <span
+                      class="text-[11px] mt-1.5 font-medium whitespace-nowrap hidden sm:block"
+                      [class]="stepLabelClass($index + 1)"
+                    >
                       {{ label }}
                     </span>
                   </div>
                   @if ($index < stepLabels.length - 1) {
-                    <div class="h-px flex-1 mx-2 transition-colors"
-                      [class]="$index + 1 < step() ? 'bg-[#C5A048]' : 'bg-[var(--color-border-soft)]'">
-                    </div>
+                    <div
+                      class="h-px flex-1 mx-2 transition-colors"
+                      [class]="
+                        $index + 1 < step() ? 'bg-[#C5A048]' : 'bg-[var(--color-border-soft)]'
+                      "
+                    ></div>
                   }
                 </li>
               }

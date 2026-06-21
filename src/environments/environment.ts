@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://localhost:8080',
-  wsUrl: 'http://localhost:8080/ws',
+  apiUrl: 'https://hotelsanfranciscobackend-production.up.railway.app',
+  wsUrl: 'https://hotelsanfranciscobackend-production.up.railway.app/ws',
 } as const;
