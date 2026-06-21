@@ -23,7 +23,7 @@ import { ReservaStats } from '../../models/reservation.model';
       </div>
 
       <div class="bg-white rounded-2xl border border-[#EEE3D1] p-4">
-        <p class="text-[11px] uppercase tracking-wider text-[#2D2926]/50 font-semibold">Check-out</p>
+        <p class="text-[11px] uppercase tracking-wider text-[#2D2926]/50 font-semibold">Finalizadas</p>
         <p class="mt-1.5 text-2xl font-bold text-[#2D2926]/50">{{ stats().checkOut }}</p>
       </div>
 
@@ -34,7 +34,7 @@ import { ReservaStats } from '../../models/reservation.model';
 
       <div class="bg-white rounded-2xl border border-[#EEE3D1] p-4">
         <p class="text-[11px] uppercase tracking-wider text-[#2D2926]/50 font-semibold">
-          Hoy (in/out)
+          Hoy (llegadas/salidas)
         </p>
         <p class="mt-1.5 text-xl font-bold text-[#8E6F2E]">
           {{ stats().todayCheckIns }}&thinsp;/&thinsp;{{ stats().todayCheckOuts }}

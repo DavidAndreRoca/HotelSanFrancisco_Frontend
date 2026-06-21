@@ -71,11 +71,11 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
           <p class="mt-1.5 text-2xl font-bold text-[#C5A048]">{{ activasCount() }}</p>
         </div>
         <div class="bg-white rounded-2xl border border-[#EEE3D1] p-4">
-          <p class="text-[11px] uppercase tracking-wider text-[#2D2926]/50 font-semibold">Hoy check-in</p>
+          <p class="text-[11px] uppercase tracking-wider text-[#2D2926]/50 font-semibold">Llegadas hoy</p>
           <p class="mt-1.5 text-2xl font-bold text-emerald-600">{{ todayCheckIns() }}</p>
         </div>
         <div class="bg-white rounded-2xl border border-[#EEE3D1] p-4">
-          <p class="text-[11px] uppercase tracking-wider text-[#2D2926]/50 font-semibold">Hoy check-out</p>
+          <p class="text-[11px] uppercase tracking-wider text-[#2D2926]/50 font-semibold">Salidas hoy</p>
           <p class="mt-1.5 text-2xl font-bold text-[#2D2926]/50">{{ todayCheckOuts() }}</p>
         </div>
       </div>
@@ -163,7 +163,7 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
                 <!-- Fechas -->
                 <div class="flex items-center gap-2 bg-[#F9F5F0] rounded-xl px-3 py-2">
                   <div>
-                    <p class="text-[9px] uppercase tracking-wider font-semibold text-[#8E6F2E]">Check-in</p>
+                    <p class="text-[9px] uppercase tracking-wider font-semibold text-[#8E6F2E]">Llegada</p>
                     <p class="text-sm font-bold text-[#2D2926]">{{ formatFecha(r.fechaInicio) }}</p>
                   </div>
                   <div class="flex-1 flex items-center justify-center gap-1">
@@ -174,7 +174,7 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
                     <div class="flex-1 border-t border-dashed border-[#EEE3D1]"></div>
                   </div>
                   <div class="text-right">
-                    <p class="text-[9px] uppercase tracking-wider font-semibold text-[#8E6F2E]">Check-out</p>
+                    <p class="text-[9px] uppercase tracking-wider font-semibold text-[#8E6F2E]">Salida</p>
                     <p class="text-sm font-bold text-[#2D2926]">{{ formatFecha(r.fechaFin) }}</p>
                   </div>
                 </div>
@@ -196,12 +196,12 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
               <!-- Banners de hoy -->
               @if (esHoy(r.fechaInicio)) {
                 <div class="text-[11px] font-bold text-center py-1.5 bg-emerald-50 text-emerald-700">
-                  Check-in hoy
+                  Llegada hoy
                 </div>
               }
               @if (esHoy(r.fechaFin) && r.estado === 'CHECK_IN') {
                 <div class="text-[11px] font-bold text-center py-1.5 bg-[#FFF8E1] text-[#8E6F2E]">
-                  Check-out hoy
+                  Salida hoy
                 </div>
               }
 

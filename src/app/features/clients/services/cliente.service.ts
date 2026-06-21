@@ -6,10 +6,12 @@ import {
   Cliente, ClienteStats, EstadoActivo,
   CreateClientePayload, UpdateClientePayload,
 } from '../models/cliente.model';
+import { AuthStore } from '../../../core/auth/auth.store';
 
 @Injectable({ providedIn: 'root' })
 export class ClienteService {
-  private readonly api = inject(ApiClient);
+  private readonly api       = inject(ApiClient);
+  private readonly authStore = inject(AuthStore);
 
   private readonly _clientes     = signal<Cliente[]>([]);
   private readonly _searchTerm   = signal<string>('');
@@ -53,7 +55,9 @@ export class ClienteService {
   });
 
   constructor() {
-    this.cargarTodos();
+    if (this.authStore.user()?.rol !== 'CLIENTE') {
+      this.cargarTodos();
+    }
   }
 
   cargarTodos(): void {
