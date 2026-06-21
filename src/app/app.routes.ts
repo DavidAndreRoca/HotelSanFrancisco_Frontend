@@ -1,5 +1,9 @@
 import { Routes } from '@angular/router';
 import { authGuard, publicOnlyGuard } from './core/guards/auth.guard';
+import { usuariosGuard } from './features/usuarios/guards/usuarios.guard';
+import { rolesGuard } from './features/roles/guards/roles.guard';
+import { serviciosGuard, tiposServicioGuard } from './features/servicios/guards/servicios.guard';
+import { posGuard, ventaCreateGuard } from './features/pos/guards/pos.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -228,6 +232,74 @@ export const routes: Routes = [
         title: 'Incidencias · Hotel San Francisco',
       },
       {
+        path: 'users',
+        canActivate: [usuariosGuard],
+        loadComponent: () =>
+          import('./features/usuarios/pages/usuarios-lista/usuarios-lista.page').then(
+            (m) => m.UsuariosListaPage,
+          ),
+        title: 'Usuarios · Hotel San Francisco',
+      },
+      {
+        path: 'roles',
+        canActivate: [rolesGuard],
+        loadComponent: () =>
+          import('./features/roles/pages/roles-lista/roles-lista.page').then(
+            (m) => m.RolesListaPage,
+          ),
+        title: 'Roles · Hotel San Francisco',
+      },
+      {
+        path: 'roles/:id',
+        canActivate: [rolesGuard],
+        loadComponent: () =>
+          import('./features/roles/pages/rol-detalle/rol-detalle.page').then(
+            (m) => m.RolDetallePage,
+          ),
+        title: 'Detalle de rol · Hotel San Francisco',
+      },
+      {
+        path: 'tipos-servicio',
+        canActivate: [tiposServicioGuard],
+        loadComponent: () =>
+          import('./features/servicios/pages/tipos-servicio-lista/tipos-servicio-lista.page').then(
+            (m) => m.TiposServicioListaPage,
+          ),
+        title: 'Tipos de servicio · Hotel San Francisco',
+      },
+      {
+        path: 'servicios',
+        canActivate: [serviciosGuard],
+        loadComponent: () =>
+          import('./features/servicios/pages/servicios-lista/servicios-lista.page').then(
+            (m) => m.ServiciosListaPage,
+          ),
+        title: 'Consumos de servicio · Hotel San Francisco',
+      },
+      {
+        path: 'pos',
+        canActivate: [posGuard],
+        loadComponent: () =>
+          import('./features/pos/pages/ventas-lista/ventas-lista.page').then(
+            (m) => m.VentasListaPage,
+          ),
+        title: 'Punto de venta · Hotel San Francisco',
+      },
+      {
+        path: 'pos/nueva',
+        canActivate: [ventaCreateGuard],
+        loadComponent: () =>
+          import('./features/pos/pages/venta-form/venta-form.page').then((m) => m.VentaFormPage),
+        title: 'Nueva venta · Hotel San Francisco',
+      },
+      {
+        path: 'pos/:id',
+        canActivate: [posGuard],
+        loadComponent: () =>
+          import('./features/pos/pages/venta-detalle/venta-detalle.page').then(
+            (m) => m.VentaDetallePage,
+          ),
+        title: 'Detalle de venta · Hotel San Francisco',
         path: 'solicitudes',
         loadComponent: () =>
           import('./features/solicitudes/pages/gestion-global/gestion-global.page').then(

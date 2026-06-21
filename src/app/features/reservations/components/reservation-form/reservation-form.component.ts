@@ -313,6 +313,17 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
             @if (pasoActual() === 3) {
               <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
 
+                @if (esCliente()) {
+                  <div class="rounded-xl bg-[#FFF8E1] border border-[#FDE68A] px-4 py-3">
+                    <p class="text-sm font-semibold text-[#8E6F2E]">Reserva a tu nombre</p>
+                    <p class="text-xs text-[#8E6F2E]/80 mt-0.5">
+                      Esta reserva se asociará automáticamente a tu cuenta; no necesitas
+                      seleccionar huéspedes.
+                    </p>
+                  </div>
+                }
+
+                @if (!esCliente()) {
                 <div>
                   <label class="text-[13px] font-medium text-[#2D2926]/70">
                     Buscar cliente por nombre o documento
@@ -417,6 +428,7 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                     </form>
                   </div>
                 }
+                }
 
                 @if (huespedesSeleccionados().length > 0) {
                   <div>
@@ -474,7 +486,7 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                   Volver
                 </button>
                 <button type="button" (click)="avanzarPaso()"
-                  [disabled]="huespedesSeleccionados().length === 0"
+                  [disabled]="!esCliente() && huespedesSeleccionados().length === 0"
                   class="h-9 px-5 rounded-xl bg-[#C5A048] text-white text-sm font-semibold
                          hover:bg-[#8E6F2E] transition-colors disabled:opacity-50 flex items-center gap-2">
                   Continuar
@@ -743,6 +755,10 @@ export class ReservationFormComponent {
   readonly nuevoClienteAbierto      = signal(false);
   readonly errorPaso                = signal<string | null>(null);
 
+  /** Cuando el usuario es CLIENTE, el backend infiere el huésped del JWT:
+   *  se oculta el selector de cliente y no se exige seleccionar huéspedes. */
+  readonly esCliente = computed(() => this.authStore.rol() === 'CLIENTE');
+
   private readonly _fechaInicio = signal('');
   private readonly _fechaFin    = signal('');
 
@@ -932,7 +948,7 @@ export class ReservationFormComponent {
       }
       this.pasoActual.set(3);
     } else if (paso === 3) {
-      if (this.huespedesSeleccionados().length === 0) {
+      if (!this.esCliente() && this.huespedesSeleccionados().length === 0) {
         this.errorPaso.set('Agrega al menos un huésped para continuar.');
         return;
       }
