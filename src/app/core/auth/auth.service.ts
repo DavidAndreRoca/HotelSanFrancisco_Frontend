@@ -83,7 +83,7 @@ export class AuthService {
 
   /** Lista de reservas del cliente logueado. */
   getMisReservas(params?: { estado?: string }): Observable<MiReservaItem[]> {
-    return this.api.get<MiReservaItem[]>('/api/v1/me/reservas', { params });
+    return this.api.get<MiReservaItem[]>('/api/v1/mis-reservas', { params });
   }
 
   /** Perfil extendido del usuario logueado (teléfono, doc, dirección, fechaCreacion). */
