@@ -7,6 +7,10 @@ export interface AuthUser {
   correo: string;
   rol: string;
   permisos: readonly string[];
+  telefono?: string | null;
+  direccion?: string | null;
+  nacionalidad?: string | null;
+  fechaCreacion?: string | null;
 }
 
 export interface LoginRequest {
@@ -83,6 +87,7 @@ export interface PerfilUsuarioResponse {
   correo: string;
   telefono?: string | null;
   direccion?: string | null;
+  nacionalidad?: string | null;
   numeroDocumento?: string | null;
   tipoDocumentoAcronimo?: string | null;
   rol: string;
@@ -97,6 +102,7 @@ export interface UpdatePerfilRequest {
   apellidoMaterno?: string | null;
   telefono?: string | null;
   direccion?: string | null;
+  nacionalidad?: string | null;
 }
 
 /** Item de reserva dentro del dashboard del cliente */
