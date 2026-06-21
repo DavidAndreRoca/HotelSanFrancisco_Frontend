@@ -268,7 +268,7 @@ export class PagosFacturasClientePage {
 
   private load(): void {
     this.api
-      .get<PagoClienteItem[]>('/api/v1/me/pagos')
+      .get<PagoClienteItem[]>('/api/v1/pagos')
       .pipe(catchError(() => of(this.mockData())))
       .subscribe((data) => {
         this.pagos.set(data);
