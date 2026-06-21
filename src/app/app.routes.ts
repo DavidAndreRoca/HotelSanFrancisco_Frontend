@@ -305,6 +305,14 @@ export const routes: Routes = [
           ),
         title: 'Detalle de venta · Hotel San Francisco',
       },
+      {
+        path: 'solicitudes',
+        loadComponent: () =>
+          import('./features/solicitudes/pages/gestion-global/gestion-global.page').then(
+            (m) => m.GestionGlobalSolicitudesPage,
+          ),
+        title: 'Solicitudes de Servicio · Hotel San Francisco',
+      },
     ],
   },
 

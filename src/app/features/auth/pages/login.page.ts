@@ -17,15 +17,18 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
         <div
           class="absolute inset-0 bg-cover bg-center"
           style="background-image:url('https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=1400&q=80')"
-          aria-hidden="true"></div>
+          aria-hidden="true"
+        ></div>
         <div
           class="absolute inset-0 bg-gradient-to-br from-[var(--color-ink)]/85 via-[var(--color-ink)]/60 to-[var(--color-primary-700)]/55"
-          aria-hidden="true"></div>
+          aria-hidden="true"
+        ></div>
 
         <div class="relative h-full flex flex-col justify-between p-12 text-white">
           <a routerLink="/home" class="inline-flex items-center gap-3 group">
             <div
-              class="w-12 h-12 rounded-full bg-[var(--color-primary-500)] text-[var(--color-ink)] flex items-center justify-center font-extrabold shadow-lg">
+              class="w-12 h-12 rounded-full bg-[var(--color-primary-500)] text-[var(--color-ink)] flex items-center justify-center font-extrabold shadow-lg"
+            >
               SF
             </div>
             <div class="leading-tight">
@@ -36,11 +39,12 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
 
           <div>
             <h2 class="text-4xl font-bold leading-tight max-w-md">
-              Gestión hotelera <span class="text-[var(--color-primary-300)]">elegante</span> y precisa.
+              Gestión hotelera <span class="text-[var(--color-primary-300)]">elegante</span> y
+              precisa.
             </h2>
             <p class="mt-4 text-white/75 max-w-md text-[15px] leading-relaxed">
-              Accede al panel para administrar reservas, habitaciones, pagos y operaciones
-              en tiempo real.
+              Accede al panel para administrar reservas, habitaciones, pagos y operaciones en tiempo
+              real.
             </p>
           </div>
         </div>
@@ -49,11 +53,13 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
       <!-- FORMULARIO -->
       <section
         class="flex items-center justify-center px-6 py-12 sm:px-12"
-        aria-label="Inicio de sesión">
+        aria-label="Inicio de sesión"
+      >
         <div class="w-full max-w-md">
           <div class="mb-10 lg:hidden text-center">
             <div
-              class="inline-flex w-14 h-14 rounded-full bg-[var(--color-ink)] text-[var(--color-primary-300)] items-center justify-center font-extrabold">
+              class="inline-flex w-14 h-14 rounded-full bg-[var(--color-ink)] text-[var(--color-primary-300)] items-center justify-center font-extrabold"
+            >
               SF
             </div>
           </div>
@@ -70,7 +76,8 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
             (ngSubmit)="onSubmit()"
             novalidate
             class="space-y-5"
-            aria-label="Formulario de inicio de sesión">
+            aria-label="Formulario de inicio de sesión"
+          >
             <div>
               <label for="correo" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
                 Correo electrónico <span class="text-[var(--color-danger-500)]">*</span>
@@ -82,7 +89,8 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
                 placeholder="nombre@hotelsanfrancisco.com"
                 autocomplete="email"
                 [attr.aria-invalid]="showError('correo') || null"
-                [class]="inputClass(showError('correo'))" />
+                [class]="inputClass(showError('correo'))"
+              />
               @if (showError('correo')) {
                 <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">
                   {{ errorFor('correo') }}
@@ -94,19 +102,22 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
               <div class="flex items-center justify-between mb-1.5">
                 <label
                   for="contrasena"
-                  class="text-[13px] font-medium text-[var(--color-ink-soft)]">
+                  class="text-[13px] font-medium text-[var(--color-ink-soft)]"
+                >
                   Contraseña <span class="text-[var(--color-danger-500)]">*</span>
                 </label>
                 <div class="flex items-center gap-3">
                   <a
                     routerLink="/recuperar-contrasena"
-                    class="text-[12px] text-[var(--color-primary-700)] hover:underline">
+                    class="text-[12px] text-[var(--color-primary-700)] hover:underline"
+                  >
                     ¿Olvidaste tu contraseña?
                   </a>
                   <button
                     type="button"
                     class="text-[12px] text-[var(--color-primary-700)] hover:underline"
-                    (click)="togglePassword()">
+                    (click)="togglePassword()"
+                  >
                     {{ showPassword() ? 'Ocultar' : 'Mostrar' }}
                   </button>
                 </div>
@@ -118,7 +129,8 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
                 placeholder="Mínimo 6 caracteres"
                 autocomplete="current-password"
                 [attr.aria-invalid]="showError('contrasena') || null"
-                [class]="inputClass(showError('contrasena'))" />
+                [class]="inputClass(showError('contrasena'))"
+              />
               @if (showError('contrasena')) {
                 <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">
                   {{ errorFor('contrasena') }}
@@ -134,7 +146,8 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
               ¿No tienes una cuenta?
               <a
                 routerLink="/register"
-                class="text-[var(--color-primary-700)] font-medium hover:underline">
+                class="text-[var(--color-primary-700)] font-medium hover:underline"
+              >
                 Regístrate
               </a>
             </p>
@@ -201,7 +214,10 @@ export class LoginPage {
       },
       error: (err: HttpErrorResponse & { friendlyMessage?: string }) => {
         this.loading.set(false);
-        this.toastr.error(err.friendlyMessage ?? 'Credenciales inválidas.', 'No se pudo iniciar sesión');
+        this.toastr.error(
+          err.friendlyMessage ?? 'Credenciales inválidas.',
+          'No se pudo iniciar sesión',
+        );
       },
     });
   }
