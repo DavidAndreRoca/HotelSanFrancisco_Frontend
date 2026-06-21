@@ -24,3 +24,13 @@ export function hasAnyPermission(permissions: readonly string[]): CanActivateFn 
     return router.createUrlTree(['/dashboard']);
   };
 }
+
+/** Bloquea el acceso de usuarios con rol CLIENTE a rutas exclusivas de staff/admin. */
+export const noClienteGuard: CanActivateFn = () => {
+  const store = inject(AuthStore);
+  const router = inject(Router);
+  const toastr = inject(ToastrService);
+  if (store.rol() !== 'CLIENTE') return true;
+  toastr.error('No tienes permiso para acceder a esa sección.', 'Acceso denegado');
+  return router.createUrlTree(['/dashboard-cliente']);
+};
