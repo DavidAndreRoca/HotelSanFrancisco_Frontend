@@ -6,7 +6,6 @@ import {
   signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, of } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { ApiClient } from '../../../../core/http/http-client.service';
 
@@ -268,11 +267,16 @@ export class PagosFacturasClientePage {
 
   private load(): void {
     this.api
-      .get<PagoClienteItem[]>('/api/v1/pagos')
-      .pipe(catchError(() => of(this.mockData())))
-      .subscribe((data) => {
-        this.pagos.set(data);
-        this.loading.set(false);
+      .get<PagoClienteItem[]>('/api/v1/mis-pagos')
+      .subscribe({
+        next: (data) => {
+          this.pagos.set(data);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.pagos.set([]);
+          this.loading.set(false);
+        },
       });
   }
 
@@ -305,54 +309,5 @@ export class PagosFacturasClientePage {
       month: 'long',
       year: 'numeric',
     });
-  }
-
-  private mockData(): PagoClienteItem[] {
-    return [
-      {
-        pagoId: null,
-        reservaId: 10,
-        codReserva: 'SF-G1E2C3',
-        habitacion: 'Habitación Simple - 101',
-        estado: 'PENDIENTE',
-        fecha: '2026-04-11',
-        metodoPago: null,
-        monto: 150,
-        facturaUrl: null,
-      },
-      {
-        pagoId: null,
-        reservaId: 11,
-        codReserva: 'SF-G1F2C3',
-        habitacion: 'Habitación Doble - 101',
-        estado: 'PENDIENTE',
-        fecha: '2026-04-04',
-        metodoPago: null,
-        monto: 180,
-        facturaUrl: null,
-      },
-      {
-        pagoId: 1,
-        reservaId: 5,
-        codReserva: 'SF-A1B2C3',
-        habitacion: 'Suite Premium - 401',
-        estado: 'PAGADO',
-        fecha: '2026-04-01',
-        metodoPago: 'Tarjeta Visa ****4521',
-        monto: 750,
-        facturaUrl: '/facturas/SF-A1B2C3.pdf',
-      },
-      {
-        pagoId: 2,
-        reservaId: 3,
-        codReserva: 'SF-D4EFC3',
-        habitacion: 'Habitación Doble - 201',
-        estado: 'PAGADO',
-        fecha: '2026-03-20',
-        metodoPago: 'Yape',
-        monto: 480,
-        facturaUrl: '/facturas/SF-D4EFC3.pdf',
-      },
-    ];
   }
 }

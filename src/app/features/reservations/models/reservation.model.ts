@@ -41,6 +41,8 @@ export interface Reserva {
   codReserva: string;
   fechaInicio: string; // ISO date (YYYY-MM-DD)
   fechaFin: string;
+  /** Calculado por el backend con la zona horaria del hotel (America/Lima). */
+  llegadaHoy: boolean;
   montoTotal: number;
   estado: EstadoReserva;
   nroAdultos: number;

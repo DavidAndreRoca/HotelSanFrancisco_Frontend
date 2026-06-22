@@ -3,7 +3,7 @@ import { DecimalPipe, DatePipe } from '@angular/common';
 import { toSignal, toObservable } from '@angular/core/rxjs-interop';
 import { switchMap, of, distinctUntilChanged } from 'rxjs';
 import { ReservationService } from '../../services/reservation.service';
-import { EstadoReserva, EstadoReservaHabitacion, HistorialReserva } from '../../models/reservation.model';
+import { EstadoReserva, EstadoReservaHabitacion, HistorialReserva, Reserva } from '../../models/reservation.model';
 
 const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: string }> = {
   PENDIENTE:  { label: 'Pendiente',  badge: 'bg-amber-50 text-amber-700 border-amber-200',     dot: 'bg-amber-500'   },
@@ -304,6 +304,9 @@ export class ReservationDetailComponent {
 
   isOpen    = input.required<boolean>();
   reservaId = input<number | null>(null);
+  /** Objeto de reserva precargado (p. ej. desde la lista de mis-reservas).
+   *  Si se provee, se usa directamente sin depender del store de ReservationService. */
+  reservaData = input<Reserva | null>(null);
 
   onClose    = output<void>();
   onEditar   = output<number>();
@@ -312,6 +315,8 @@ export class ReservationDetailComponent {
   onCancelar = output<number>();
 
   readonly reserva = computed(() => {
+    const preload = this.reservaData();
+    if (preload) return preload;
     const id = this.reservaId();
     return id != null ? this.svc.findById(id) ?? null : null;
   });
