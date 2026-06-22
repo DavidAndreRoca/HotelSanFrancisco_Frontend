@@ -194,7 +194,7 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
               </div>
 
               <!-- Banners de hoy -->
-              @if (esHoy(r.fechaInicio)) {
+              @if (r.llegadaHoy) {
                 <div class="text-[11px] font-bold text-center py-1.5 bg-emerald-50 text-emerald-700">
                   Llegada hoy
                 </div>
@@ -217,7 +217,7 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
                   }
                 </div>
                 <div class="flex gap-1.5">
-                  <button type="button" (click)="abrirDetalle(r.reservaId)"
+                  <button type="button" (click)="abrirDetalle(r)"
                     class="h-7 px-2.5 rounded-lg border border-[#EEE3D1] text-[11px] font-semibold
                            text-[#8E6F2E] hover:border-[#C5A048] hover:text-[#C5A048] transition-colors">
                     Ver
@@ -244,6 +244,7 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
     <app-reservation-detail
       [isOpen]="detailAbierto()"
       [reservaId]="reservaIdDetalle()"
+      [reservaData]="reservaDetalle()"
       (onClose)="detailAbierto.set(false)"
       (onEditar)="detailAbierto.set(false)"
       (onCancelar)="iniciarCancelacionById($event)" />
@@ -275,6 +276,7 @@ export class MisReservasComponent {
 
   readonly detailAbierto    = signal(false);
   readonly reservaIdDetalle = signal<number | null>(null);
+  readonly reservaDetalle   = signal<Reserva | null>(null);
   readonly cancelarAbierto  = signal(false);
   readonly reservaACancelar = signal<Reserva | null>(null);
   readonly formAbierto      = signal(false);
@@ -316,9 +318,13 @@ export class MisReservasComponent {
     ).length
   );
 
-  private readonly hoy = new Date().toISOString().slice(0, 10);
+  /** Fecha de hoy en zona local (no UTC), formato YYYY-MM-DD para comparar contra fechas del backend. */
+  private readonly hoy = ((d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  )(new Date());
 
-  readonly todayCheckIns  = computed(() => this.misReservas().filter(r => r.fechaInicio === this.hoy).length);
+  // "Llegadas hoy" usa el flag del backend (calculado con la zona horaria del hotel), no un cálculo propio.
+  readonly todayCheckIns  = computed(() => this.misReservas().filter(r => r.llegadaHoy).length);
   readonly todayCheckOuts = computed(() => this.misReservas().filter(r => r.fechaFin === this.hoy && r.estado === 'CHECK_IN').length);
 
   readonly reservasFiltradas = computed(() => {
@@ -375,8 +381,9 @@ export class MisReservasComponent {
 
   // ── Acciones ───────────────────────────────────────────────────────────────
 
-  abrirDetalle(id: number): void {
-    this.reservaIdDetalle.set(id);
+  abrirDetalle(r: Reserva): void {
+    this.reservaDetalle.set(r);
+    this.reservaIdDetalle.set(r.reservaId);
     this.detailAbierto.set(true);
   }
 
