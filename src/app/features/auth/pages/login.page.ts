@@ -209,10 +209,18 @@ export class LoginPage {
       next: (user) => {
         this.loading.set(false);
         this.toastr.success(`Bienvenido, ${user.nombre}`);
-        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/dashboard';
-        this.router.navigateByUrl(returnUrl);
+
+        // Determinar destino según rol
+        let targetUrl: string;
+        if (user.rol === 'CLIENTE') {
+          targetUrl = '/dashboard-cliente';
+        } else {
+          targetUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/dashboard';
+        }
+
+        this.router.navigateByUrl(targetUrl);
       },
-      error: (err: HttpErrorResponse & { friendlyMessage?: string }) => {
+      error: (err) => {
         this.loading.set(false);
         this.toastr.error(
           err.friendlyMessage ?? 'Credenciales inválidas.',
