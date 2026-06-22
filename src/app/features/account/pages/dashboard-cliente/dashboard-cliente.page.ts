@@ -175,7 +175,9 @@ export class DashboardClientePage {
   });
 
   readonly proximasCount = computed(() => {
-    const hoy = new Date().toISOString().split('T')[0];
+    // Fecha de hoy en zona local (no UTC) para evitar el desfase al comparar contra fechas del backend.
+    const d = new Date();
+    const hoy = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     return this.reservas().filter(
       (r) => r.estado === 'CONFIRMADA' && r.fechaInicio > hoy,
     ).length;
@@ -221,7 +223,9 @@ export class DashboardClientePage {
   }
 
   formatDate(fecha: string): string {
-    return new Date(fecha).toLocaleDateString('es-PE', {
+    // Parseo de YYYY-MM-DD en zona local (no UTC) para evitar que el día se corra hacia atrás.
+    const [y, m, d] = fecha.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('es-PE', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
