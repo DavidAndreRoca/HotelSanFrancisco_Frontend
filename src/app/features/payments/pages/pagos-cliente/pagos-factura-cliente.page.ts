@@ -21,6 +21,9 @@ interface PagoClienteItem {
   facturaUrl: string | null;
 }
 
+// Filas compactas (~64px); 7 por página llena bien sin desbordar la pantalla.
+const PAGE_SIZE_PAGADOS = 7;
+
 @Component({
   selector: 'app-pagos-factura-cliente',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -112,36 +115,38 @@ interface PagoClienteItem {
             <!-- Filas pendientes -->
             <div class="divide-y divide-[#EEE3D1]">
               @for (p of pendientes(); track p.codReserva) {
-                <div class="flex items-center gap-4 px-5 py-3.5">
-                  <div class="w-9 h-9 rounded-lg bg-[#F9F5F0] flex items-center justify-center shrink-0">
-                    <svg class="w-5 h-5 text-[#C5A048]" fill="none" viewBox="0 0 24 24"
-                         stroke="currentColor" stroke-width="1.8">
-                      <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343
-                               2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0
-                               0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                  </div>
-
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <span class="text-sm font-semibold text-[#2D2926]">{{ p.habitacion }}</span>
-                      <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold
-                                   bg-amber-100 text-amber-800">
-                        Pendiente
-                      </span>
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-3.5">
+                  <div class="flex items-center gap-4 flex-1 min-w-0">
+                    <div class="w-9 h-9 rounded-lg bg-[#F9F5F0] flex items-center justify-center shrink-0">
+                      <svg class="w-5 h-5 text-[#C5A048]" fill="none" viewBox="0 0 24 24"
+                           stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343
+                                 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0
+                                 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
                     </div>
-                    <p class="text-xs text-[#2D2926]/50 mt-0.5">
-                      {{ p.codReserva }} · {{ formatFecha(p.fecha) }} - Pendiente
-                    </p>
+
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-sm font-semibold text-[#2D2926]">{{ p.habitacion }}</span>
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold
+                                     bg-amber-100 text-amber-800">
+                          Pendiente
+                        </span>
+                      </div>
+                      <p class="text-xs text-[#2D2926]/50 mt-0.5">
+                        {{ p.codReserva }} · {{ formatFecha(p.fecha) }} - Pendiente
+                      </p>
+                    </div>
                   </div>
 
-                  <div class="flex items-center gap-2 flex-shrink-0">
+                  <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:flex-shrink-0 pl-[52px] sm:pl-0">
                     <button
                       type="button"
                       (click)="verReserva(p.reservaId)"
                       class="h-8 px-3 rounded-lg border border-[#C5A048] text-[#C5A048]
-                             text-xs font-medium hover:bg-[#C5A048]/5 transition-colors">
+                             text-xs font-medium hover:bg-[#C5A048]/5 transition-colors whitespace-nowrap">
                       Ver detalles reserva
                     </button>
                     <button
@@ -151,7 +156,7 @@ interface PagoClienteItem {
                              hover:bg-[#8E6F2E] transition-colors">
                       Pagar
                     </button>
-                    <span class="text-sm font-bold text-[#2D2926] text-right min-w-[56px]">
+                    <span class="text-sm font-bold text-[#2D2926] text-right min-w-[56px] ml-auto sm:ml-0">
                       {{ formatMonto(p.monto) }}
                     </span>
                   </div>
@@ -170,41 +175,43 @@ interface PagoClienteItem {
 
             <!-- Filas pagadas -->
             <div class="divide-y divide-[#EEE3D1]">
-              @for (p of pagados(); track p.codReserva) {
-                <div class="flex items-center gap-4 px-5 py-3.5">
-                  <div class="w-9 h-9 rounded-lg bg-[#F9F5F0] flex items-center justify-center shrink-0">
-                    <svg class="w-5 h-5 text-[#C5A048]" fill="none" viewBox="0 0 24 24"
-                         stroke="currentColor" stroke-width="1.8">
-                      <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343
-                               2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0
-                               0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                  </div>
-
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <span class="text-sm font-semibold text-[#2D2926]">{{ p.habitacion }}</span>
-                      <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold
-                                   bg-emerald-100 text-emerald-700">
-                        Pagado
-                      </span>
+              @for (p of pagadosPagina(); track p.codReserva) {
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-3.5">
+                  <div class="flex items-center gap-4 flex-1 min-w-0">
+                    <div class="w-9 h-9 rounded-lg bg-[#F9F5F0] flex items-center justify-center shrink-0">
+                      <svg class="w-5 h-5 text-[#C5A048]" fill="none" viewBox="0 0 24 24"
+                           stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343
+                                 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0
+                                 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
                     </div>
-                    <p class="text-xs text-[#2D2926]/50 mt-0.5">
-                      {{ p.codReserva }} · {{ formatFecha(p.fecha) }}
-                      @if (p.metodoPago) { - {{ p.metodoPago }} }
-                    </p>
+
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-sm font-semibold text-[#2D2926]">{{ p.habitacion }}</span>
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold
+                                     bg-emerald-100 text-emerald-700">
+                          Pagado
+                        </span>
+                      </div>
+                      <p class="text-xs text-[#2D2926]/50 mt-0.5">
+                        {{ p.codReserva }} · {{ formatFecha(p.fecha) }}
+                        @if (p.metodoPago) { - {{ p.metodoPago }} }
+                      </p>
+                    </div>
                   </div>
 
-                  <div class="flex items-center gap-3 flex-shrink-0">
+                  <div class="flex items-center gap-3 sm:flex-shrink-0 pl-[52px] sm:pl-0">
                     <button
                       type="button"
                       (click)="verReserva(p.reservaId)"
                       class="h-8 px-3 rounded-lg border border-[#C5A048] text-[#C5A048]
-                             text-xs font-medium hover:bg-[#C5A048]/5 transition-colors">
+                             text-xs font-medium hover:bg-[#C5A048]/5 transition-colors whitespace-nowrap">
                       Ver detalles reserva
                     </button>
-                    <div class="text-right">
+                    <div class="text-right ml-auto sm:ml-0">
                       <p class="text-sm font-bold text-[#2D2926]">{{ formatMonto(p.monto) }}</p>
                       <button
                         type="button"
@@ -224,6 +231,25 @@ interface PagoClienteItem {
                 </div>
               }
             </div>
+
+            <!-- Paginación (solo del historial de pagados) -->
+            @if (totalPagadosPages() > 1) {
+              <div class="flex items-center justify-between gap-3 px-5 py-3 border-t border-[#EEE3D1]">
+                <p class="text-xs text-[#2D2926]/50">
+                  {{ pagados().length }} pago(s) · Página {{ pageIndex() + 1 }} de {{ totalPagadosPages() }}
+                </p>
+                <div class="flex items-center gap-2">
+                  <button type="button" (click)="paginaAnterior()" [disabled]="pageIndex() === 0"
+                    class="h-8 px-3 rounded-lg border border-[#EEE3D1] text-xs font-medium
+                           text-[#2D2926]/70 hover:bg-[#F9F5F0] disabled:opacity-40
+                           disabled:cursor-not-allowed transition-colors">Anterior</button>
+                  <button type="button" (click)="paginaSiguiente()" [disabled]="pageIndex() >= totalPagadosPages() - 1"
+                    class="h-8 px-3 rounded-lg border border-[#EEE3D1] text-xs font-medium
+                           text-[#2D2926]/70 hover:bg-[#F9F5F0] disabled:opacity-40
+                           disabled:cursor-not-allowed transition-colors">Siguiente</button>
+                </div>
+              </div>
+            }
 
           </div>
         }
@@ -247,6 +273,18 @@ export class PagosFacturasClientePage {
   readonly pagados = computed(() =>
     this.pagos().filter((p) => p.estado === 'PAGADO'),
   );
+
+  // ── Paginación del historial de pagados ──────────────────────────────
+  readonly pageIndex = signal(0);
+
+  readonly totalPagadosPages = computed(() =>
+    Math.max(1, Math.ceil(this.pagados().length / PAGE_SIZE_PAGADOS)),
+  );
+
+  readonly pagadosPagina = computed(() => {
+    const start = this.pageIndex() * PAGE_SIZE_PAGADOS;
+    return this.pagados().slice(start, start + PAGE_SIZE_PAGADOS);
+  });
 
   readonly stats = computed(() => {
     const all = this.pagos();
@@ -278,6 +316,16 @@ export class PagosFacturasClientePage {
           this.loading.set(false);
         },
       });
+  }
+
+  paginaAnterior(): void {
+    if (this.pageIndex() === 0) return;
+    this.pageIndex.update((p) => p - 1);
+  }
+
+  paginaSiguiente(): void {
+    if (this.pageIndex() >= this.totalPagadosPages() - 1) return;
+    this.pageIndex.update((p) => p + 1);
   }
 
   verReserva(reservaId: number): void {

@@ -84,12 +84,19 @@ export type EmailTemplateUpdatePayload = Partial<Pick<EmailTemplate, 'asunto' | 
 
 export type EmailStatus = 'ENVIADO' | 'PENDIENTE' | 'FALLIDO';
 
+/**
+ * Plantillas que pueden aparecer en el log de correos. Es un superconjunto de
+ * `EmailTemplateKey` (las editables) e incluye plantillas de sistema que también
+ * se registran al enviarse.
+ */
+export type EmailLogPlantilla = EmailTemplateKey | 'PASSWORD_RESET' | 'REQUEST_STATUS_CHANGED';
+
 /** Coincide con EmailLogResponse del backend */
 export interface EmailLogEntry {
   id: number;
   destinatario: string;
   asunto: string;
-  plantilla: EmailTemplateKey;
+  plantilla: EmailLogPlantilla;
   estado: EmailStatus;
   reservaId: number | null;
   codReserva: string | null;
@@ -114,7 +121,7 @@ export interface PageResponse<T> {
 export interface EmailLogFilters {
   search: string;
   estado: EmailStatus | '';
-  plantilla: EmailTemplateKey | '';
+  plantilla: EmailLogPlantilla | '';
   page: number;
   size: number;
   sort: string;

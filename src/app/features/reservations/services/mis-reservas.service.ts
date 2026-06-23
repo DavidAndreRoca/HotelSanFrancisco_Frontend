@@ -28,6 +28,14 @@ export class MisReservasService {
     return this.api.get<PageResponse<Reserva>>(this.base, { params });
   }
 
+  /**
+   * Detalle completo de una reserva propia, con `habitaciones` y `huespedes` poblados
+   * (el listado los devuelve vacíos a propósito). 403 si no es propia, 404 si no existe.
+   */
+  obtenerDetalle(id: number): Observable<Reserva> {
+    return this.api.get<Reserva>(`${this.base}/${id}`);
+  }
+
   crear(payload: CreateReservaPayload): Observable<Reserva> {
     return this.api.post<Reserva, CreateReservaPayload>(this.base, payload);
   }

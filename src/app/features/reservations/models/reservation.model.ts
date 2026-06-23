@@ -28,7 +28,7 @@ export interface HistorialReserva {
   historialId: number;
   reservaId: number;
   codReserva: string;
-  estadoAnterior: EstadoReserva;
+  estadoAnterior: EstadoReserva | null; // null en el alta de la reserva
   estadoNuevo: EstadoReserva;
   motivo: string | null;
   fechaCambio: string; // ISO datetime

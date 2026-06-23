@@ -5,6 +5,7 @@ import { PageResponse } from '../../../core/api/api-response.interface';
 import {
   CreateTipoServicioRequest,
   EstadoActivo,
+  ServicioCatalogoItem,
   TipoServicioFilterRequest,
   TipoServicioResponse,
   UpdateTipoServicioRequest,
@@ -26,6 +27,15 @@ export class TipoServicioService {
   /** Lista sin paginar — para poblar selects (GET /estado/{estado}). */
   listarPorEstado(estado: EstadoActivo): Observable<TipoServicioResponse[]> {
     return this.api.get<TipoServicioResponse[]>(`${this.base}/estado/${estado}`);
+  }
+
+  /**
+   * Catálogo de servicios visible para el rol CLIENTE (solo ACTIVO).
+   * Endpoint seguro con permiso `servicio-catalogo:read`, separado del
+   * catálogo administrativo `/tipos-servicio` (que exige `tipo-servicio:read`).
+   */
+  listarCatalogoCliente(): Observable<ServicioCatalogoItem[]> {
+    return this.api.get<ServicioCatalogoItem[]>('/api/v1/servicios-catalogo');
   }
 
   obtenerPorId(id: number): Observable<TipoServicioResponse> {

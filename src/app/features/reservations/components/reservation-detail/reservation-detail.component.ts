@@ -30,6 +30,16 @@ const HAB_ESTADO: Record<EstadoReservaHabitacion, string> = {
     'aria-modal': 'true',
   },
   template: `
+    @if (isOpen() && loading() && !reserva()) {
+      <div class="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-[#2D2926]/75"
+           (click)="onClose.emit()">
+        <div class="bg-[#F9F5F0] rounded-2xl shadow-2xl px-10 py-12 flex flex-col items-center gap-3"
+             (click)="$event.stopPropagation()">
+          <div class="w-8 h-8 border-2 border-[#C5A048] border-t-transparent rounded-full animate-spin"></div>
+          <p class="text-sm text-[#2D2926]/60">Cargando detalle…</p>
+        </div>
+      </div>
+    }
     @if (isOpen() && reserva()) {
       <div class="fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-[#2D2926]/75"
            (click)="onClose.emit()">
@@ -307,6 +317,8 @@ export class ReservationDetailComponent {
   /** Objeto de reserva precargado (p. ej. desde la lista de mis-reservas).
    *  Si se provee, se usa directamente sin depender del store de ReservationService. */
   reservaData = input<Reserva | null>(null);
+  /** Muestra un estado de carga mientras se obtiene el detalle (ej. /mis-reservas/{id}). */
+  loading = input<boolean>(false);
 
   onClose    = output<void>();
   onEditar   = output<number>();
@@ -348,8 +360,14 @@ export class ReservationDetailComponent {
     return `${d}/${m}/${y}`;
   }
 
-  estadoBadge(estado: EstadoReserva): string  { return ESTADO_CFG[estado].badge; }
-  estadoDot(estado: EstadoReserva): string    { return ESTADO_CFG[estado].dot;   }
-  estadoLabel(estado: EstadoReserva): string  { return ESTADO_CFG[estado].label; }
+  // Tolera null (ej. estadoAnterior del alta de reserva) y valores desconocidos.
+  estadoBadge(estado: EstadoReserva | null): string {
+    return (estado && ESTADO_CFG[estado]?.badge) ?? 'bg-slate-50 text-slate-500 border-slate-200';
+  }
+  estadoDot(estado: EstadoReserva): string    { return ESTADO_CFG[estado]?.dot ?? 'bg-slate-400'; }
+  estadoLabel(estado: EstadoReserva | null): string {
+    if (estado == null) return 'Creación'; // alta de la reserva (sin estado anterior)
+    return ESTADO_CFG[estado]?.label ?? '—';
+  }
   habEstadoCls(estado: EstadoReservaHabitacion): string { return HAB_ESTADO[estado] ?? 'bg-slate-50 text-slate-500'; }
 }
