@@ -1,5 +1,5 @@
 // features/notifications/pages/notifications-settings/notifications-settings.component.ts
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
@@ -45,8 +45,8 @@ const LOG_LABEL: Record<EmailStatus, string> = {
         </p>
       </header>
 
-      <!-- Configuración SMTP -->
-      <ui-card title="Servidor SMTP" subtitle="Datos de conexión para el envío de correos transaccionales.">
+      <!-- Configuración SMTP (solo lectura) -->
+      <ui-card title="Servidor SMTP" subtitle="Datos de conexión para el envío de correos transaccionales (solo lectura).">
         @if (notificationService.smtpLoading()) {
           <div class="space-y-3">
             <ui-skeleton height="2.5rem" />
@@ -54,7 +54,7 @@ const LOG_LABEL: Record<EmailStatus, string> = {
             <ui-skeleton height="2.5rem" />
           </div>
         } @else {
-          <form [formGroup]="smtpForm" (ngSubmit)="saveSmtp()" novalidate class="space-y-4">
+          <form [formGroup]="smtpForm" novalidate class="space-y-4">
             <div class="grid sm:grid-cols-2 gap-4">
               <div>
                 <label for="host" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
@@ -132,9 +132,9 @@ const LOG_LABEL: Record<EmailStatus, string> = {
             </div>
 
             <div class="flex flex-wrap items-center gap-3 pt-2 border-t border-[var(--color-border-soft)]">
-              <ui-button type="submit" variant="primary" [loading]="savingSmtp()" [disabled]="smtpForm.invalid">
-                Guardar configuración
-              </ui-button>
+              <p class="text-[12px] text-[var(--color-ink-muted)]">
+                La edición de la configuración SMTP está deshabilitada. Se muestra en modo solo lectura.
+              </p>
 
               <div class="flex items-center gap-2 ml-auto">
                 <input type="email" [(ngModel)]="testEmail" [ngModelOptions]="{standalone: true}"
@@ -244,7 +244,6 @@ export class NotificationsSettingsComponent implements OnInit {
   readonly LOG_TONE = LOG_TONE;
   readonly LOG_LABEL = LOG_LABEL;
 
-  readonly savingSmtp = signal(false);
   readonly testingSmtp = signal(false);
   readonly savingReminders = signal(false);
   readonly runningReminders = signal(false);
@@ -268,39 +267,23 @@ export class NotificationsSettingsComponent implements OnInit {
     habilitado: this.fb.nonNullable.control(true),
   });
 
+  // La edición de SMTP está deshabilitada: cuando llega la config la mostramos
+  // en el formulario y lo dejamos en modo solo lectura (sin PUT).
+  private readonly syncSmtpForm = effect(() => {
+    const cfg = this.notificationService.smtpConfig();
+    if (cfg) {
+      this.smtpForm.patchValue({ ...cfg, password: null });
+      this.smtpForm.disable({ emitEvent: false });
+    }
+  });
+
   ngOnInit(): void {
     this.notificationService.loadSmtpConfig();
     this.notificationService.loadReminderSettings();
     this.notificationService.loadLog();
 
-    // Sincroniza el formulario cuando llega la config (signals -> form)
-    const cfg = this.notificationService.smtpConfig();
-    if (cfg) this.smtpForm.patchValue({ ...cfg, password: null });
-
     const reminders = this.notificationService.reminderSettings();
     if (reminders) this.reminderForm.patchValue(reminders);
-  }
-
-  saveSmtp(): void {
-    if (this.smtpForm.invalid) {
-      this.smtpForm.markAllAsTouched();
-      return;
-    }
-    this.savingSmtp.set(true);
-    const value = this.smtpForm.getRawValue();
-    const payload = { ...value, password: value.password || undefined };
-
-    this.notificationService.updateSmtpConfig(payload).subscribe({
-      next: () => {
-        this.savingSmtp.set(false);
-        this.smtpForm.patchValue({ password: null });
-        this.toastr.success('Configuración SMTP guardada correctamente.');
-      },
-      error: (err: { friendlyMessage?: string }) => {
-        this.savingSmtp.set(false);
-        this.toastr.error(err.friendlyMessage ?? 'No se pudo guardar la configuración SMTP.');
-      },
-    });
   }
 
   testSmtp(): void {
