@@ -51,7 +51,7 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
           }
         </div>
         <button type="button" (click)="abrirNuevaReserva()"
-          class="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[#C5A048] text-white
+          class="self-start sm:self-auto inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[#C5A048] text-white
                  text-sm font-semibold hover:bg-[#8E6F2E] transition-colors shrink-0">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
@@ -154,9 +154,11 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
                               flex items-center justify-center font-bold text-sm">
                     {{ huespedPrincipal(r).charAt(0) }}
                   </div>
-                  <div>
-                    <p class="text-sm font-semibold text-[#2D2926]">{{ huespedPrincipal(r) }}</p>
-                    <p class="text-[11px] text-[#8E6F2E]">{{ huespedDoc(r) }}</p>
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-[#2D2926] truncate">{{ huespedPrincipal(r) }}</p>
+                    @if (huespedDoc(r)) {
+                      <p class="text-[11px] text-[#8E6F2E]">{{ huespedDoc(r) }}</p>
+                    }
                   </div>
                 </div>
 
@@ -179,13 +181,8 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
                   </div>
                 </div>
 
-                <!-- Habitaciones y pax -->
+                <!-- Pax (el desglose de habitaciones se ve en el detalle) -->
                 <div class="flex flex-wrap gap-1.5">
-                  @for (h of r.habitaciones; track h.reservaHabitacionId) {
-                    <span class="text-[11px] text-[#8E6F2E] bg-[#EEE3D1] px-2 py-0.5 rounded-md font-medium">
-                      Hab. {{ h.habitacionNumero }} · {{ h.tipoHabitacionNombre }}
-                    </span>
-                  }
                   <span class="text-[11px] text-[#8E6F2E] bg-[#EEE3D1] px-2 py-0.5 rounded-md font-medium">
                     {{ r.nroAdultos }}A{{ r.nroNinos > 0 ? ' + ' + r.nroNinos + 'N' : '' }}
                   </span>
@@ -245,6 +242,7 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
       [isOpen]="detailAbierto()"
       [reservaId]="reservaIdDetalle()"
       [reservaData]="reservaDetalle()"
+      [loading]="detailLoading()"
       (onClose)="detailAbierto.set(false)"
       (onEditar)="detailAbierto.set(false)"
       (onCancelar)="iniciarCancelacionById($event)" />
@@ -275,6 +273,7 @@ export class MisReservasComponent {
   readonly error    = signal<string | null>(null);
 
   readonly detailAbierto    = signal(false);
+  readonly detailLoading    = signal(false);
   readonly reservaIdDetalle = signal<number | null>(null);
   readonly reservaDetalle   = signal<Reserva | null>(null);
   readonly cancelarAbierto  = signal(false);
@@ -347,8 +346,10 @@ export class MisReservasComponent {
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   huespedPrincipal(r: Reserva): string {
+    // El listado liviano trae huespedes vacío; usamos el titular de la reserva.
     return r.huespedes.find(h => h.esPrincipal)?.nombreCompleto
         ?? r.huespedes.at(0)?.nombreCompleto
+        ?? r.usuarioNombre
         ?? '—';
   }
 
@@ -382,9 +383,22 @@ export class MisReservasComponent {
   // ── Acciones ───────────────────────────────────────────────────────────────
 
   abrirDetalle(r: Reserva): void {
-    this.reservaDetalle.set(r);
+    // El listado trae habitaciones/huespedes vacíos: pedimos el detalle completo.
+    this.reservaDetalle.set(null);
     this.reservaIdDetalle.set(r.reservaId);
+    this.detailLoading.set(true);
     this.detailAbierto.set(true);
+    this.misSvc.obtenerDetalle(r.reservaId).subscribe({
+      next: (detalle) => {
+        this.reservaDetalle.set(detalle);
+        this.detailLoading.set(false);
+      },
+      error: () => {
+        // El interceptor ya muestra el toast (403 si no es propia, 404 si no existe).
+        this.detailLoading.set(false);
+        this.detailAbierto.set(false);
+      },
+    });
   }
 
   iniciarCancelacion(r: Reserva): void {

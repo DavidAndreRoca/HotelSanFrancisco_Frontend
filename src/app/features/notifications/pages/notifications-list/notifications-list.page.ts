@@ -16,12 +16,14 @@ interface GrupoNotificacion {
   items: NotificacionHuesped[];
 }
 
+const PAGE_SIZE = 4;
+
 @Component({
   selector: 'app-notifications-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgClass],
   template: `
-    <div class="space-y-6 max-w-3xl">
+    <div class="space-y-6">
 
       <!-- Cabecera + acciones -->
       <div class="flex items-start justify-between gap-4 flex-wrap">
@@ -76,7 +78,7 @@ interface GrupoNotificacion {
         @for (f of filtros; track f.key) {
           <button
             type="button"
-            (click)="filtro.set(f.key)"
+            (click)="setFiltro(f.key)"
             class="shrink-0 h-8 px-4 rounded-full text-sm font-medium transition-colors"
             [ngClass]="filtro() === f.key
               ? 'bg-[#C5A048] text-white shadow-sm'
@@ -220,6 +222,25 @@ interface GrupoNotificacion {
             </div>
           }
         </div>
+
+        <!-- Paginación -->
+        @if (totalPages() > 1) {
+          <div class="flex items-center justify-between gap-3 pt-1">
+            <p class="text-xs text-[#2D2926]/50">
+              {{ totalItems() }} notificación(es) · Página {{ pageIndex() + 1 }} de {{ totalPages() }}
+            </p>
+            <div class="flex items-center gap-2">
+              <button type="button" (click)="paginaAnterior()" [disabled]="pageIndex() === 0"
+                class="h-8 px-3 rounded-lg border border-[#EEE3D1] text-xs font-medium
+                       text-[#2D2926]/70 hover:bg-[#F9F5F0] disabled:opacity-40
+                       disabled:cursor-not-allowed transition-colors">Anterior</button>
+              <button type="button" (click)="paginaSiguiente()" [disabled]="pageIndex() >= totalPages() - 1"
+                class="h-8 px-3 rounded-lg border border-[#EEE3D1] text-xs font-medium
+                       text-[#2D2926]/70 hover:bg-[#F9F5F0] disabled:opacity-40
+                       disabled:cursor-not-allowed transition-colors">Siguiente</button>
+            </div>
+          </div>
+        }
       }
 
     </div>
@@ -233,6 +254,7 @@ export class NotificationsListPage {
   readonly marcando = signal(false);
   readonly notificaciones = signal<NotificacionHuesped[]>([]);
   readonly filtro = signal<string>('TODAS');
+  readonly pageIndex = signal(0);
 
   readonly filtros = [
     { key: 'TODAS',          label: 'Todas' },
@@ -261,8 +283,25 @@ export class NotificationsListPage {
     return all.filter((n) => (tipoMap[f] ?? []).includes(n.tipo));
   });
 
+  // Orden global (más reciente primero) sobre el que se pagina.
+  private readonly ordenadas = computed(() =>
+    [...this.filtradas()].sort(
+      (a, b) => +new Date(b.fechaCreacion) - +new Date(a.fechaCreacion),
+    ),
+  );
+
+  readonly totalItems = computed(() => this.ordenadas().length);
+  readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.totalItems() / PAGE_SIZE)),
+  );
+
+  private readonly paginadas = computed(() => {
+    const start = this.pageIndex() * PAGE_SIZE;
+    return this.ordenadas().slice(start, start + PAGE_SIZE);
+  });
+
   readonly grupos = computed<GrupoNotificacion[]>(() =>
-    this.agrupar(this.filtradas()),
+    this.agrupar(this.paginadas()),
   );
 
   constructor() {
@@ -297,6 +336,21 @@ export class NotificationsListPage {
 
   ajustes(): void {
     this.toastr.info('Ajustes de notificaciones próximamente.', 'Próximamente');
+  }
+
+  setFiltro(key: string): void {
+    this.filtro.set(key);
+    this.pageIndex.set(0);
+  }
+
+  paginaAnterior(): void {
+    if (this.pageIndex() === 0) return;
+    this.pageIndex.update((p) => p - 1);
+  }
+
+  paginaSiguiente(): void {
+    if (this.pageIndex() >= this.totalPages() - 1) return;
+    this.pageIndex.update((p) => p + 1);
   }
 
   iconBg(tipo: TipoNotificacion): string {

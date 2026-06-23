@@ -5,6 +5,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { Router } from '@angular/router';
 import { forkJoin, catchError, of } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { AuthStore } from '../../../../core/auth/auth.store';
@@ -27,7 +28,8 @@ import { MiDashboardResponse, MiReservaItem } from '../../../../core/auth/auth-u
       <!-- ── Stat cards ────────────────────────────────────────────── -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         @for (stat of stats(); track stat.label) {
-          <div class="bg-white rounded-xl border border-[#EEE3D1] p-5 flex items-center gap-4">
+          <div class="bg-white rounded-xl border border-[#EEE3D1] p-4 flex flex-col items-center
+                      text-center gap-2 sm:flex-row sm:text-left sm:gap-3">
             <div
               class="w-11 h-11 rounded-lg bg-[#C5A048]/10 flex items-center justify-center shrink-0"
               aria-hidden="true">
@@ -35,10 +37,10 @@ import { MiDashboardResponse, MiReservaItem } from '../../../../core/auth/auth-u
             </div>
             <div class="min-w-0">
               @if (loading()) {
-                <div class="h-6 w-12 bg-[#EEE3D1] rounded animate-pulse mb-1"></div>
-                <div class="h-3 w-20 bg-[#EEE3D1] rounded animate-pulse"></div>
+                <div class="h-6 w-12 bg-[#EEE3D1] rounded animate-pulse mb-1 mx-auto sm:mx-0"></div>
+                <div class="h-3 w-20 bg-[#EEE3D1] rounded animate-pulse mx-auto sm:mx-0"></div>
               } @else {
-                <p class="text-2xl font-bold text-[#2D2926] leading-none">{{ stat.value }}</p>
+                <p class="text-2xl font-bold text-[#2D2926] leading-tight whitespace-nowrap">{{ stat.value }}</p>
                 <p class="text-xs text-[#2D2926]/55 mt-1 leading-tight">{{ stat.label }}</p>
               }
             </div>
@@ -77,8 +79,8 @@ import { MiDashboardResponse, MiReservaItem } from '../../../../core/auth/auth-u
                 <!-- Contenido -->
                 <div class="flex-1 p-4 min-w-0">
                   <div class="flex items-start justify-between gap-2 mb-1">
-                    <p class="text-sm font-semibold text-[#2D2926] truncate">
-                      {{ primerHabitacion(reserva).tipoHabitacionNombre }}
+                    <p class="font-mono text-sm font-semibold text-[#2D2926] truncate">
+                      {{ reserva.codReserva }}
                     </p>
                     <span
                       class="shrink-0 text-[11px] font-medium px-2.5 py-0.5 rounded-full"
@@ -88,8 +90,7 @@ import { MiDashboardResponse, MiReservaItem } from '../../../../core/auth/auth-u
                   </div>
 
                   <p class="text-xs text-[#2D2926]/50 mb-3">
-                    Habitación {{ primerHabitacion(reserva).habitacionNumero }} ·
-                    {{ reserva.nroAdultos + reserva.nroNinos }} huéspedes
+                    {{ numHuespedes(reserva) }} {{ numHuespedes(reserva) === 1 ? 'huésped' : 'huéspedes' }}
                   </p>
 
                   <div class="border-t border-[#EEE3D1] pt-2.5 flex items-center justify-between">
@@ -97,7 +98,7 @@ import { MiDashboardResponse, MiReservaItem } from '../../../../core/auth/auth-u
                       {{ formatDate(reserva.fechaInicio) }} → {{ formatDate(reserva.fechaFin) }}
                     </p>
                     <p class="text-xs text-[#2D2926]/50 shrink-0 ml-2">
-                      {{ primerHabitacion(reserva).noches }} noches
+                      {{ calcNoches(reserva) }} {{ calcNoches(reserva) === 1 ? 'noche' : 'noches' }}
                     </p>
                   </div>
                 </div>
@@ -134,6 +135,7 @@ import { MiDashboardResponse, MiReservaItem } from '../../../../core/auth/auth-u
         </div>
         <button
           type="button"
+          (click)="verServicios()"
           class="shrink-0 h-9 px-4 rounded-lg bg-[#C5A048] text-white text-sm font-medium
                  hover:bg-[#8E6F2E] transition-colors">
           Ver servicios
@@ -146,6 +148,7 @@ import { MiDashboardResponse, MiReservaItem } from '../../../../core/auth/auth-u
 export class DashboardClientePage {
   private readonly auth = inject(AuthService);
   private readonly store = inject(AuthStore);
+  private readonly router = inject(Router);
 
   readonly loading = signal(true);
   readonly loadingReservas = signal(true);
@@ -209,6 +212,10 @@ export class DashboardClientePage {
     });
   }
 
+  verServicios(): void {
+    this.router.navigate(['/servicios-catalogo']);
+  }
+
   primerHabitacion(reserva: MiReservaItem) {
     return reserva.habitaciones[0] ?? {
       habitacionId: 0,
@@ -216,6 +223,18 @@ export class DashboardClientePage {
       tipoHabitacionNombre: '—',
       noches: 0,
     };
+  }
+
+  numHuespedes(reserva: MiReservaItem): number {
+    return reserva.nroAdultos + reserva.nroNinos;
+  }
+
+  /** Noches calculadas desde las fechas (el listado liviano no trae habitaciones). */
+  calcNoches(reserva: MiReservaItem): number {
+    const [y1, m1, d1] = reserva.fechaInicio.split('-').map(Number);
+    const [y2, m2, d2] = reserva.fechaFin.split('-').map(Number);
+    const ms = new Date(y2, m2 - 1, d2).getTime() - new Date(y1, m1 - 1, d1).getTime();
+    return Math.max(0, Math.round(ms / 86_400_000));
   }
 
   roomImage(reservaId: number): string {

@@ -13,5 +13,7 @@ export const publicOnlyGuard: CanActivateFn = () => {
   const store = inject(AuthStore);
   const router = inject(Router);
   if (!store.isAuthenticated()) return true;
-  return router.createUrlTree(['/dashboard']);
+  // El cliente va a su panel; el staff al dashboard administrativo.
+  const destino = store.rol() === 'CLIENTE' ? '/dashboard-cliente' : '/dashboard';
+  return router.createUrlTree([destino]);
 };

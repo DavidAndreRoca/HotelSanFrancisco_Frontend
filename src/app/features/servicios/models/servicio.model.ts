@@ -24,12 +24,53 @@ export interface CreateTipoServicioRequest {
 
 export type UpdateTipoServicioRequest = Partial<CreateTipoServicioRequest>;
 
+/**
+ * Ítem del catálogo de servicios visible para el rol CLIENTE.
+ * Lo expone GET /api/v1/servicios-catalogo (permiso `servicio-catalogo:read`),
+ * que devuelve solo servicios ACTIVO.
+ */
+export interface ServicioCatalogoItem {
+  tipoServicioId: number;
+  nombre: string;
+  descripcion: string | null;
+  costoBase: number;
+  estado: EstadoActivo;
+}
+
 export interface TipoServicioFilterRequest {
   nombre?: string;
   estado?: EstadoActivo;
   page?: number;
   size?: number;
   sort?: string;
+}
+
+// ── Pedido de servicio (CLIENTE: /api/v1/mis-servicios) ───────────────────────
+
+export type EstadoPedido = 'PENDIENTE' | 'APROBADO' | 'RECHAZADO' | 'CANCELADO';
+
+export interface PedidoServicio {
+  pedidoServicioId: number;
+  tipoServicioId: number;
+  tipoServicioNombre: string;
+  costoBase: number; // precio unitario
+  cantidad: number;
+  subtotalEstimado: number; // cantidad * costoBase
+  observaciones: string | null;
+  estado: EstadoPedido;
+  motivoRespuesta: string | null; // se llena al RECHAZAR
+  estanciaId: number;
+  codReserva: string;
+  solicitanteNombre: string;
+  servicioId: number | null; // se llena al APROBAR
+  fechaSolicitud: string; // ISO datetime
+  fechaRespuesta: string | null; // ISO datetime
+}
+
+export interface CrearPedidoServicio {
+  tipoServicioId: number;
+  cantidad: number; // > 0, admite decimales
+  observaciones?: string; // opcional, máx 2000
 }
 
 // ── Servicio (consumo) ────────────────────────────────────────────────────────
