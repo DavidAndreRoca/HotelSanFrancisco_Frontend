@@ -489,7 +489,9 @@ export class RegisterComponent implements OnInit {
       next: (user) => {
         this.loading.set(false);
         this.toastr.success(`Bienvenido, ${user.nombre}. Tu cuenta fue creada.`);
-        this.router.navigateByUrl('/dashboard');
+        // El registro público crea un CLIENTE: lo llevamos a su panel, no al de admin.
+        const destino = user.rol === 'CLIENTE' ? '/dashboard-cliente' : '/dashboard';
+        this.router.navigateByUrl(destino);
       },
       error: (err: HttpErrorResponse & { friendlyMessage?: string }) => {
         this.loading.set(false);

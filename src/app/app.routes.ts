@@ -65,6 +65,7 @@ export const routes: Routes = [
     children: [
       {
         path: 'dashboard',
+        canActivate: [noClienteGuard],
         loadComponent: () =>
           import('./features/dashboard/pages/dashboard.page').then((m) => m.DashboardPage),
         title: 'Dashboard',
@@ -135,6 +136,22 @@ export const routes: Routes = [
         title: 'Detalle de reserva · Hotel San Francisco',
       },
       {
+        path: 'servicios-catalogo',
+        loadComponent: () =>
+          import('./features/servicios/pages/catalogo-cliente/catalogo-cliente.page').then(
+            (m) => m.CatalogoClientePage,
+          ),
+        title: 'Servicios del hotel · Hotel San Francisco',
+      },
+      {
+        path: 'mis-pedidos',
+        loadComponent: () =>
+          import('./features/servicios/pages/mis-pedidos/mis-pedidos.page').then(
+            (m) => m.MisPedidosPage,
+          ),
+        title: 'Mis pedidos · Hotel San Francisco',
+      },
+      {
         path: 'reports',
         canActivate: [noClienteGuard],
         loadComponent: () =>
@@ -167,6 +184,15 @@ export const routes: Routes = [
             (m) => m.NotificationsListPage,
           ),
         title: 'Notificaciones · Hotel San Francisco',
+      },
+      {
+        path: 'notifications/log',
+        canActivate: [usuariosGuard],
+        loadComponent: () =>
+          import('./features/notifications/pages/email-log/email-log.page').then(
+            (m) => m.EmailLogPage,
+          ),
+        title: 'Log de correos · Hotel San Francisco',
       },
       {
         path: 'notifications/settings',
@@ -270,6 +296,15 @@ export const routes: Routes = [
             (m) => m.TiposServicioListaPage,
           ),
         title: 'Tipos de servicio · Hotel San Francisco',
+      },
+      {
+        path: 'pedidos-servicio',
+        canActivate: [serviciosGuard],
+        loadComponent: () =>
+          import('./features/servicios/pages/bandeja-pedidos/bandeja-pedidos.page').then(
+            (m) => m.BandejaPedidosPage,
+          ),
+        title: 'Pedidos de servicio · Hotel San Francisco',
       },
       {
         path: 'servicios',

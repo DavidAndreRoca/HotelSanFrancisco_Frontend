@@ -1,6 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, map } from 'rxjs';
 import { ApiClient } from '../../../core/http/http-client.service';
+import { AuthStore } from '../../../core/auth/auth.store';
 import { PageResponse } from '../../../core/api/api-response.interface';
 import {
   Reserva, ReservaStats, EstadoReserva,
@@ -10,9 +11,23 @@ import {
   PagoReserva,
 } from '../models/reservation.model';
 
+/** Estructura que devuelve el endpoint de cliente GET /api/v1/mis-pagos/reserva/{id} */
+interface MiPagoResponse {
+  pagoId: number | null;
+  reservaId: number;
+  codReserva: string;
+  habitacion: string;
+  estado: 'PAGADO' | 'PENDIENTE' | 'VENCIDO';
+  fecha: string;
+  metodoPago: string | null;
+  monto: number;
+  facturaUrl: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ReservationService {
-  private readonly api = inject(ApiClient);
+  private readonly api  = inject(ApiClient);
+  private readonly auth = inject(AuthStore);
 
   private readonly _reservas     = signal<Reserva[]>([]);
   private readonly _loading      = signal(false);
@@ -93,7 +108,39 @@ export class ReservationService {
   }
 
   getPagos(reservaId: number): Observable<PagoReserva[]> {
-    return this.api.get<PagoReserva[]>(`/api/v1/pagos/reserva/${reservaId}`);
+    // El staff (ADMIN/RECEPCIÓN/CAJA) tiene permiso `pago:read` y usa el endpoint
+    // administrativo. El cliente usa su endpoint seguro `mis-pagos`, que infiere el
+    // usuario del JWT y valida que la reserva le pertenezca.
+    if (this.auth.hasPermission('pago:read')) {
+      return this.api.get<PagoReserva[]>(`/api/v1/pagos/reserva/${reservaId}`);
+    }
+    return this.api
+      .get<MiPagoResponse[]>(`/api/v1/mis-pagos/reserva/${reservaId}`)
+      .pipe(map(items => this.mapMisPagos(items)));
+  }
+
+  /**
+   * Normaliza la respuesta del endpoint de cliente a `PagoReserva[]` para que la
+   * tarjeta "Total / Pagado / Método de pago" del detalle funcione sin cambios.
+   * Solo se incluyen las filas PAGADO (las PENDIENTE/VENCIDO son saldos, no pagos),
+   * ordenadas de más reciente a más antigua para que el primer elemento sea el
+   * último pago realizado.
+   */
+  private mapMisPagos(items: MiPagoResponse[]): PagoReserva[] {
+    return items
+      .filter(i => i.estado === 'PAGADO')
+      .sort((a, b) => b.fecha.localeCompare(a.fecha))
+      .map(i => ({
+        pagoId: i.pagoId ?? 0,
+        metodoPagoId: 0,
+        metodoPagoNombre: i.metodoPago ?? 'Sin información',
+        tipoPago: '',
+        fecha: i.fecha,
+        monto: i.monto,
+        comprobante: i.facturaUrl,
+        reservaId: i.reservaId,
+        fechaCreacion: i.fecha,
+      }));
   }
 
   obtenerHistorial(reservaId: number): Observable<HistorialReserva[]> {
