@@ -1,12 +1,14 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, finalize, tap } from 'rxjs';
-import { ApiClient } from '../../../core/http/http-client.service';
+import { Observable, catchError, forkJoin, of } from 'rxjs';
+import { ApiClient, QueryParams } from '../../../core/http/http-client.service';
 import { PageResponse } from '../../../core/api/api-response.interface';
 import {
   CambiarEstadoPayload,
   Compra,
   CompraCreatePayload,
+  CompraFilterRequest,
   CompraStats,
+  CompraStatsResponse,
   CompraUpdatePayload,
   EstadoCompra,
 } from '../models/purchase.model';
@@ -17,74 +19,107 @@ const BASE = '/api/v1/compras';
 export class PurchaseService {
   private readonly api = inject(ApiClient);
 
-  private readonly _items = signal<Compra[]>([]);
+  private readonly _page = signal<PageResponse<Compra> | null>(null);
+  private readonly _stats = signal<CompraStats>({
+    total: 0,
+    pendientes: 0,
+    recibidas: 0,
+    anuladas: 0,
+    montoTotalMes: 0,
+  });
   private readonly _loading = signal(false);
   private readonly _lastError = signal<string | null>(null);
 
-  readonly items = this._items.asReadonly();
+  readonly page = this._page.asReadonly();
+  readonly items = computed(() => this._page()?.content ?? []);
+  readonly totalElements = computed(() => this._page()?.totalElements ?? 0);
+  readonly totalPages = computed(() => Math.max(1, this._page()?.totalPages ?? 1));
+  readonly isLast = computed(() => this._page()?.last ?? true);
+  readonly stats = this._stats.asReadonly();
   readonly loading = this._loading.asReadonly();
   readonly lastError = this._lastError.asReadonly();
 
-  readonly stats = computed<CompraStats>(() => {
-    const all = this._items();
-    const now = new Date();
-    return {
-      total: all.length,
-      pendientes: all.filter((c) => c.estado === 'PENDIENTE').length,
-      recibidas: all.filter((c) => c.estado === 'RECIBIDA').length,
-      anuladas: all.filter((c) => c.estado === 'ANULADA').length,
-      montoTotalMes: all
-        .filter((c) => {
-          if (c.estado === 'ANULADA') return false;
-          const f = new Date(c.fechaCompra);
-          return f.getMonth() === now.getMonth() && f.getFullYear() === now.getFullYear();
-        })
-        .reduce((acc, c) => acc + (c.montoTotal ?? 0), 0),
-    };
-  });
-
-  load(): void {
+  /** Listado paginado y filtrado por el servidor. */
+  load(filtros: CompraFilterRequest = {}): void {
     this._loading.set(true);
     this._lastError.set(null);
-    this.api
-      .get<PageResponse<Compra>>(BASE, {
-        params: { page: 0, size: 100, sort: 'fechaCompra,desc' },
-      })
-      .pipe(finalize(() => this._loading.set(false)))
-      .subscribe({
-        next: (res) => this._items.set(res.content),
-        error: (err: { friendlyMessage?: string }) => {
-          this._items.set([]);
-          this._lastError.set(err.friendlyMessage ?? 'No se pudieron cargar las compras.');
-        },
-      });
+    this.api.get<PageResponse<Compra>>(BASE, { params: filtros as QueryParams }).subscribe({
+      next: (res) => {
+        this._page.set(res);
+        this._loading.set(false);
+      },
+      error: (err: { friendlyMessage?: string }) => {
+        this._page.set(null);
+        this._loading.set(false);
+        this._lastError.set(err.friendlyMessage ?? 'No se pudieron cargar las compras.');
+      },
+    });
+  }
+
+  /**
+   * Carga las tarjetas desde el backend:
+   *  - conteos globales (sin filtros),
+   *  - monto del mes (rango = mes actual; el backend ya excluye ANULADA).
+   */
+  loadStats(): void {
+    const now = new Date();
+    const desde = this.toIsoDate(new Date(now.getFullYear(), now.getMonth(), 1));
+    const hasta = this.toIsoDate(now);
+
+    const empty: CompraStatsResponse = {
+      total: 0,
+      pendientes: 0,
+      recibidas: 0,
+      anuladas: 0,
+      montoTotalPeriodo: 0,
+    };
+
+    // Cada llamada cae por separado: si la del mes falla, los conteos globales
+    // se muestran igual (y viceversa).
+    forkJoin({
+      global: this.api
+        .get<CompraStatsResponse>(`${BASE}/stats`)
+        .pipe(catchError(() => of(empty))),
+      mes: this.api
+        .get<CompraStatsResponse>(`${BASE}/stats`, {
+          params: { fechaCompraDesde: desde, fechaCompraHasta: hasta },
+        })
+        .pipe(catchError(() => of(empty))),
+    }).subscribe(({ global, mes }) =>
+      this._stats.set({
+        total: global.total,
+        pendientes: global.pendientes,
+        recibidas: global.recibidas,
+        anuladas: global.anuladas,
+        montoTotalMes: mes.montoTotalPeriodo,
+      }),
+    );
   }
 
   create(payload: CompraCreatePayload): Observable<Compra> {
-    return this.api
-      .post<Compra, CompraCreatePayload>(BASE, payload)
-      .pipe(tap((created) => this._items.update((arr) => [created, ...arr])));
+    return this.api.post<Compra, CompraCreatePayload>(BASE, payload);
   }
 
   update(id: number, payload: CompraUpdatePayload): Observable<Compra> {
-    return this.api
-      .put<Compra, CompraUpdatePayload>(`${BASE}/${id}`, payload)
-      .pipe(tap((updated) => this.replace(id, updated)));
+    return this.api.put<Compra, CompraUpdatePayload>(`${BASE}/${id}`, payload);
   }
 
   cambiarEstado(id: number, nuevoEstado: EstadoCompra, motivo?: string): Observable<Compra> {
-    return this.api
-      .patch<Compra, CambiarEstadoPayload>(`${BASE}/${id}/estado`, { nuevoEstado, motivo })
-      .pipe(tap((updated) => this.replace(id, updated)));
+    return this.api.patch<Compra, CambiarEstadoPayload>(`${BASE}/${id}/estado`, {
+      nuevoEstado,
+      motivo,
+    });
   }
 
   delete(id: number): Observable<void> {
-    return this.api
-      .delete<void>(`${BASE}/${id}`)
-      .pipe(tap(() => this._items.update((arr) => arr.filter((c) => c.compraId !== id))));
+    return this.api.delete<void>(`${BASE}/${id}`);
   }
 
-  private replace(id: number, updated: Compra): void {
-    this._items.update((arr) => arr.map((c) => (c.compraId === id ? updated : c)));
+  /** Fecha local en formato YYYY-MM-DD (sin desfase de zona horaria). */
+  private toIsoDate(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
 }
