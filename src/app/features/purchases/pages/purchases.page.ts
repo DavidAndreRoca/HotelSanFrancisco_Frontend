@@ -14,9 +14,9 @@ import {
   Compra,
   CompraCreatePayload,
   CompraFilters,
+  CompraUpdatePayload,
   DEFAULT_COMPRA_FILTERS,
   ESTADO_COMPRA_CONFIG,
-  totalCompra,
 } from '../models/purchase.model';
 
 @Component({
@@ -41,35 +41,43 @@ import {
         </p>
         <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">Compras</h1>
         <p class="text-[15px] text-[var(--color-ink-muted)] mt-1">
-          Órdenes de compra a proveedores y reposición de stock.
+          Registro de compras a proveedores y reposición de stock.
         </p>
       </div>
       <ui-button (click)="onCreate()">
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
           <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
         </svg>
-        Nueva orden
+        Nueva compra
       </ui-button>
     </header>
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
       <ui-card padding="sm">
-        <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Total órdenes</p>
-        <p class="mt-2 text-2xl font-bold">{{ service.stats().total }}</p>
+        <div class="border-l-2 border-[var(--color-ink-muted)] pl-3">
+          <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Total compras</p>
+          <p class="mt-2 text-2xl font-bold">{{ service.stats().total }}</p>
+        </div>
       </ui-card>
       <ui-card padding="sm">
-        <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Pendientes</p>
-        <p class="mt-2 text-2xl font-bold text-[var(--color-warning-500)]">{{ service.stats().pendientes }}</p>
+        <div class="border-l-2 border-[var(--color-warning-500)] pl-3">
+          <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Pendientes</p>
+          <p class="mt-2 text-2xl font-bold text-[var(--color-warning-500)]">{{ service.stats().pendientes }}</p>
+        </div>
       </ui-card>
       <ui-card padding="sm">
-        <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Recibidas</p>
-        <p class="mt-2 text-2xl font-bold text-[var(--color-success-500)]">{{ service.stats().recibidas }}</p>
+        <div class="border-l-2 border-[var(--color-success-500)] pl-3">
+          <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Recibidas</p>
+          <p class="mt-2 text-2xl font-bold text-[var(--color-success-500)]">{{ service.stats().recibidas }}</p>
+        </div>
       </ui-card>
       <ui-card padding="sm">
-        <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Monto del mes</p>
-        <p class="mt-2 text-2xl font-bold text-[var(--color-primary-700)]">
-          {{ service.stats().montoTotalMes | currency:'PEN':'symbol-narrow':'1.2-2' }}
-        </p>
+        <div class="border-l-2 border-[var(--color-primary-500)] pl-3">
+          <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Monto del mes</p>
+          <p class="mt-2 text-2xl font-bold text-[var(--color-primary-700)]">
+            {{ service.stats().montoTotalMes | currency:'PEN':'symbol-narrow':'1.2-2' }}
+          </p>
+        </div>
       </ui-card>
     </div>
 
@@ -90,9 +98,9 @@ import {
     } @else if (visible().length === 0) {
       <ui-empty-state
         icon="▣"
-        title="No se encontraron órdenes de compra"
-        description="Ajusta los filtros o crea una nueva orden para reponer inventario.">
-        <ui-button (click)="onCreate()">Crear primera orden</ui-button>
+        title="No se encontraron compras"
+        description="Ajusta los filtros o registra una nueva compra para reponer inventario.">
+        <ui-button (click)="onCreate()">Registrar primera compra</ui-button>
       </ui-empty-state>
     } @else {
       <div class="space-y-3">
@@ -101,38 +109,33 @@ import {
             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <p class="text-[15px] font-semibold text-[var(--color-ink)]">{{ c.numeroOrden }}</p>
+                  <p class="text-[15px] font-semibold text-[var(--color-ink)]">
+                    {{ c.numeroFactura || 'Sin factura' }}
+                  </p>
                   <ui-badge [tone]="estadoCfg(c).badgeTone">{{ estadoCfg(c).label }}</ui-badge>
                 </div>
-                <p class="text-[13px] text-[var(--color-ink-soft)] mt-0.5">{{ c.proveedor }}</p>
+                <p class="text-[13px] text-[var(--color-ink-soft)] mt-0.5">{{ c.proveedorRazonSocial }}</p>
                 <p class="text-[12px] text-[var(--color-ink-muted)] mt-1">
-                  Ordenado {{ c.fechaOrden | date:'dd MMM yyyy' }}
-                  @if (c.fechaRecepcion) {
-                    · Recibido {{ c.fechaRecepcion | date:'dd MMM yyyy' }}
-                  }
+                  Comprado {{ c.fechaCompra | date:'dd MMM yyyy' }}
                 </p>
 
                 <div class="mt-3 flex flex-wrap gap-1.5">
-                  @for (d of c.detalle; track d.productoId) {
+                  @for (d of c.detalles; track d.productoId) {
                     <span class="inline-flex items-center gap-1 text-[12px] px-2 py-1 rounded-md bg-[var(--color-surface)] border border-[var(--color-border-soft)] text-[var(--color-ink-soft)]">
                       {{ d.productoNombre }} × {{ d.cantidad }}
                     </span>
                   }
                 </div>
-
-                @if (c.notas) {
-                  <p class="text-[12px] text-[var(--color-ink-muted)] mt-2 italic">"{{ c.notas }}"</p>
-                }
               </div>
 
               <div class="flex sm:flex-col items-end justify-between sm:justify-start gap-3 sm:gap-2 sm:text-right shrink-0">
                 <div>
                   <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Total</p>
                   <p class="text-lg font-bold text-[var(--color-primary-700)]">
-                    {{ total(c) | currency:'PEN':'symbol-narrow':'1.2-2' }}
+                    {{ c.montoTotal | currency:'PEN':'symbol-narrow':'1.2-2' }}
                   </p>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex gap-2 flex-wrap justify-end">
                   @if (c.estado === 'PENDIENTE') {
                     <button
                       type="button"
@@ -140,19 +143,29 @@ import {
                       (click)="onRecibir(c)">
                       Recibir
                     </button>
+                    <button
+                      type="button"
+                      class="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[var(--color-border-soft)] hover:border-[var(--color-primary-500)] hover:text-[var(--color-primary-700)] transition-colors"
+                      (click)="onEdit(c)">
+                      Editar
+                    </button>
                   }
-                  <button
-                    type="button"
-                    class="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[var(--color-border-soft)] hover:border-[var(--color-primary-500)] hover:text-[var(--color-primary-700)] transition-colors"
-                    (click)="onEdit(c)">
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    class="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[var(--color-border-soft)] hover:border-[var(--color-danger-500)] hover:text-[var(--color-danger-500)] transition-colors"
-                    (click)="onDelete(c)">
-                    Eliminar
-                  </button>
+                  @if (c.estado !== 'ANULADA') {
+                    <button
+                      type="button"
+                      class="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[var(--color-border-soft)] hover:border-[var(--color-danger-500)] hover:text-[var(--color-danger-500)] transition-colors"
+                      (click)="onAnular(c)">
+                      Anular
+                    </button>
+                  }
+                  @if (c.estado === 'PENDIENTE' || c.estado === 'ANULADA') {
+                    <button
+                      type="button"
+                      class="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[var(--color-border-soft)] hover:border-[var(--color-danger-500)] hover:text-[var(--color-danger-500)] transition-colors"
+                      (click)="onDelete(c)">
+                      Eliminar
+                    </button>
+                  }
                 </div>
               </div>
             </div>
@@ -160,7 +173,7 @@ import {
         }
       </div>
       <p class="mt-3 text-[12px] text-[var(--color-ink-muted)]">
-        Mostrando {{ visible().length }} de {{ service.items().length }} órdenes
+        Mostrando {{ visible().length }} de {{ service.items().length }} compras
       </p>
     }
 
@@ -192,7 +205,8 @@ export class PurchasesPage implements OnInit {
       if (f.search) {
         const q = f.search.toLowerCase();
         const hay =
-          c.numeroOrden.toLowerCase().includes(q) || c.proveedor.toLowerCase().includes(q);
+          (c.numeroFactura?.toLowerCase().includes(q) ?? false) ||
+          c.proveedorRazonSocial.toLowerCase().includes(q);
         if (!hay) return false;
       }
       return true;
@@ -205,10 +219,6 @@ export class PurchasesPage implements OnInit {
 
   estadoCfg(c: Compra) {
     return ESTADO_COMPRA_CONFIG[c.estado];
-  }
-
-  total(c: Compra): number {
-    return totalCompra(c);
   }
 
   onFiltersChanged(patch: Partial<CompraFilters>): void {
@@ -233,42 +243,69 @@ export class PurchasesPage implements OnInit {
   onSubmit(payload: CompraCreatePayload): void {
     const editing = this.editingPurchase();
     const op$ = editing
-      ? this.service.update(editing.compraId, payload)
+      ? this.service.update(editing.compraId, this.toUpdatePayload(payload))
       : this.service.create(payload);
 
     op$.subscribe({
       next: () => {
         this.formCmp?.finishSubmit();
-        this.toastr.success(editing ? 'Orden de compra actualizada.' : 'Orden de compra creada.');
+        this.toastr.success(editing ? 'Compra actualizada.' : 'Compra registrada.');
         this.closeForm();
       },
       error: (err: { friendlyMessage?: string }) => {
         this.formCmp?.finishSubmit();
-        this.toastr.error(err.friendlyMessage ?? 'No se pudo guardar la orden.', 'Error');
+        this.toastr.error(err.friendlyMessage ?? 'No se pudo guardar la compra.', 'Error');
       },
     });
+  }
+
+  /** El backend solo actualiza cabecera (no detalles) y solo en estado PENDIENTE. */
+  private toUpdatePayload(payload: CompraCreatePayload): CompraUpdatePayload {
+    return {
+      proveedorId: payload.proveedorId,
+      fechaCompra: payload.fechaCompra,
+      numeroFactura: payload.numeroFactura,
+      impuesto: payload.impuesto,
+    };
   }
 
   async onRecibir(c: Compra): Promise<void> {
     const ok = await this.confirm.ask({
       title: 'Confirmar recepción',
-      message: `¿Marcar la orden "${c.numeroOrden}" como recibida? Esto debería actualizar el stock de los productos.`,
+      message: `¿Marcar la compra "${c.numeroFactura || 'Sin factura'}" como recibida? Se sumará el stock de los productos.`,
       confirmText: 'Sí, recibir',
       cancelText: 'Cancelar',
     });
     if (!ok) return;
 
     this.service.cambiarEstado(c.compraId, 'RECIBIDA').subscribe({
-      next: () => this.toastr.success(`Orden "${c.numeroOrden}" marcada como recibida.`),
+      next: () => this.toastr.success('Compra marcada como recibida.'),
       error: (err: { friendlyMessage?: string }) =>
-        this.toastr.error(err.friendlyMessage ?? 'No se pudo actualizar la orden.', 'Error'),
+        this.toastr.error(err.friendlyMessage ?? 'No se pudo actualizar la compra.', 'Error'),
+    });
+  }
+
+  async onAnular(c: Compra): Promise<void> {
+    const ok = await this.confirm.ask({
+      title: 'Anular compra',
+      message: `¿Anular la compra "${c.numeroFactura || 'Sin factura'}"? Esta acción no se puede revertir.`,
+      confirmText: 'Anular',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    });
+    if (!ok) return;
+
+    this.service.cambiarEstado(c.compraId, 'ANULADA').subscribe({
+      next: () => this.toastr.success('Compra anulada.'),
+      error: (err: { friendlyMessage?: string }) =>
+        this.toastr.error(err.friendlyMessage ?? 'No se pudo anular la compra.', 'Error'),
     });
   }
 
   async onDelete(c: Compra): Promise<void> {
     const ok = await this.confirm.ask({
-      title: 'Eliminar orden de compra',
-      message: `¿Eliminar la orden "${c.numeroOrden}"? Esta acción no se puede deshacer.`,
+      title: 'Eliminar compra',
+      message: `¿Eliminar la compra "${c.numeroFactura || 'Sin factura'}"? Esta acción no se puede deshacer.`,
       confirmText: 'Eliminar',
       cancelText: 'Cancelar',
       variant: 'danger',
@@ -276,9 +313,9 @@ export class PurchasesPage implements OnInit {
     if (!ok) return;
 
     this.service.delete(c.compraId).subscribe({
-      next: () => this.toastr.success('Orden eliminada correctamente.'),
+      next: () => this.toastr.success('Compra eliminada correctamente.'),
       error: (err: { friendlyMessage?: string }) =>
-        this.toastr.error(err.friendlyMessage ?? 'No se pudo eliminar la orden.', 'Error'),
+        this.toastr.error(err.friendlyMessage ?? 'No se pudo eliminar la compra.', 'Error'),
     });
   }
 }

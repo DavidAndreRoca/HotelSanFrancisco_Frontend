@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, input, output } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
@@ -42,7 +42,7 @@ import { CompraFilters, EstadoCompra } from '../../models/purchase.model';
           <option value="">Todos</option>
           <option value="PENDIENTE">Pendientes</option>
           <option value="RECIBIDA">Recibidas</option>
-          <option value="CANCELADA">Canceladas</option>
+          <option value="ANULADA">Anuladas</option>
         </select>
       </label>
     </form>
@@ -50,6 +50,7 @@ import { CompraFilters, EstadoCompra } from '../../models/purchase.model';
 })
 export class PurchaseFiltersComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly initial = input<CompraFilters | null>(null);
   readonly changed = output<Partial<CompraFilters>>();
@@ -66,11 +67,11 @@ export class PurchaseFiltersComponent implements OnInit {
     }
 
     this.form.controls.search.valueChanges
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe((search) => this.changed.emit({ search }));
 
     this.form.controls.estado.valueChanges
-      .pipe(distinctUntilChanged(), takeUntilDestroyed())
+      .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe((estado) => this.changed.emit({ estado }));
   }
 }
