@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, input, output } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
@@ -64,13 +64,16 @@ import { CategoriaProducto, EstadoActivo, ProductoFilters } from '../../models/p
         </select>
       </label>
 
-      <label class="flex items-end gap-2 pb-0.5">
+      <label
+        for="soloBajoStock"
+        class="flex items-center gap-2 self-end h-11 px-3 rounded-lg border border-[var(--color-border-soft)] bg-white cursor-pointer hover:border-[var(--color-primary-500)] transition"
+        title="Mostrar solo productos en o por debajo del stock mínimo">
         <input
           type="checkbox"
           formControlName="soloBajoStock"
           id="soloBajoStock"
           class="w-4 h-4 rounded border-[var(--color-border-soft)] text-[var(--color-primary-500)] focus:ring-[var(--color-primary-500)]/25" />
-        <span for="soloBajoStock" class="text-[13px] text-[var(--color-ink-soft)] whitespace-nowrap">
+        <span class="text-[13px] text-[var(--color-ink-soft)] whitespace-nowrap">
           Bajo stock
         </span>
       </label>
@@ -79,6 +82,7 @@ import { CategoriaProducto, EstadoActivo, ProductoFilters } from '../../models/p
 })
 export class ProductFiltersComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly initial = input<ProductoFilters | null>(null);
   readonly changed = output<Partial<ProductoFilters>>();
@@ -105,19 +109,19 @@ export class ProductFiltersComponent implements OnInit {
     }
 
     this.form.controls.search.valueChanges
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe((search) => this.changed.emit({ search }));
 
     this.form.controls.categoria.valueChanges
-      .pipe(distinctUntilChanged(), takeUntilDestroyed())
+      .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe((categoria) => this.changed.emit({ categoria }));
 
     this.form.controls.estado.valueChanges
-      .pipe(distinctUntilChanged(), takeUntilDestroyed())
+      .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe((estado) => this.changed.emit({ estado }));
 
     this.form.controls.soloBajoStock.valueChanges
-      .pipe(distinctUntilChanged(), takeUntilDestroyed())
+      .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe((soloBajoStock) => this.changed.emit({ soloBajoStock }));
   }
 }

@@ -1,32 +1,56 @@
-export type EstadoCompra = 'PENDIENTE' | 'RECIBIDA' | 'CANCELADA';
+export type EstadoCompra = 'PENDIENTE' | 'RECIBIDA' | 'ANULADA';
 
+/** Línea de detalle tal como la devuelve el backend (`DetalleCompraResponse`). */
 export interface DetalleCompra {
   productoId: number;
   productoNombre: string;
   cantidad: number;
   costoUnitario: number;
+  subtotal: number;
 }
 
+/** Compra tal como la devuelve el backend (`CompraResponse`). Fechas en ISO string. */
 export interface Compra {
   compraId: number;
-  numeroOrden: string;
-  proveedor: string;
-  fechaOrden: Date;
-  fechaRecepcion: Date | null;
+  proveedorId: number;
+  proveedorRazonSocial: string;
+  fechaCompra: string; // 'YYYY-MM-DD'
+  numeroFactura: string | null;
+  subtotal: number;
+  impuesto: number;
+  montoTotal: number;
   estado: EstadoCompra;
-  detalle: DetalleCompra[];
-  notas: string | null;
+  detalles: DetalleCompra[];
+  fechaCreacion: string; // 'YYYY-MM-DDTHH:mm:ss'
+  fechaModificacion: string;
 }
 
+/** Línea que se envía al crear (`CreateCompraRequest.detalles[]`). */
+export interface DetalleCompraPayload {
+  productoId: number;
+  cantidad: number;
+  costoUnitario: number;
+}
+
+/** Body de `POST /api/v1/compras` (`CreateCompraRequest`). */
 export interface CompraCreatePayload {
-  proveedor: string;
-  fechaOrden: string;
-  estado: EstadoCompra;
-  detalle: DetalleCompra[];
-  notas: string | null;
+  proveedorId: number;
+  fechaCompra: string;
+  numeroFactura: string | null;
+  impuesto: number;
+  detalles: DetalleCompraPayload[];
 }
 
-export type CompraUpdatePayload = Partial<CompraCreatePayload>;
+/** Body de `PUT /api/v1/compras/{id}` (`UpdateCompraRequest`): parcial, sin detalles. */
+export type CompraUpdatePayload = Partial<
+  Pick<CompraCreatePayload, 'proveedorId' | 'fechaCompra' | 'numeroFactura' | 'impuesto'>
+>;
+
+/** Body de `PATCH /api/v1/compras/{id}/estado` (`CambiarEstadoCompraRequest`). */
+export interface CambiarEstadoPayload {
+  nuevoEstado: EstadoCompra;
+  motivo?: string;
+}
 
 export interface CompraFilters {
   search: string;
@@ -44,17 +68,13 @@ export const ESTADO_COMPRA_CONFIG: Record<
 > = {
   PENDIENTE: { label: 'Pendiente', badgeTone: 'warning' },
   RECIBIDA: { label: 'Recibida', badgeTone: 'success' },
-  CANCELADA: { label: 'Cancelada', badgeTone: 'danger' },
+  ANULADA: { label: 'Anulada', badgeTone: 'danger' },
 };
 
 export interface CompraStats {
   total: number;
   pendientes: number;
   recibidas: number;
-  canceladas: number;
+  anuladas: number;
   montoTotalMes: number;
-}
-
-export function totalCompra(compra: Pick<Compra, 'detalle'>): number {
-  return compra.detalle.reduce((acc, d) => acc + d.cantidad * d.costoUnitario, 0);
 }

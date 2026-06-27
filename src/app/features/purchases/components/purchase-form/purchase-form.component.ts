@@ -4,7 +4,8 @@ import { CurrencyPipe } from '@angular/common';
 import { UiButtonComponent } from '../../../../shared/ui/button/ui-button.component';
 import { UiModalComponent } from '../../../../shared/ui/modal/ui-modal.component';
 import { ProductService } from '../../../products/services/product.service';
-import { Compra, CompraCreatePayload, DetalleCompra, EstadoCompra } from '../../models/purchase.model';
+import { ProveedorService } from '../../services/proveedor.service';
+import { Compra, CompraCreatePayload, DetalleCompraPayload } from '../../models/purchase.model';
 
 interface DetalleFormValue {
   productoId: number;
@@ -26,50 +27,80 @@ interface DetalleFormGroup {
     <ui-modal
       [open]="open()"
       [title]="title()"
-      subtitle="Registra la orden de compra y las líneas de productos solicitados."
+      subtitle="Registra la compra a proveedor y las líneas de productos."
       size="xl"
       (closed)="closed.emit()">
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate id="purchase-form" class="space-y-4">
         <div class="grid sm:grid-cols-3 gap-4">
           <div class="sm:col-span-2">
-            <label for="proveedor" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
+            <label for="proveedorId" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
               Proveedor <span class="text-[var(--color-danger-500)]">*</span>
             </label>
-            <input
-              id="proveedor"
-              formControlName="proveedor"
-              [class]="inputCls(form.controls.proveedor)"
-              placeholder="Ej. Distribuidora San Martín"
-              maxlength="120" />
-            @if (errMsg(form.controls.proveedor); as msg) {
+            <select
+              id="proveedorId"
+              formControlName="proveedorId"
+              [class]="inputCls(form.controls.proveedorId)">
+              <option [value]="0" disabled>Selecciona un proveedor...</option>
+              @for (p of proveedores.items(); track p.proveedorId) {
+                <option [value]="p.proveedorId">{{ p.razonSocial }}</option>
+              }
+            </select>
+            @if (errMsg(form.controls.proveedorId); as msg) {
               <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
             }
           </div>
 
           <div>
-            <label for="fechaOrden" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
-              Fecha de orden <span class="text-[var(--color-danger-500)]">*</span>
+            <label for="fechaCompra" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
+              Fecha de compra <span class="text-[var(--color-danger-500)]">*</span>
             </label>
             <input
-              id="fechaOrden"
+              id="fechaCompra"
               type="date"
-              formControlName="fechaOrden"
-              [class]="inputCls(form.controls.fechaOrden)" />
-            @if (errMsg(form.controls.fechaOrden); as msg) {
+              [max]="todayIso()"
+              formControlName="fechaCompra"
+              [class]="inputCls(form.controls.fechaCompra)" />
+            @if (errMsg(form.controls.fechaCompra); as msg) {
               <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
             }
           </div>
         </div>
 
-        <div>
-          <label for="estado" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
-            Estado <span class="text-[var(--color-danger-500)]">*</span>
-          </label>
-          <select id="estado" formControlName="estado" [class]="inputCls(form.controls.estado) + ' sm:w-60'">
-            <option value="PENDIENTE">Pendiente</option>
-            <option value="RECIBIDA">Recibida</option>
-            <option value="CANCELADA">Cancelada</option>
-          </select>
+        <div class="grid sm:grid-cols-3 gap-4">
+          <div class="sm:col-span-2">
+            <label for="numeroFactura" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
+              N° de factura
+            </label>
+            <input
+              id="numeroFactura"
+              formControlName="numeroFactura"
+              [class]="inputCls(form.controls.numeroFactura)"
+              placeholder="Ej. F001-000123"
+              maxlength="50" />
+            @if (errMsg(form.controls.numeroFactura); as msg) {
+              <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
+            }
+          </div>
+
+          <div>
+            <label for="impuesto" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
+              Impuesto (IGV) <span class="text-[var(--color-danger-500)]">*</span>
+            </label>
+            <div class="relative mt-1.5">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-muted)] text-[13px]">S/</span>
+              <input
+                id="impuesto"
+                type="number"
+                step="0.01"
+                min="0"
+                formControlName="impuesto"
+                [class]="inputCls(form.controls.impuesto, 'pl-8') + ' !mt-0'"
+                placeholder="0.00" />
+            </div>
+            @if (errMsg(form.controls.impuesto); as msg) {
+              <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
+            }
+          </div>
         </div>
 
         <!-- ── Líneas de detalle ────────────────────────────────────────── -->
@@ -78,13 +109,21 @@ interface DetalleFormGroup {
             <span class="text-[13px] font-medium text-[var(--color-ink-soft)]">
               Productos <span class="text-[var(--color-danger-500)]">*</span>
             </span>
-            <button
-              type="button"
-              class="text-[12px] font-semibold text-[var(--color-primary-700)] hover:underline"
-              (click)="addLinea()">
-              + Agregar línea
-            </button>
+            @if (!isEditing()) {
+              <button
+                type="button"
+                class="text-[12px] font-semibold text-[var(--color-primary-700)] hover:underline"
+                (click)="addLinea()">
+                + Agregar línea
+              </button>
+            }
           </div>
+
+          @if (isEditing()) {
+            <p class="text-[12px] text-[var(--color-ink-muted)] mb-2">
+              Las líneas de productos no se pueden modificar después de registrar la compra.
+            </p>
+          }
 
           <div class="rounded-xl border border-[var(--color-border-soft)] overflow-hidden">
             <div class="hidden sm:grid grid-cols-[2fr_100px_120px_120px_40px] gap-2 px-3 py-2 bg-[var(--color-surface)] text-[11px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
@@ -102,7 +141,7 @@ interface DetalleFormGroup {
                   class="grid grid-cols-1 sm:grid-cols-[2fr_100px_120px_120px_40px] gap-2 px-3 py-2.5 border-t border-[var(--color-border-soft)] items-center">
                   <select
                     formControlName="productoId"
-                    class="h-10 px-2.5 rounded-lg border border-[var(--color-border-soft)] bg-white text-[13px] focus:outline-none focus:border-[var(--color-primary-500)]"
+                    class="h-10 px-2.5 rounded-lg border border-[var(--color-border-soft)] bg-white text-[13px] focus:outline-none focus:border-[var(--color-primary-500)] disabled:bg-[var(--color-surface)] disabled:text-[var(--color-ink-muted)]"
                     (change)="onProductoChange(line)">
                     <option [value]="0" disabled>Selecciona...</option>
                     @for (p of products.items(); track p.productoId) {
@@ -114,7 +153,7 @@ interface DetalleFormGroup {
                     type="number"
                     min="1"
                     formControlName="cantidad"
-                    class="h-10 px-2.5 rounded-lg border border-[var(--color-border-soft)] bg-white text-[13px] focus:outline-none focus:border-[var(--color-primary-500)]"
+                    class="h-10 px-2.5 rounded-lg border border-[var(--color-border-soft)] bg-white text-[13px] focus:outline-none focus:border-[var(--color-primary-500)] disabled:bg-[var(--color-surface)] disabled:text-[var(--color-ink-muted)]"
                     placeholder="0" />
 
                   <div class="relative">
@@ -124,7 +163,7 @@ interface DetalleFormGroup {
                       step="0.01"
                       min="0"
                       formControlName="costoUnitario"
-                      class="h-10 pl-7 pr-2.5 w-full rounded-lg border border-[var(--color-border-soft)] bg-white text-[13px] focus:outline-none focus:border-[var(--color-primary-500)]"
+                      class="h-10 pl-7 pr-2.5 w-full rounded-lg border border-[var(--color-border-soft)] bg-white text-[13px] focus:outline-none focus:border-[var(--color-primary-500)] disabled:bg-[var(--color-surface)] disabled:text-[var(--color-ink-muted)]"
                       placeholder="0.00" />
                   </div>
 
@@ -132,14 +171,18 @@ interface DetalleFormGroup {
                     {{ lineaSubtotal(line) | currency:'PEN':'symbol-narrow':'1.2-2' }}
                   </span>
 
-                  <button
-                    type="button"
-                    class="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--color-ink-muted)] hover:text-[var(--color-danger-500)] hover:bg-[var(--color-danger-500)]/10 transition-colors justify-self-end"
-                    (click)="removeLinea(i)"
-                    [disabled]="detalle.length === 1"
-                    aria-label="Quitar línea">
-                    ×
-                  </button>
+                  @if (!isEditing()) {
+                    <button
+                      type="button"
+                      class="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--color-ink-muted)] hover:text-[var(--color-danger-500)] hover:bg-[var(--color-danger-500)]/10 transition-colors justify-self-end"
+                      (click)="removeLinea(i)"
+                      [disabled]="detalle.length === 1"
+                      aria-label="Quitar línea">
+                      ×
+                    </button>
+                  } @else {
+                    <span></span>
+                  }
                 </div>
               }
             </div>
@@ -152,26 +195,17 @@ interface DetalleFormGroup {
           }
 
           <div class="flex justify-end mt-3">
-            <div class="text-right">
-              <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Total orden</p>
+            <div class="text-right space-y-0.5">
+              <p class="text-[12px] text-[var(--color-ink-muted)]">
+                Subtotal {{ subtotalDetalle() | currency:'PEN':'symbol-narrow':'1.2-2' }}
+                · IGV {{ impuestoValue() | currency:'PEN':'symbol-narrow':'1.2-2' }}
+              </p>
+              <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Total compra</p>
               <p class="text-xl font-bold text-[var(--color-primary-700)]">
-                {{ totalOrden() | currency:'PEN':'symbol-narrow':'1.2-2' }}
+                {{ totalCompra() | currency:'PEN':'symbol-narrow':'1.2-2' }}
               </p>
             </div>
           </div>
-        </div>
-
-        <div>
-          <label for="notas" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
-            Notas
-          </label>
-          <textarea
-            id="notas"
-            formControlName="notas"
-            rows="2"
-            maxlength="300"
-            class="mt-1.5 w-full px-3.5 py-2.5 rounded-lg border border-[var(--color-border-soft)] bg-white text-[15px] focus:outline-none focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-500)]/25 transition resize-y"
-            placeholder="Observaciones sobre esta orden..."></textarea>
         </div>
       </form>
 
@@ -185,7 +219,7 @@ interface DetalleFormGroup {
           [loading]="submitting()"
           [disabled]="form.invalid"
           (click)="submit()">
-          {{ editing() ? 'Guardar cambios' : 'Crear orden' }}
+          {{ isEditing() ? 'Guardar cambios' : 'Registrar compra' }}
         </ui-button>
       </ng-container>
     </ui-modal>
@@ -194,6 +228,7 @@ interface DetalleFormGroup {
 export class PurchaseFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   protected readonly products = inject(ProductService);
+  protected readonly proveedores = inject(ProveedorService);
 
   readonly open = input.required<boolean>();
   readonly editing = input<Compra | null>(null);
@@ -203,14 +238,15 @@ export class PurchaseFormComponent implements OnInit {
   readonly submitted = output<CompraCreatePayload>();
 
   readonly form = this.fb.nonNullable.group({
-    proveedor: ['', [Validators.required, Validators.maxLength(120)]],
-    fechaOrden: [this.todayIso(), [Validators.required]],
-    estado: ['PENDIENTE' as EstadoCompra, [Validators.required]],
-    notas: ['', [Validators.maxLength(300)]],
+    proveedorId: [0, [Validators.required, Validators.min(1)]],
+    fechaCompra: [this.todayIso(), [Validators.required]],
+    numeroFactura: ['', [Validators.maxLength(50)]],
+    impuesto: [0, [Validators.required, Validators.min(0)]],
     detalle: this.fb.array<FormGroup<DetalleFormGroup>>([this.buildLinea()]),
   });
 
-  readonly title = computed(() => (this.editing() ? 'Editar orden de compra' : 'Nueva orden de compra'));
+  readonly isEditing = computed(() => !!this.editing());
+  readonly title = computed(() => (this.editing() ? 'Editar compra' : 'Nueva compra'));
 
   get detalle() {
     return this.form.controls.detalle;
@@ -220,10 +256,13 @@ export class PurchaseFormComponent implements OnInit {
     if (!this.products.items().length) {
       this.products.load();
     }
+    if (!this.proveedores.items().length) {
+      this.proveedores.load();
+    }
     this.applyEditing();
   }
 
-  private todayIso(): string {
+  todayIso(): string {
     return new Date().toISOString().slice(0, 10);
   }
 
@@ -250,29 +289,28 @@ export class PurchaseFormComponent implements OnInit {
 
     if (edit) {
       this.form.patchValue({
-        proveedor: edit.proveedor,
-        fechaOrden: this.toIso(edit.fechaOrden),
-        estado: edit.estado,
-        notas: edit.notas ?? '',
+        proveedorId: edit.proveedorId,
+        fechaCompra: edit.fechaCompra,
+        numeroFactura: edit.numeroFactura ?? '',
+        impuesto: edit.impuesto,
       });
-      edit.detalle.forEach((d) =>
+      edit.detalles.forEach((d) =>
         this.detalle.push(
           this.buildLinea({ productoId: d.productoId, cantidad: d.cantidad, costoUnitario: d.costoUnitario }),
         ),
       );
+      // El backend no permite editar las líneas: solo lectura.
+      this.detalle.disable();
     } else {
       this.form.reset({
-        proveedor: '',
-        fechaOrden: this.todayIso(),
-        estado: 'PENDIENTE',
-        notas: '',
+        proveedorId: 0,
+        fechaCompra: this.todayIso(),
+        numeroFactura: '',
+        impuesto: 0,
       });
+      this.detalle.enable();
       this.detalle.push(this.buildLinea());
     }
-  }
-
-  private toIso(date: Date): string {
-    return new Date(date).toISOString().slice(0, 10);
   }
 
   addLinea(): void {
@@ -298,14 +336,22 @@ export class PurchaseFormComponent implements OnInit {
     return cantidad * costo;
   }
 
-  totalOrden(): number {
+  subtotalDetalle(): number {
     return this.detalle.controls.reduce((acc, line) => acc + this.lineaSubtotal(line), 0);
+  }
+
+  impuestoValue(): number {
+    return Number(this.form.controls.impuesto.value) || 0;
+  }
+
+  totalCompra(): number {
+    return this.subtotalDetalle() + this.impuestoValue();
   }
 
   errMsg(control: { invalid: boolean; touched: boolean; dirty: boolean; hasError: (e: string) => boolean }): string | null {
     if (!control.invalid || (!control.touched && !control.dirty)) return null;
     if (control.hasError('required')) return 'Obligatorio.';
-    if (control.hasError('min')) return 'Valor demasiado bajo.';
+    if (control.hasError('min')) return 'Selecciona un valor válido.';
     if (control.hasError('maxlength')) return 'Texto demasiado largo.';
     return 'Inválido.';
   }
@@ -328,22 +374,18 @@ export class PurchaseFormComponent implements OnInit {
     }
 
     const v = this.form.getRawValue();
-    const detalle: DetalleCompra[] = v.detalle.map((d) => {
-      const producto = this.products.findById(Number(d.productoId));
-      return {
-        productoId: Number(d.productoId),
-        productoNombre: producto?.nombre ?? 'Producto',
-        cantidad: Number(d.cantidad),
-        costoUnitario: Number(d.costoUnitario),
-      };
-    });
+    const detalles: DetalleCompraPayload[] = v.detalle.map((d) => ({
+      productoId: Number(d.productoId),
+      cantidad: Number(d.cantidad),
+      costoUnitario: Number(d.costoUnitario),
+    }));
 
     const payload: CompraCreatePayload = {
-      proveedor: v.proveedor.trim(),
-      fechaOrden: v.fechaOrden,
-      estado: v.estado,
-      detalle,
-      notas: v.notas?.trim() || null,
+      proveedorId: Number(v.proveedorId),
+      fechaCompra: v.fechaCompra,
+      numeroFactura: v.numeroFactura?.trim() || null,
+      impuesto: Number(v.impuesto),
+      detalles,
     };
 
     this.submitting.set(true);

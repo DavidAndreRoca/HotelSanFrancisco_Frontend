@@ -53,22 +53,30 @@ import {
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
       <ui-card padding="sm">
-        <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Total productos</p>
-        <p class="mt-2 text-2xl font-bold">{{ service.stats().total }}</p>
+        <div class="border-l-2 border-[var(--color-ink-muted)] pl-3">
+          <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Total productos</p>
+          <p class="mt-2 text-2xl font-bold">{{ service.stats().total }}</p>
+        </div>
       </ui-card>
       <ui-card padding="sm">
-        <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Activos</p>
-        <p class="mt-2 text-2xl font-bold text-[var(--color-success-500)]">{{ service.stats().activos }}</p>
+        <div class="border-l-2 border-[var(--color-success-500)] pl-3">
+          <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Activos</p>
+          <p class="mt-2 text-2xl font-bold text-[var(--color-success-500)]">{{ service.stats().activos }}</p>
+        </div>
       </ui-card>
       <ui-card padding="sm">
-        <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Bajo stock</p>
-        <p class="mt-2 text-2xl font-bold text-[var(--color-danger-500)]">{{ service.stats().bajoStock }}</p>
+        <div class="border-l-2 border-[var(--color-danger-500)] pl-3">
+          <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Bajo stock</p>
+          <p class="mt-2 text-2xl font-bold text-[var(--color-danger-500)]">{{ service.stats().bajoStock }}</p>
+        </div>
       </ui-card>
       <ui-card padding="sm">
-        <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Valor inventario</p>
-        <p class="mt-2 text-2xl font-bold text-[var(--color-primary-700)]">
-          {{ service.stats().valorInventario | currency:'PEN':'symbol-narrow':'1.2-2' }}
-        </p>
+        <div class="border-l-2 border-[var(--color-primary-500)] pl-3">
+          <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Valor inventario</p>
+          <p class="mt-2 text-2xl font-bold text-[var(--color-primary-700)]">
+            {{ service.stats().valorInventario | currency:'PEN':'symbol-narrow':'1.2-2' }}
+          </p>
+        </div>
       </ui-card>
     </div>
 
