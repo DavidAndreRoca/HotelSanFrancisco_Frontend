@@ -20,6 +20,8 @@ import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../core/auth/auth.service';
 import { PublicDocumentType, RegisterRequest } from '../../../core/auth/auth-user.interface';
 import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component';
+import { DniLookupComponent } from '../../../shared/components/dni-lookup/dni-lookup.component';
+import { ReniecPersona } from '../../../core/reniec/reniec.service';
 
 function passwordMatchValidator(group: AbstractControl): ValidationErrors | null {
   const a = group.get('contrasena')?.value;
@@ -30,7 +32,7 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
 @Component({
   selector: 'app-register',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, UiButtonComponent],
+  imports: [ReactiveFormsModule, RouterLink, UiButtonComponent, DniLookupComponent],
   template: `
     <div class="min-h-screen grid lg:grid-cols-[1.1fr_1.4fr] bg-[var(--color-surface)]">
       <!-- IMAGEN -->
@@ -197,6 +199,10 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
                     {{ msg }}
                   </p>
                 }
+                <app-dni-lookup
+                  [dni]="form.controls.numeroDocumento.value"
+                  [enabled]="esDni()"
+                  (found)="onReniec($event)" />
               </div>
             </div>
 
@@ -416,6 +422,20 @@ export class RegisterComponent implements OnInit {
     if (type.acronimo === 'PASS') return 'AB1234567';
     return type.nombre;
   });
+
+  /** El tipo de documento seleccionado es DNI (habilita la búsqueda RENIEC). */
+  esDni(): boolean {
+    const id = this.form.controls.tipoDocumentoId.value;
+    return this.documentTypes().find((t) => t.tipoDocumentoId === id)?.acronimo === 'DNI';
+  }
+
+  onReniec(p: ReniecPersona): void {
+    this.form.patchValue({
+      nombre: p.nombres,
+      apellidoPaterno: p.apellidoPaterno,
+      apellidoMaterno: p.apellidoMaterno,
+    });
+  }
 
   ngOnInit(): void {
     this.auth.getDocumentTypes().subscribe({

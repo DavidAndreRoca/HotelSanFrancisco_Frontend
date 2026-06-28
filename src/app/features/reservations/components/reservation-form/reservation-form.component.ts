@@ -16,7 +16,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { DisponibilidadService, HabitacionDisponible } from '../../services/disponibilidad.service';
 import { ClienteService } from '../../../clients/services/cliente.service';
 import { AuthStore } from '../../../../core/auth/auth.store';
-import { Reserva, CreateReservaPayload, UpdateReservaPayload } from '../../models/reservation.model';
+import { Reserva, CreateReservaPayload, UpdateReservaPayload, ModalidadPago } from '../../models/reservation.model';
 import { Cliente, CreateClientePayload } from '../../../clients/models/cliente.model';
 
 export interface ReservaFormSaveEvent {
@@ -260,6 +260,27 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                               <p class="text-[11px] font-semibold text-[#2D2926]">
                                 {{ getNombreTipo(hab.habitacionId) }}
                               </p>
+
+                              <!-- Tarifa pactada: solo staff. Rango 50%–200% del precio base (revalidado en backend). -->
+                              @if (!esCliente() && getPrecioBase(hab.habitacionId) > 0) {
+                                <div class="mt-1.5" (click)="$event.stopPropagation()">
+                                  <p class="text-[10px] uppercase tracking-wider font-semibold text-[#C5A048] mb-0.5">
+                                    Tarifa / noche (S/)
+                                  </p>
+                                  <input type="number" min="0" step="0.01"
+                                    [value]="getTarifa(hab.habitacionId)"
+                                    (input)="setTarifaPactada(hab.habitacionId, +$any($event.target).value || 0)"
+                                    [class]="tarifaInvalida(hab.habitacionId)
+                                      ? 'w-full h-8 px-2 rounded-md border border-red-400 bg-white text-[12px] focus:outline-none focus:ring-2 focus:ring-red-400/20'
+                                      : 'w-full h-8 px-2 rounded-md border border-[#EEE3D1] bg-white text-[12px] focus:outline-none focus:border-[#C5A048] focus:ring-2 focus:ring-[#C5A048]/20'" />
+                                  <p class="text-[10px] mt-0.5"
+                                     [class]="tarifaInvalida(hab.habitacionId) ? 'text-red-500' : 'text-[#2D2926]/45'">
+                                    Base S/ {{ getPrecioBase(hab.habitacionId) | number:'1.2-2' }} ·
+                                    rango S/ {{ getPrecioBase(hab.habitacionId) * 0.5 | number:'1.2-2' }}–{{ getPrecioBase(hab.habitacionId) * 2 | number:'1.2-2' }}
+                                  </p>
+                                </div>
+                              }
+
                               @if (getTarifa(hab.habitacionId) > 0) {
                                 <p class="text-[11px] text-emerald-600 font-semibold mt-1">
                                   Subtotal: S/ {{ (getTarifa(hab.habitacionId) * noches()) | number:'1.2-2' }}
@@ -298,7 +319,7 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                   Volver
                 </button>
                 <button type="button" (click)="avanzarPaso()"
-                  [disabled]="habitacionesSeleccionadas().length === 0"
+                  [disabled]="habitacionesSeleccionadas().length === 0 || hayTarifaInvalida()"
                   class="h-9 px-5 rounded-xl bg-[#C5A048] text-white text-sm font-semibold
                          hover:bg-[#8E6F2E] transition-colors disabled:opacity-50 flex items-center gap-2">
                   Continuar
@@ -500,34 +521,57 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
             <!-- PASO 4: Detalles + resumen -->
             @if (pasoActual() === 4) {
               <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-                <div class="grid sm:grid-cols-2 gap-4">
+                <!-- Descuento: solo staff. El cliente nunca lo aplica (backend lo fuerza a 0). -->
+                @if (!esCliente()) {
                   <div>
-                    <label class="text-[13px] font-medium text-[#2D2926]/70">Descuento (S/)</label>
+                    <label class="text-[13px] font-medium text-[#2D2926]/70">
+                      Descuento (S/)
+                      <span class="text-[11px] font-normal text-[#2D2926]/40 ml-1">
+                        Máx 30% — S/ {{ descuentoMax() | number:'1.2-2' }}
+                      </span>
+                    </label>
                     <input type="number" min="0" step="0.01"
-                      class="mt-1.5 w-full h-10 px-3.5 rounded-lg border border-[#EEE3D1] bg-white text-sm
-                             focus:outline-none focus:border-[#C5A048] focus:ring-2 focus:ring-[#C5A048]/20 transition"
+                      [class]="descuentoInvalido()
+                        ? 'mt-1.5 w-full h-10 px-3.5 rounded-lg border border-red-400 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-red-400/20 transition'
+                        : 'mt-1.5 w-full h-10 px-3.5 rounded-lg border border-[#EEE3D1] bg-white text-sm focus:outline-none focus:border-[#C5A048] focus:ring-2 focus:ring-[#C5A048]/20 transition'"
                       [value]="descuento()"
                       (input)="descuento.set(+$any($event.target).value || 0)" />
+                    @if (descuentoInvalido()) {
+                      <p class="text-xs text-red-500 mt-1">El descuento no puede superar el 30% del subtotal.</p>
+                    }
                   </div>
-                  <div>
-                    <label class="text-[13px] font-medium text-[#2D2926]/70">Adelanto / Pago inicial (S/)</label>
-                    <input type="number" min="0" step="0.01"
-                      class="mt-1.5 w-full h-10 px-3.5 rounded-lg border border-[#EEE3D1] bg-white text-sm
-                             focus:outline-none focus:border-[#C5A048] focus:ring-2 focus:ring-[#C5A048]/20 transition"
-                      [value]="adelanto()"
-                      (input)="adelanto.set(+$any($event.target).value || 0)" />
+                }
+
+                <!-- Modalidad de pago: PARCIAL (50%) | TOTAL (100%). El backend deriva el monto. -->
+                <div>
+                  <label class="text-[13px] font-medium text-[#2D2926]/70">Modalidad de pago</label>
+                  <div class="mt-1.5 grid grid-cols-2 gap-3">
+                    @for (op of modalidades; track op.value) {
+                      <button type="button" (click)="modalidadPago.set(op.value)"
+                        [class]="modalidadPago() === op.value
+                          ? 'h-auto py-3 px-4 rounded-lg border-2 border-[#C5A048] bg-[#FBF7EF] text-left transition'
+                          : 'h-auto py-3 px-4 rounded-lg border border-[#EEE3D1] bg-white text-left hover:border-[#C5A048]/50 transition'">
+                        <span class="block text-sm font-semibold text-[#2D2926]">{{ op.label }}</span>
+                        <span class="block text-[11px] text-[#2D2926]/50">{{ op.hint }}</span>
+                      </button>
+                    }
                   </div>
+                  <p class="text-[11px] text-[#2D2926]/50 mt-1.5">
+                    Adelanto a pagar:
+                    <strong class="text-[#C5A048]">S/ {{ adelanto() | number:'1.2-2' }}</strong>
+                  </p>
                 </div>
+
+                <!-- Impuesto: IGV 18% calculado por el backend; aquí solo preview de solo lectura. -->
                 <div>
                   <label class="text-[13px] font-medium text-[#2D2926]/70">
                     Impuesto (S/)
                     <span class="text-[11px] font-normal text-[#2D2926]/40 ml-1">Auto-calculado 18%</span>
                   </label>
-                  <input type="number" min="0" step="0.01"
-                    class="mt-1.5 w-full h-10 px-3.5 rounded-lg border border-[#EEE3D1] bg-white text-sm
-                           focus:outline-none focus:border-[#C5A048] focus:ring-2 focus:ring-[#C5A048]/20 transition"
-                    [value]="impuesto()"
-                    (input)="impuesto.set(+$any($event.target).value || 0)" />
+                  <input type="number" readonly tabindex="-1"
+                    class="mt-1.5 w-full h-10 px-3.5 rounded-lg border border-[#EEE3D1] bg-[#F9F5F0] text-sm
+                           text-[#2D2926]/70 focus:outline-none cursor-not-allowed"
+                    [value]="impuesto() | number:'1.2-2'" />
                 </div>
                 <div>
                   <label class="text-[13px] font-medium text-[#2D2926]/70">Observaciones</label>
@@ -578,10 +622,12 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                       <span class="text-[#2D2926]/65">Subtotal</span>
                       <span class="font-medium text-[#2D2926]">S/ {{ subtotal() | number:'1.2-2' }}</span>
                     </div>
-                    <div class="flex justify-between px-4 py-2.5 text-sm border-b border-[#EEE3D1]">
-                      <span class="text-[#2D2926]/65">Descuento</span>
-                      <span class="font-medium text-emerald-600">— S/ {{ descuento() | number:'1.2-2' }}</span>
-                    </div>
+                    @if (!esCliente()) {
+                      <div class="flex justify-between px-4 py-2.5 text-sm border-b border-[#EEE3D1]">
+                        <span class="text-[#2D2926]/65">Descuento</span>
+                        <span class="font-medium text-emerald-600">— S/ {{ descuentoEfectivo() | number:'1.2-2' }}</span>
+                      </div>
+                    }
                     <div class="flex justify-between px-4 py-2.5 text-sm border-b border-[#EEE3D1]">
                       <span class="text-[#2D2926]/65">Impuesto (18%)</span>
                       <span class="font-medium text-[#2D2926]">S/ {{ impuesto() | number:'1.2-2' }}</span>
@@ -591,12 +637,12 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                       <span class="text-[#2D2926] text-base">S/ {{ total() | number:'1.2-2' }}</span>
                     </div>
                     <div class="flex justify-between px-4 py-2.5 text-sm border-b border-[#EEE3D1]">
-                      <span class="text-[#2D2926]/65">Adelanto</span>
+                      <span class="text-[#2D2926]/65">Adelanto ({{ modalidadPago() === 'TOTAL' ? '100%' : '50%' }})</span>
                       <span class="font-medium text-[#2D2926]">S/ {{ adelanto() | number:'1.2-2' }}</span>
                     </div>
                     <div class="flex justify-between px-4 py-2.5 text-sm font-semibold text-[#C5A048]">
                       <span>Saldo pendiente</span>
-                      <span>S/ {{ (total() - adelanto()) | number:'1.2-2' }}</span>
+                      <span>S/ {{ saldoPendiente() | number:'1.2-2' }}</span>
                     </div>
                   </div>
                 </div>
@@ -611,9 +657,9 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                   </svg>
                   Volver
                 </button>
-                <button type="button" (click)="guardarCreate()"
+                <button type="button" (click)="guardarCreate()" [disabled]="descuentoInvalido()"
                   class="h-9 px-5 rounded-xl bg-[#C5A048] text-white text-sm font-semibold
-                         hover:bg-[#8E6F2E] transition-colors flex items-center gap-2">
+                         hover:bg-[#8E6F2E] transition-colors flex items-center gap-2 disabled:opacity-50">
                   <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                     <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/>
                   </svg>
@@ -678,23 +724,41 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                   <p class="text-[11px] uppercase tracking-wider text-[#C5A048] font-semibold mb-3">
                     Datos económicos
                   </p>
-                  <div class="grid sm:grid-cols-2 gap-4">
-                    <div>
-                      <label class="text-[13px] font-medium text-[#2D2926]/70">Descuento (S/)</label>
-                      <input type="number" formControlName="descuento" min="0" step="0.01"
-                        [class]="icEdit('descuento')" />
-                    </div>
-                    <div>
-                      <label class="text-[13px] font-medium text-[#2D2926]/70">Adelanto (S/)</label>
-                      <input type="number" formControlName="adelanto" min="0" step="0.01"
-                        [class]="icEdit('adelanto')" />
-                    </div>
+                  <div>
+                    <label class="text-[13px] font-medium text-[#2D2926]/70">
+                      Descuento (S/)
+                      <span class="text-[11px] font-normal text-[#2D2926]/40 ml-1">
+                        Máx 30% — S/ {{ descuentoMax() | number:'1.2-2' }}
+                      </span>
+                    </label>
+                    <input type="number" formControlName="descuento" min="0" step="0.01"
+                      [class]="icEdit('descuento')" />
+                    @if (descuentoInvalido()) {
+                      <p class="text-xs text-red-500 mt-1">El descuento no puede superar el 30% del subtotal.</p>
+                    }
                   </div>
+
+                  <!-- Modalidad de pago: el backend re-deriva el adelanto del nuevo total. -->
                   <div class="mt-4">
-                    <label class="text-[13px] font-medium text-[#2D2926]/70">Impuesto (S/)</label>
-                    <input type="number" formControlName="impuesto" min="0" step="0.01"
-                      [class]="icEdit('impuesto')" />
+                    <label class="text-[13px] font-medium text-[#2D2926]/70">Modalidad de pago</label>
+                    <div class="mt-1.5 grid grid-cols-2 gap-3">
+                      @for (op of modalidades; track op.value) {
+                        <button type="button" (click)="modalidadPago.set(op.value)"
+                          [class]="modalidadPago() === op.value
+                            ? 'h-auto py-3 px-4 rounded-lg border-2 border-[#C5A048] bg-[#FBF7EF] text-left transition'
+                            : 'h-auto py-3 px-4 rounded-lg border border-[#EEE3D1] bg-white text-left hover:border-[#C5A048]/50 transition'">
+                          <span class="block text-sm font-semibold text-[#2D2926]">{{ op.label }}</span>
+                          <span class="block text-[11px] text-[#2D2926]/50">{{ op.hint }}</span>
+                        </button>
+                      }
+                    </div>
+                    <p class="text-[11px] text-[#2D2926]/50 mt-1.5">
+                      Adelanto estimado:
+                      <strong class="text-[#C5A048]">S/ {{ adelanto() | number:'1.2-2' }}</strong>
+                      · Saldo: S/ {{ saldoPendiente() | number:'1.2-2' }}
+                    </p>
                   </div>
+
                   <div class="mt-4">
                     <label class="text-[13px] font-medium text-[#2D2926]/70">Observaciones</label>
                     <textarea formControlName="observaciones" rows="2" maxlength="500"
@@ -713,7 +777,7 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                        text-[#2D2926]/70 hover:bg-[#F9F5F0] transition-colors">
                 Cancelar
               </button>
-              <button type="button" [disabled]="editForm.invalid" (click)="guardarEdit()"
+              <button type="button" [disabled]="editForm.invalid || descuentoInvalido()" (click)="guardarEdit()"
                 class="h-9 px-5 rounded-xl bg-[#C5A048] text-white text-sm font-semibold
                        hover:bg-[#8E6F2E] transition-colors disabled:opacity-50">
                 Guardar cambios
@@ -742,6 +806,11 @@ export class ReservationFormComponent {
 
   readonly canales = CANALES;
 
+  readonly modalidades: ReadonlyArray<{ value: ModalidadPago; label: string; hint: string }> = [
+    { value: 'PARCIAL', label: 'Pago parcial', hint: '50% del total' },
+    { value: 'TOTAL',   label: 'Pago total',   hint: '100% del total' },
+  ];
+
   // ── State ──────────────────────────────────────────────────────────────────
   readonly pasoActual               = signal<1 | 2 | 3 | 4>(1);
   readonly habitacionesSeleccionadas = signal<Array<{
@@ -763,8 +832,7 @@ export class ReservationFormComponent {
   private readonly _fechaFin    = signal('');
 
   readonly descuento    = signal(0);
-  readonly adelanto     = signal(0);
-  readonly impuesto     = signal(0);
+  readonly modalidadPago = signal<ModalidadPago>('PARCIAL');
   readonly observaciones = signal<string | null>(null);
 
   // ── Forms ──────────────────────────────────────────────────────────────────
@@ -783,8 +851,6 @@ export class ReservationFormComponent {
     nroNinos:      [0,  [Validators.min(0)]],
     canalId:       [null as number | null],
     descuento:     [0,  Validators.min(0)],
-    adelanto:      [0,  Validators.min(0)],
-    impuesto:      [0,  Validators.min(0)],
     observaciones: [null as string | null, Validators.maxLength(500)],
   });
 
@@ -821,12 +887,48 @@ export class ReservationFormComponent {
   });
 
   readonly subtotal = computed(() =>
-    this.habitacionesSeleccionadas().reduce((s, h) => s + h.tarifaPactada * this.noches(), 0),
+    this.esEdicion()
+      ? (this.reserva()?.subtotal ?? 0)
+      : this.habitacionesSeleccionadas().reduce((s, h) => s + h.tarifaPactada * this.noches(), 0),
+  );
+
+  /** Descuento efectivo: el cliente nunca lo aplica (backend lo fuerza a 0). */
+  readonly descuentoEfectivo = computed(() => (this.esCliente() ? 0 : this.descuento()));
+
+  /** Tope de descuento para staff: 30% del subtotal. */
+  readonly descuentoMax = computed(() => Math.round(this.subtotal() * 0.3 * 100) / 100);
+
+  /** True si el descuento de staff supera el tope permitido. */
+  readonly descuentoInvalido = computed(
+    () => !this.esCliente() && this.descuento() > this.descuentoMax(),
+  );
+
+  /** IGV 18% — preview optimista; el valor válido es el del response del backend. */
+  readonly impuesto = computed(
+    () => Math.round((this.subtotal() - this.descuentoEfectivo()) * 0.18 * 100) / 100,
   );
 
   readonly total = computed(() =>
-    Math.max(0, this.subtotal() - this.descuento() + this.impuesto()),
+    Math.max(0, this.subtotal() - this.descuentoEfectivo() + this.impuesto()),
   );
+
+  /** Adelanto derivado de la modalidad: TOTAL=100%, PARCIAL=50% del total. */
+  readonly adelanto = computed(() =>
+    this.modalidadPago() === 'TOTAL'
+      ? this.total()
+      : Math.round(this.total() * 0.5 * 100) / 100,
+  );
+
+  readonly saldoPendiente = computed(() => Math.max(0, this.total() - this.adelanto()));
+
+  /** Alguna tarifa pactada por staff está fuera del rango 50%–200% del precio base. */
+  readonly hayTarifaInvalida = computed(() => {
+    if (this.esCliente()) return false;
+    return this.habitacionesSeleccionadas().some(h => {
+      const base = this.tipos().find(t => t.tipoHabitacionId === h.tipoHabitacionId)?.precioBase ?? 0;
+      return base > 0 && (h.tarifaPactada < base * 0.5 || h.tarifaPactada > base * 2);
+    });
+  });
 
   readonly resultadosBusqueda = computed(() => {
     const term = this.busquedaHuesped().toLowerCase().trim();
@@ -852,10 +954,10 @@ export class ReservationFormComponent {
           nroNinos:      r.nroNinos,
           canalId:       r.canalId,
           descuento:     r.descuento,
-          adelanto:      r.adelanto,
-          impuesto:      r.impuesto,
           observaciones: r.observaciones,
         });
+        this.descuento.set(r.descuento);
+        this.modalidadPago.set(r.modalidadPago ?? 'PARCIAL');
       }
     });
 
@@ -884,6 +986,11 @@ export class ReservationFormComponent {
     this.paso1Form.get('fechaFin')!.valueChanges.pipe(
       debounceTime(100), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef),
     ).subscribe(v => this._fechaFin.set(v ?? ''));
+
+    // En edición, reflejar el descuento del form en el signal para el preview de totales.
+    this.editForm.get('descuento')!.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(v => this.descuento.set(Number(v ?? 0)));
   }
 
   reset(): void {
@@ -894,8 +1001,7 @@ export class ReservationFormComponent {
     this.nuevoClienteAbierto.set(false);
     this.errorPaso.set(null);
     this.descuento.set(0);
-    this.adelanto.set(0);
-    this.impuesto.set(0);
+    this.modalidadPago.set('PARCIAL');
     this.observaciones.set(null);
     this._fechaInicio.set('');
     this._fechaFin.set('');
@@ -946,13 +1052,16 @@ export class ReservationFormComponent {
         this.errorPaso.set('Asigna un tipo de habitación a cada habitación seleccionada.');
         return;
       }
+      if (this.hayTarifaInvalida()) {
+        this.errorPaso.set('La tarifa pactada debe estar entre el 50% y el 200% del precio base.');
+        return;
+      }
       this.pasoActual.set(3);
     } else if (paso === 3) {
       if (!this.esCliente() && this.huespedesSeleccionados().length === 0) {
         this.errorPaso.set('Agrega al menos un huésped para continuar.');
         return;
       }
-      this.impuesto.set(Math.round(this.subtotal() * 0.18 * 100) / 100);
       this.pasoActual.set(4);
     }
   }
@@ -1010,6 +1119,29 @@ export class ReservationFormComponent {
     return this.habitacionesSeleccionadas().find(h => h.hab.habitacionId === habitacionId)?.tipoHabitacionNombre ?? '—';
   }
 
+  /** Precio base del tipo asignado a la habitación (referencia para validar la tarifa pactada). */
+  getPrecioBase(habitacionId: number): number {
+    const tipoId = this.getTipoId(habitacionId);
+    return this.tipos().find(t => t.tipoHabitacionId === tipoId)?.precioBase ?? 0;
+  }
+
+  /** Solo staff puede pactar la tarifa; el backend revalida el rango 50%–200% del precio base. */
+  setTarifaPactada(habitacionId: number, valor: number): void {
+    this.habitacionesSeleccionadas.update(list =>
+      list.map(h =>
+        h.hab.habitacionId === habitacionId ? { ...h, tarifaPactada: Math.max(0, valor) } : h,
+      ),
+    );
+  }
+
+  /** True si la tarifa pactada queda fuera del rango permitido (50%–200% del precio base). */
+  tarifaInvalida(habitacionId: number): boolean {
+    const base = this.getPrecioBase(habitacionId);
+    if (base <= 0) return false;
+    const t = this.getTarifa(habitacionId);
+    return t < base * 0.5 || t > base * 2;
+  }
+
   // ── Guest management ───────────────────────────────────────────────────────
 
   agregarHuesped(cliente: Cliente): void {
@@ -1057,30 +1189,41 @@ export class ReservationFormComponent {
   // ── Save ───────────────────────────────────────────────────────────────────
 
   guardarCreate(): void {
-    const f1  = this.paso1Form.value;
-    const ts  = Date.now().toString().slice(-6);
+    if (this.descuentoInvalido()) {
+      this.errorPaso.set('El descuento no puede superar el 30% del subtotal.');
+      return;
+    }
+    const f1 = this.paso1Form.value;
+
+    // Base común. El backend genera codReserva, recalcula impuesto/subtotal/total
+    // y deriva el adelanto de modalidadPago, así que no se envían.
     const payload: CreateReservaPayload = {
-      codReserva:    `RSV-${new Date().getFullYear()}-${ts}`,
       fechaInicio:   f1.fechaInicio!,
       fechaFin:      f1.fechaFin!,
       nroAdultos:    f1.nroAdultos!,
       nroNinos:      f1.nroNinos ?? 0,
-      descuento:     this.descuento(),
-      adelanto:      this.adelanto(),
-      impuesto:      this.impuesto(),
+      modalidadPago: this.modalidadPago(),
       observaciones: this.observaciones(),
-      usuarioId:     this.authStore.user()?.usuarioId ?? null,
-      canalId:       f1.canalId ?? null,
-      habitaciones:  this.habitacionesSeleccionadas().map(h => ({
+      huespedes: this.esCliente()
+        ? [] // el backend infiere el huésped del JWT
+        : this.huespedesSeleccionados().map(h => ({
+            huespedId:   h.cliente.huespedId,
+            esPrincipal: h.esPrincipal,
+          })),
+      habitaciones: this.habitacionesSeleccionadas().map(h => ({
         habitacionId:     h.hab.habitacionId,
         tipoHabitacionId: h.tipoHabitacionId,
-        tarifaPactada:    h.tarifaPactada,
-      })),
-      huespedes: this.huespedesSeleccionados().map(h => ({
-        huespedId:   h.cliente.huespedId,
-        esPrincipal: h.esPrincipal,
+        // El cliente omite la tarifa (backend usa el precio base); el staff la pacta.
+        ...(this.esCliente() ? {} : { tarifaPactada: h.tarifaPactada }),
       })),
     };
+
+    if (!this.esCliente()) {
+      payload.descuento = this.descuento();
+      payload.usuarioId = this.authStore.user()?.usuarioId ?? null;
+      payload.canalId   = f1.canalId ?? null;
+    }
+
     this.onSave.emit({ payload });
   }
 
@@ -1089,7 +1232,12 @@ export class ReservationFormComponent {
       this.editForm.markAllAsTouched();
       return;
     }
+    if (this.descuentoInvalido()) {
+      this.errorPaso.set('El descuento no puede superar el 30% del subtotal.');
+      return;
+    }
     const v = this.editForm.value;
+    // No se envían impuesto ni adelanto: el backend los recalcula/deriva.
     const payload: UpdateReservaPayload = {
       fechaInicio:   v.fechaInicio ?? undefined,
       fechaFin:      v.fechaFin ?? undefined,
@@ -1097,8 +1245,7 @@ export class ReservationFormComponent {
       nroNinos:      v.nroNinos ?? undefined,
       canalId:       v.canalId ?? null,
       descuento:     Number(v.descuento ?? 0),
-      adelanto:      Number(v.adelanto ?? 0),
-      impuesto:      Number(v.impuesto ?? 0),
+      modalidadPago: this.modalidadPago(),
       observaciones: v.observaciones?.trim() || null,
     };
     this.onSave.emit({ payload, id: this.reserva()!.reservaId });

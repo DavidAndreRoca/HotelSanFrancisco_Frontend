@@ -1,6 +1,8 @@
 import { Component, input, output, inject, ChangeDetectionStrategy, effect } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Cliente, CreateClientePayload, UpdateClientePayload } from '../../models/cliente.model';
+import { DniLookupComponent } from '../../../../shared/components/dni-lookup/dni-lookup.component';
+import { ReniecPersona } from '../../../../core/reniec/reniec.service';
 
 export interface ClienteModalSaveEvent {
   payload: CreateClientePayload | UpdateClientePayload;
@@ -15,7 +17,7 @@ const INPUT_RO   = `${INPUT_BASE} border-[#EEE3D1] bg-[#F9F5F0] cursor-default`;
 @Component({
   selector: 'app-cliente-modal',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, DniLookupComponent],
   host: {
     '(document:keydown.escape)': 'isOpen() && onClose.emit()',
     role: 'dialog',
@@ -102,6 +104,10 @@ const INPUT_RO   = `${INPUT_BASE} border-[#EEE3D1] bg-[#F9F5F0] cursor-default`;
                   @if (isInvalid('numeroDocumento')) {
                     <p class="text-[11px] text-red-600 mt-1">El documento es obligatorio (máx. 20 caracteres)</p>
                   }
+                  <app-dni-lookup
+                    [dni]="form.controls.numeroDocumento.value ?? ''"
+                    [enabled]="mode() !== 'view'"
+                    (found)="onReniec($event)" />
                 </div>
               </div>
 
@@ -205,6 +211,14 @@ export class ClienteModalComponent {
     telefono:        ['', [Validators.maxLength(20)]],
     estado:          ['ACTIVO', Validators.required],
   });
+
+  onReniec(p: ReniecPersona): void {
+    this.form.patchValue({
+      nombre: p.nombres,
+      apellidoPaterno: p.apellidoPaterno,
+      apellidoMaterno: p.apellidoMaterno,
+    });
+  }
 
   constructor() {
     effect(() => {

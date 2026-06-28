@@ -1,79 +1,63 @@
 export type EstadoActivo = 'ACTIVO' | 'INACTIVO';
 
-export type CategoriaProducto =
-  | 'MINIBAR'
-  | 'AMENITIES'
-  | 'LIMPIEZA'
-  | 'ALIMENTOS'
-  | 'BEBIDAS'
-  | 'LENCERIA'
-  | 'MANTENIMIENTO'
-  | 'OTROS';
+/** Categoría de producto (`CategoriaProductoResponse`). */
+export interface CategoriaProducto {
+  categoriaProductoId: number;
+  nombre: string;
+  descripcion: string | null;
+  estado: EstadoActivo;
+}
 
+/** Producto tal como lo devuelve el backend (`ProductoResponse`). Fechas en ISO string. */
 export interface Producto {
   productoId: number;
   nombre: string;
-  sku: string;
-  categoria: CategoriaProducto;
   descripcion: string | null;
-  unidadMedida: string;
   precioVenta: number;
-  costoUnitario: number;
   stockActual: number;
   stockMinimo: number;
-  proveedorPrincipal: string | null;
   estado: EstadoActivo;
-  actualizadoEn: Date;
+  categoriaProductoId: number;
+  categoriaProductoNombre: string;
+  fechaCreacion: string;
+  fechaModificacion: string;
 }
 
+/** Body de `POST /api/v1/productos` (`CreateProductoRequest`). */
 export interface ProductoCreatePayload {
   nombre: string;
-  sku: string;
-  categoria: CategoriaProducto;
   descripcion: string | null;
-  unidadMedida: string;
   precioVenta: number;
-  costoUnitario: number;
   stockActual: number;
   stockMinimo: number;
-  proveedorPrincipal: string | null;
   estado: EstadoActivo;
+  categoriaProductoId: number;
 }
 
-export type ProductoUpdatePayload = Partial<ProductoCreatePayload>;
+/**
+ * Body de `PUT /api/v1/productos/{id}` (`UpdateProductoRequest`).
+ * El stock NO se edita aquí (se ajusta con `PATCH /productos/{id}/stock`).
+ */
+export type ProductoUpdatePayload = Partial<Omit<ProductoCreatePayload, 'stockActual'>>;
 
 export interface ProductoFilters {
   search: string;
-  categoria: CategoriaProducto | '';
+  categoriaProductoId: number | '';
   estado: EstadoActivo | '';
   soloBajoStock: boolean;
 }
 
 export const DEFAULT_PRODUCTO_FILTERS: ProductoFilters = {
   search: '',
-  categoria: '',
+  categoriaProductoId: '',
   estado: '',
   soloBajoStock: false,
-};
-
-export const CATEGORIA_PRODUCTO_CONFIG: Record<
-  CategoriaProducto,
-  { label: string; dotColor: string }
-> = {
-  MINIBAR: { label: 'Minibar', dotColor: 'bg-[var(--color-primary-500)]' },
-  AMENITIES: { label: 'Amenities', dotColor: 'bg-[var(--color-info-500)]' },
-  LIMPIEZA: { label: 'Limpieza', dotColor: 'bg-[var(--color-success-500)]' },
-  ALIMENTOS: { label: 'Alimentos', dotColor: 'bg-[var(--color-warning-500)]' },
-  BEBIDAS: { label: 'Bebidas', dotColor: 'bg-[var(--color-danger-500)]' },
-  LENCERIA: { label: 'Lencería', dotColor: 'bg-[var(--color-secondary-500)]' },
-  MANTENIMIENTO: { label: 'Mantenimiento', dotColor: 'bg-[var(--color-ink-muted)]' },
-  OTROS: { label: 'Otros', dotColor: 'bg-[var(--color-ink-soft)]' },
 };
 
 export interface ProductoStats {
   total: number;
   activos: number;
-  inactivos: number;
   bajoStock: number;
-  valorInventario: number;
+  /** Valor del stock a precio de venta (el backend no guarda costo). */
+  valorStockVenta: number;
 }

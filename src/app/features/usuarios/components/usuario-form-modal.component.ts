@@ -14,6 +14,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { UiModalComponent } from '../../../shared/ui/modal/ui-modal.component';
+import { DniLookupComponent } from '../../../shared/components/dni-lookup/dni-lookup.component';
+import { ReniecPersona } from '../../../core/reniec/reniec.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { PublicDocumentType } from '../../../core/auth/auth-user.interface';
 import { RolService } from '../../../features/roles/services/rol.service';
@@ -30,7 +32,7 @@ import { ESTADOS_USUARIO, ESTADO_USUARIO_LABEL } from '../utils/usuario-ui';
 @Component({
   selector: 'app-usuario-form-modal',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [UiModalComponent, ReactiveFormsModule],
+  imports: [UiModalComponent, ReactiveFormsModule, DniLookupComponent],
   template: `
     <ui-modal
       [open]="open()"
@@ -72,6 +74,10 @@ import { ESTADOS_USUARIO, ESTADO_USUARIO_LABEL } from '../utils/usuario-ui';
             <div>
               <label class="block text-[13px] font-semibold text-[#2D2926] mb-1">N° documento *</label>
               <input type="text" formControlName="numeroDocumento" [class]="cls('numeroDocumento')" />
+              <app-dni-lookup
+                [dni]="form.controls.numeroDocumento.value ?? ''"
+                [enabled]="esDni()"
+                (found)="onReniec($event)" />
             </div>
             <div>
               <label class="block text-[13px] font-semibold text-[#2D2926] mb-1">Correo *</label>
@@ -215,6 +221,20 @@ export class UsuarioFormModalComponent {
     const rol = this.roles().find((r) => r.rolId === rolId);
     return rol ? rol.nombre.toUpperCase() !== 'CLIENTE' : false;
   });
+
+  /** El tipo de documento seleccionado es DNI (habilita la búsqueda RENIEC). */
+  esDni(): boolean {
+    const id = this.form.controls.tipoDocumentoId.value;
+    return this.tiposDoc().find((t) => t.tipoDocumentoId === id)?.acronimo === 'DNI';
+  }
+
+  onReniec(p: ReniecPersona): void {
+    this.form.patchValue({
+      nombre: p.nombres,
+      apellidoPaterno: p.apellidoPaterno,
+      apellidoMaterno: p.apellidoMaterno,
+    });
+  }
 
   constructor() {
     this.rolSvc

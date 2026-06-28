@@ -51,6 +51,10 @@ export interface Reserva {
   descuento: number;
   adelanto: number;
   impuesto: number;
+  /** montoTotal - adelanto, calculado por el backend. */
+  saldoPendiente: number;
+  /** Política de pago elegida; el backend deriva el `adelanto` de ella. */
+  modalidadPago: ModalidadPago;
   observaciones: string | null;
   usuarioId: number;
   usuarioNombre: string;
@@ -75,10 +79,14 @@ export interface CancelacionResponse {
 
 // ---------- Payloads (request) -------------------------------------------
 
+/** Política de pago: PARCIAL = 50% del total, TOTAL = 100%. El backend deriva el monto. */
+export type ModalidadPago = 'PARCIAL' | 'TOTAL';
+
 export interface ReservaHabitacionPayload {
   habitacionId: number;
   tipoHabitacionId: number;
-  tarifaPactada: number | null;
+  /** Solo staff la pacta (backend revalida 50%–200% del precio base). El cliente la omite. */
+  tarifaPactada?: number | null;
 }
 
 export interface HuespedReservaPayload {
@@ -87,17 +95,18 @@ export interface HuespedReservaPayload {
 }
 
 export interface CreateReservaPayload {
-  codReserva: string;
   fechaInicio: string;
   fechaFin: string;
   nroAdultos: number;
   nroNinos: number;
-  descuento: number;
-  adelanto: number;
-  impuesto: number;
+  /** Solo staff; tope 30% del subtotal. El cliente lo omite (backend fuerza 0). */
+  descuento?: number;
+  /** PARCIAL=50% | TOTAL=100%; opcional (backend default PARCIAL). El backend deriva el adelanto. */
+  modalidadPago?: ModalidadPago;
   observaciones: string | null;
-  usuarioId: number | null;
-  canalId: number | null;
+  /** Solo staff (dueño de la reserva). El cliente lo omite (se infiere del JWT). */
+  usuarioId?: number | null;
+  canalId?: number | null;
   habitaciones: ReservaHabitacionPayload[];
   huespedes: HuespedReservaPayload[];
   forzar?: boolean;
@@ -109,8 +118,8 @@ export interface UpdateReservaPayload {
   nroAdultos?: number;
   nroNinos?: number;
   descuento?: number;
-  adelanto?: number;
-  impuesto?: number;
+  /** Si se omite, el backend conserva la modalidad actual. */
+  modalidadPago?: ModalidadPago;
   observaciones?: string | null;
   canalId?: number | null;
   habitaciones?: ReservaHabitacionPayload[];

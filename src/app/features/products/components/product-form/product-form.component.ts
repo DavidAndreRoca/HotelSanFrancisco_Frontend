@@ -2,7 +2,8 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, ou
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UiButtonComponent } from '../../../../shared/ui/button/ui-button.component';
 import { UiModalComponent } from '../../../../shared/ui/modal/ui-modal.component';
-import { CategoriaProducto, EstadoActivo, Producto, ProductoCreatePayload } from '../../models/product.model';
+import { EstadoActivo, Producto, ProductoCreatePayload } from '../../models/product.model';
+import { CategoriaProductoService } from '../../services/categoria-producto.service';
 
 @Component({
   selector: 'app-product-form',
@@ -26,56 +27,26 @@ import { CategoriaProducto, EstadoActivo, Producto, ProductoCreatePayload } from
               formControlName="nombre"
               [class]="inputCls(form.controls.nombre)"
               placeholder="Ej. Agua mineral 500ml"
-              maxlength="120" />
+              maxlength="150" />
             @if (errMsg('nombre'); as msg) {
               <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
             }
           </div>
 
           <div>
-            <label for="sku" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
-              SKU <span class="text-[var(--color-danger-500)]">*</span>
-            </label>
-            <input
-              id="sku"
-              formControlName="sku"
-              [class]="inputCls(form.controls.sku)"
-              placeholder="Ej. BEB-0001"
-              maxlength="30" />
-            @if (errMsg('sku'); as msg) {
-              <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
-            }
-          </div>
-        </div>
-
-        <div class="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label for="categoria" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
+            <label for="categoriaProductoId" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
               Categoría <span class="text-[var(--color-danger-500)]">*</span>
             </label>
-            <select id="categoria" formControlName="categoria" [class]="inputCls(form.controls.categoria)">
-              <option value="MINIBAR">Minibar</option>
-              <option value="AMENITIES">Amenities</option>
-              <option value="LIMPIEZA">Limpieza</option>
-              <option value="ALIMENTOS">Alimentos</option>
-              <option value="BEBIDAS">Bebidas</option>
-              <option value="LENCERIA">Lencería</option>
-              <option value="MANTENIMIENTO">Mantenimiento</option>
-              <option value="OTROS">Otros</option>
+            <select
+              id="categoriaProductoId"
+              formControlName="categoriaProductoId"
+              [class]="inputCls(form.controls.categoriaProductoId)">
+              <option [value]="0" disabled>Selecciona...</option>
+              @for (cat of categorias.items(); track cat.categoriaProductoId) {
+                <option [value]="cat.categoriaProductoId">{{ cat.nombre }}</option>
+              }
             </select>
-          </div>
-
-          <div>
-            <label for="unidadMedida" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
-              Unidad de medida <span class="text-[var(--color-danger-500)]">*</span>
-            </label>
-            <input
-              id="unidadMedida"
-              formControlName="unidadMedida"
-              [class]="inputCls(form.controls.unidadMedida)"
-              placeholder="Ej. unidad, caja, galón"
-              maxlength="30" />
-            @if (errMsg('unidadMedida'); as msg) {
+            @if (errMsg('categoriaProductoId'); as msg) {
               <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
             }
           </div>
@@ -83,35 +54,11 @@ import { CategoriaProducto, EstadoActivo, Producto, ProductoCreatePayload } from
 
         <div class="grid sm:grid-cols-4 gap-4">
           <div>
-            <label for="costoUnitario" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
-              Costo unitario <span class="text-[var(--color-danger-500)]">*</span>
-            </label>
-            <div class="relative mt-1.5">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-muted)] text-[13px]">
-                S/
-              </span>
-              <input
-                id="costoUnitario"
-                type="number"
-                step="0.01"
-                min="0"
-                formControlName="costoUnitario"
-                [class]="inputCls(form.controls.costoUnitario, 'pl-8 mt-0')"
-                placeholder="0.00" />
-            </div>
-            @if (errMsg('costoUnitario'); as msg) {
-              <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
-            }
-          </div>
-
-          <div>
             <label for="precioVenta" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
-              Precio de venta
+              Precio de venta <span class="text-[var(--color-danger-500)]">*</span>
             </label>
             <div class="relative mt-1.5">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-muted)] text-[13px]">
-                S/
-              </span>
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-muted)] text-[13px]">S/</span>
               <input
                 id="precioVenta"
                 type="number"
@@ -121,7 +68,9 @@ import { CategoriaProducto, EstadoActivo, Producto, ProductoCreatePayload } from
                 [class]="inputCls(form.controls.precioVenta, 'pl-8 mt-0')"
                 placeholder="0.00" />
             </div>
-            <p class="text-[11px] text-[var(--color-ink-muted)] mt-1">Deja 0 si es de uso interno.</p>
+            @if (errMsg('precioVenta'); as msg) {
+              <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
+            }
           </div>
 
           <div>
@@ -133,9 +82,11 @@ import { CategoriaProducto, EstadoActivo, Producto, ProductoCreatePayload } from
               type="number"
               min="0"
               formControlName="stockActual"
-              [class]="inputCls(form.controls.stockActual)"
+              [class]="inputCls(form.controls.stockActual) + ' disabled:bg-[var(--color-surface)] disabled:text-[var(--color-ink-muted)]'"
               placeholder="0" />
-            @if (errMsg('stockActual'); as msg) {
+            @if (isEditing()) {
+              <p class="text-[11px] text-[var(--color-ink-muted)] mt-1">Se ajusta con compras/movimientos.</p>
+            } @else if (errMsg('stockActual'); as msg) {
               <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
             }
           </div>
@@ -154,20 +105,6 @@ import { CategoriaProducto, EstadoActivo, Producto, ProductoCreatePayload } from
             @if (errMsg('stockMinimo'); as msg) {
               <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
             }
-          </div>
-        </div>
-
-        <div class="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label for="proveedorPrincipal" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
-              Proveedor principal
-            </label>
-            <input
-              id="proveedorPrincipal"
-              formControlName="proveedorPrincipal"
-              [class]="inputCls(form.controls.proveedorPrincipal)"
-              placeholder="Ej. Distribuidora San Martín"
-              maxlength="120" />
           </div>
 
           <div>
@@ -189,11 +126,11 @@ import { CategoriaProducto, EstadoActivo, Producto, ProductoCreatePayload } from
             id="descripcion"
             formControlName="descripcion"
             rows="3"
-            maxlength="500"
+            maxlength="2000"
             class="mt-1.5 w-full px-3.5 py-2.5 rounded-lg border border-[var(--color-border-soft)] bg-white text-[15px] focus:outline-none focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-500)]/25 transition resize-y"
             placeholder="Notas adicionales sobre el producto..."></textarea>
           <p class="text-[11px] text-[var(--color-ink-muted)] mt-1 text-right">
-            {{ descripcionLength() }}/500
+            {{ descripcionLength() }}/2000
           </p>
         </div>
       </form>
@@ -208,7 +145,7 @@ import { CategoriaProducto, EstadoActivo, Producto, ProductoCreatePayload } from
           [loading]="submitting()"
           [disabled]="form.invalid"
           (click)="submit()">
-          {{ editing() ? 'Guardar cambios' : 'Crear producto' }}
+          {{ isEditing() ? 'Guardar cambios' : 'Crear producto' }}
         </ui-button>
       </ng-container>
     </ui-modal>
@@ -216,6 +153,7 @@ import { CategoriaProducto, EstadoActivo, Producto, ProductoCreatePayload } from
 })
 export class ProductFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
+  protected readonly categorias = inject(CategoriaProductoService);
 
   readonly open = input.required<boolean>();
   readonly editing = input<Producto | null>(null);
@@ -225,24 +163,23 @@ export class ProductFormComponent implements OnInit {
   readonly submitted = output<ProductoCreatePayload>();
 
   readonly form = this.fb.nonNullable.group({
-    nombre: ['', [Validators.required, Validators.maxLength(120)]],
-    sku: ['', [Validators.required, Validators.maxLength(30)]],
-    categoria: ['MINIBAR' as CategoriaProducto, [Validators.required]],
-    unidadMedida: ['unidad', [Validators.required, Validators.maxLength(30)]],
-    costoUnitario: [0, [Validators.required, Validators.min(0)]],
-    precioVenta: [0, [Validators.min(0)]],
+    nombre: ['', [Validators.required, Validators.maxLength(150)]],
+    categoriaProductoId: [0, [Validators.required, Validators.min(1)]],
+    precioVenta: [0, [Validators.required, Validators.min(0)]],
     stockActual: [0, [Validators.required, Validators.min(0)]],
     stockMinimo: [0, [Validators.required, Validators.min(0)]],
-    proveedorPrincipal: ['', [Validators.maxLength(120)]],
     estado: ['ACTIVO' as EstadoActivo, [Validators.required]],
-    descripcion: ['', [Validators.maxLength(500)]],
+    descripcion: ['', [Validators.maxLength(2000)]],
   });
 
+  readonly isEditing = computed(() => !!this.editing());
   readonly title = computed(() => (this.editing() ? 'Editar producto' : 'Nuevo producto'));
-
   readonly descripcionLength = computed(() => this.form.controls.descripcion.value?.length ?? 0);
 
   ngOnInit(): void {
+    if (!this.categorias.items().length) {
+      this.categorias.load();
+    }
     this.applyEditing();
   }
 
@@ -251,31 +188,25 @@ export class ProductFormComponent implements OnInit {
     if (edit) {
       this.form.patchValue({
         nombre: edit.nombre,
-        sku: edit.sku,
-        categoria: edit.categoria,
-        unidadMedida: edit.unidadMedida,
-        costoUnitario: Number(edit.costoUnitario),
+        categoriaProductoId: edit.categoriaProductoId,
         precioVenta: Number(edit.precioVenta),
         stockActual: edit.stockActual,
         stockMinimo: edit.stockMinimo,
-        proveedorPrincipal: edit.proveedorPrincipal ?? '',
         estado: edit.estado,
         descripcion: edit.descripcion ?? '',
       });
+      this.form.controls.stockActual.disable();
     } else {
       this.form.reset({
         nombre: '',
-        sku: '',
-        categoria: 'MINIBAR',
-        unidadMedida: 'unidad',
-        costoUnitario: 0,
+        categoriaProductoId: 0,
         precioVenta: 0,
         stockActual: 0,
         stockMinimo: 0,
-        proveedorPrincipal: '',
         estado: 'ACTIVO',
         descripcion: '',
       });
+      this.form.controls.stockActual.enable();
     }
   }
 
@@ -283,7 +214,7 @@ export class ProductFormComponent implements OnInit {
     const c = this.form.controls[field];
     if (!c.invalid || (!c.touched && !c.dirty)) return null;
     if (c.hasError('required')) return 'Obligatorio.';
-    if (c.hasError('min')) return 'Valor demasiado bajo.';
+    if (c.hasError('min')) return 'Selecciona un valor válido.';
     if (c.hasError('maxlength')) return 'Texto demasiado largo.';
     return 'Inválido.';
   }
@@ -306,16 +237,12 @@ export class ProductFormComponent implements OnInit {
     const v = this.form.getRawValue();
     const payload: ProductoCreatePayload = {
       nombre: v.nombre.trim(),
-      sku: v.sku.trim().toUpperCase(),
-      categoria: v.categoria,
-      unidadMedida: v.unidadMedida.trim(),
-      costoUnitario: Number(v.costoUnitario),
+      descripcion: v.descripcion?.trim() || null,
       precioVenta: Number(v.precioVenta),
       stockActual: Number(v.stockActual),
       stockMinimo: Number(v.stockMinimo),
-      proveedorPrincipal: v.proveedorPrincipal?.trim() || null,
       estado: v.estado,
-      descripcion: v.descripcion?.trim() || null,
+      categoriaProductoId: Number(v.categoriaProductoId),
     };
     this.submitting.set(true);
     this.submitted.emit(payload);
