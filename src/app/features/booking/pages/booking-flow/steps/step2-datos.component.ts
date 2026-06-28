@@ -9,11 +9,13 @@ import { DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import { BookingStateService } from '../../../services/booking.service';
+import { DniLookupComponent } from '../../../../../shared/components/dni-lookup/dni-lookup.component';
+import { ReniecPersona } from '../../../../../core/reniec/reniec.service';
 
 @Component({
   selector: 'app-step2-datos',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, DecimalPipe],
+  imports: [ReactiveFormsModule, DecimalPipe, DniLookupComponent],
   template: `
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Formulario (izquierda) -->
@@ -34,6 +36,9 @@ import { BookingStateService } from '../../../services/booking.service';
                     El documento es obligatorio.
                   </p>
                 }
+                <app-dni-lookup
+                  [dni]="form.controls.numeroDocumento.value"
+                  (found)="onReniec($event)" />
               </div>
               <div>
                 <label class="block text-[13px] font-medium text-[var(--color-ink-soft)] mb-1.5">
@@ -192,6 +197,13 @@ export class Step2DatosComponent {
   constructor() {
     const existing = this.state.datosHuesped();
     if (existing) this.form.patchValue(existing);
+  }
+
+  onReniec(p: ReniecPersona): void {
+    this.form.patchValue({
+      nombres: p.nombres,
+      apellidos: `${p.apellidoPaterno} ${p.apellidoMaterno}`.trim(),
+    });
   }
 
   inputClass(field: string): string {

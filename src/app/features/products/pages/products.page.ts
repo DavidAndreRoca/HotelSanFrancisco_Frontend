@@ -11,11 +11,11 @@ import { ProductFiltersComponent } from '../components/product-filters/product-f
 import { ProductFormComponent } from '../components/product-form/product-form.component';
 import { ProductService } from '../services/product.service';
 import {
-  CATEGORIA_PRODUCTO_CONFIG,
   DEFAULT_PRODUCTO_FILTERS,
   Producto,
   ProductoCreatePayload,
   ProductoFilters,
+  ProductoUpdatePayload,
 } from '../models/product.model';
 
 @Component({
@@ -72,9 +72,9 @@ import {
       </ui-card>
       <ui-card padding="sm">
         <div class="border-l-2 border-[var(--color-primary-500)] pl-3">
-          <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Valor inventario</p>
+          <p class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] font-semibold">Valor stock (venta)</p>
           <p class="mt-2 text-2xl font-bold text-[var(--color-primary-700)]">
-            {{ service.stats().valorInventario | currency:'PEN':'symbol-narrow':'1.2-2' }}
+            {{ service.stats().valorStockVenta | currency:'PEN':'symbol-narrow':'1.2-2' }}
           </p>
         </div>
       </ui-card>
@@ -109,8 +109,7 @@ import {
               <tr class="border-b border-[var(--color-border-soft)]">
                 <th class="px-4 py-3 text-[11px] font-semibold text-[var(--color-ink-muted)] uppercase tracking-wide">Producto</th>
                 <th class="px-4 py-3 text-[11px] font-semibold text-[var(--color-ink-muted)] uppercase tracking-wide">Categoría</th>
-                <th class="px-4 py-3 text-[11px] font-semibold text-[var(--color-ink-muted)] uppercase tracking-wide text-right">Costo</th>
-                <th class="px-4 py-3 text-[11px] font-semibold text-[var(--color-ink-muted)] uppercase tracking-wide text-right">Precio</th>
+                <th class="px-4 py-3 text-[11px] font-semibold text-[var(--color-ink-muted)] uppercase tracking-wide text-right">Precio venta</th>
                 <th class="px-4 py-3 text-[11px] font-semibold text-[var(--color-ink-muted)] uppercase tracking-wide text-right">Stock</th>
                 <th class="px-4 py-3 text-[11px] font-semibold text-[var(--color-ink-muted)] uppercase tracking-wide">Estado</th>
                 <th class="px-4 py-3 text-[11px] font-semibold text-[var(--color-ink-muted)] uppercase tracking-wide text-right">Acciones</th>
@@ -121,16 +120,12 @@ import {
                 <tr class="border-b border-[var(--color-border-soft)] last:border-0 hover:bg-[var(--color-surface)]/60 transition-colors">
                   <td class="px-4 py-3">
                     <p class="text-[14px] font-semibold text-[var(--color-ink)]">{{ p.nombre }}</p>
-                    <p class="text-[12px] text-[var(--color-ink-muted)]">{{ p.sku }} · {{ p.proveedorPrincipal || 'Sin proveedor' }}</p>
+                    @if (p.descripcion) {
+                      <p class="text-[12px] text-[var(--color-ink-muted)] line-clamp-1">{{ p.descripcion }}</p>
+                    }
                   </td>
                   <td class="px-4 py-3">
-                    <span class="inline-flex items-center gap-1.5 text-[13px] text-[var(--color-ink-soft)]">
-                      <span [class]="'w-2 h-2 rounded-full ' + categoriaCfg(p).dotColor"></span>
-                      {{ categoriaCfg(p).label }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3 text-right text-[14px] tabular-nums">
-                    {{ p.costoUnitario | currency:'PEN':'symbol-narrow':'1.2-2' }}
+                    <span class="text-[13px] text-[var(--color-ink-soft)]">{{ p.categoriaProductoNombre }}</span>
                   </td>
                   <td class="px-4 py-3 text-right text-[14px] tabular-nums">
                     @if (p.precioVenta > 0) {
@@ -140,7 +135,7 @@ import {
                     }
                   </td>
                   <td class="px-4 py-3 text-right">
-                    <span [class]="stockClass(p)">{{ p.stockActual }} {{ p.unidadMedida }}</span>
+                    <span [class]="stockClass(p)">{{ p.stockActual }}</span>
                     @if (p.stockActual <= p.stockMinimo) {
                       <p class="text-[11px] text-[var(--color-danger-500)] mt-0.5">Mín. {{ p.stockMinimo }}</p>
                     }
@@ -174,7 +169,9 @@ import {
       </div>
       <p class="mt-3 text-[12px] text-[var(--color-ink-muted)]">
         Mostrando {{ visible().length }} de {{ service.items().length }} productos
-        · Actualizado {{ ultimaActualizacion() | date:'dd MMM, HH:mm' }}
+        @if (ultimaActualizacion(); as fecha) {
+          · Actualizado {{ fecha | date:'dd MMM, HH:mm' }}
+        }
       </p>
     }
 
@@ -202,15 +199,14 @@ export class ProductsPage implements OnInit {
   readonly visible = computed(() => {
     const f = this.filters();
     return this.service.items().filter((p) => {
-      if (f.categoria && p.categoria !== f.categoria) return false;
+      if (f.categoriaProductoId !== '' && p.categoriaProductoId !== f.categoriaProductoId) return false;
       if (f.estado && p.estado !== f.estado) return false;
       if (f.soloBajoStock && p.stockActual > p.stockMinimo) return false;
       if (f.search) {
         const q = f.search.toLowerCase();
         const hay =
           p.nombre.toLowerCase().includes(q) ||
-          p.sku.toLowerCase().includes(q) ||
-          (p.proveedorPrincipal?.toLowerCase().includes(q) ?? false);
+          p.categoriaProductoNombre.toLowerCase().includes(q);
         if (!hay) return false;
       }
       return true;
@@ -219,16 +215,12 @@ export class ProductsPage implements OnInit {
 
   readonly ultimaActualizacion = computed(() => {
     const all = this.service.items();
-    if (!all.length) return new Date();
-    return all.reduce((latest, p) => (p.actualizadoEn > latest ? p.actualizadoEn : latest), all[0].actualizadoEn);
+    if (!all.length) return null;
+    return all.reduce((latest, p) => (p.fechaModificacion > latest ? p.fechaModificacion : latest), all[0].fechaModificacion);
   });
 
   ngOnInit(): void {
     this.service.load();
-  }
-
-  categoriaCfg(p: Producto) {
-    return CATEGORIA_PRODUCTO_CONFIG[p.categoria];
   }
 
   stockClass(p: Producto): string {
@@ -258,7 +250,7 @@ export class ProductsPage implements OnInit {
   onSubmit(payload: ProductoCreatePayload): void {
     const editing = this.editingProduct();
     const op$ = editing
-      ? this.service.update(editing.productoId, payload)
+      ? this.service.update(editing.productoId, this.toUpdatePayload(payload))
       : this.service.create(payload);
 
     op$.subscribe({
@@ -272,6 +264,18 @@ export class ProductsPage implements OnInit {
         this.toastr.error(err.friendlyMessage ?? 'No se pudo guardar.', 'Error');
       },
     });
+  }
+
+  /** El backend no actualiza el stock por aquí (solo cabecera del producto). */
+  private toUpdatePayload(payload: ProductoCreatePayload): ProductoUpdatePayload {
+    return {
+      nombre: payload.nombre,
+      descripcion: payload.descripcion,
+      precioVenta: payload.precioVenta,
+      stockMinimo: payload.stockMinimo,
+      estado: payload.estado,
+      categoriaProductoId: payload.categoriaProductoId,
+    };
   }
 
   async onDelete(p: Producto): Promise<void> {

@@ -2,7 +2,8 @@ import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, input, 
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
-import { CategoriaProducto, EstadoActivo, ProductoFilters } from '../../models/product.model';
+import { EstadoActivo, ProductoFilters } from '../../models/product.model';
+import { CategoriaProductoService } from '../../services/categoria-producto.service';
 
 @Component({
   selector: 'app-product-filters',
@@ -27,7 +28,7 @@ import { CategoriaProducto, EstadoActivo, ProductoFilters } from '../../models/p
           <input
             type="search"
             formControlName="search"
-            placeholder="Nombre, SKU o proveedor"
+            placeholder="Nombre del producto"
             class="w-full h-11 pl-9 pr-3 rounded-lg border border-[var(--color-border-soft)] bg-white text-[14px] focus:outline-none focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-500)]/25 transition" />
         </span>
       </label>
@@ -37,17 +38,12 @@ import { CategoriaProducto, EstadoActivo, ProductoFilters } from '../../models/p
           Categoría
         </span>
         <select
-          formControlName="categoria"
+          formControlName="categoriaProductoId"
           class="h-11 px-3 rounded-lg border border-[var(--color-border-soft)] bg-white text-[14px] focus:outline-none focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-500)]/25 transition">
           <option value="">Todas</option>
-          <option value="MINIBAR">Minibar</option>
-          <option value="AMENITIES">Amenities</option>
-          <option value="LIMPIEZA">Limpieza</option>
-          <option value="ALIMENTOS">Alimentos</option>
-          <option value="BEBIDAS">Bebidas</option>
-          <option value="LENCERIA">Lencería</option>
-          <option value="MANTENIMIENTO">Mantenimiento</option>
-          <option value="OTROS">Otros</option>
+          @for (cat of categorias.items(); track cat.categoriaProductoId) {
+            <option [value]="cat.categoriaProductoId">{{ cat.nombre }}</option>
+          }
         </select>
       </label>
 
@@ -83,24 +79,29 @@ import { CategoriaProducto, EstadoActivo, ProductoFilters } from '../../models/p
 export class ProductFiltersComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  protected readonly categorias = inject(CategoriaProductoService);
 
   readonly initial = input<ProductoFilters | null>(null);
   readonly changed = output<Partial<ProductoFilters>>();
 
   readonly form = this.fb.nonNullable.group({
     search: '',
-    categoria: '' as CategoriaProducto | '',
+    categoriaProductoId: '' as string,
     estado: '' as EstadoActivo | '',
     soloBajoStock: false,
   });
 
   ngOnInit(): void {
+    if (!this.categorias.items().length) {
+      this.categorias.load();
+    }
+
     const init = this.initial();
     if (init) {
       this.form.patchValue(
         {
           search: init.search,
-          categoria: init.categoria,
+          categoriaProductoId: init.categoriaProductoId === '' ? '' : String(init.categoriaProductoId),
           estado: init.estado,
           soloBajoStock: init.soloBajoStock,
         },
@@ -112,9 +113,9 @@ export class ProductFiltersComponent implements OnInit {
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
       .subscribe((search) => this.changed.emit({ search }));
 
-    this.form.controls.categoria.valueChanges
+    this.form.controls.categoriaProductoId.valueChanges
       .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
-      .subscribe((categoria) => this.changed.emit({ categoria }));
+      .subscribe((v) => this.changed.emit({ categoriaProductoId: v === '' ? '' : Number(v) }));
 
     this.form.controls.estado.valueChanges
       .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))

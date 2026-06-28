@@ -141,8 +141,7 @@ interface DetalleFormGroup {
                   class="grid grid-cols-1 sm:grid-cols-[2fr_100px_120px_120px_40px] gap-2 px-3 py-2.5 border-t border-[var(--color-border-soft)] items-center">
                   <select
                     formControlName="productoId"
-                    class="h-10 px-2.5 rounded-lg border border-[var(--color-border-soft)] bg-white text-[13px] focus:outline-none focus:border-[var(--color-primary-500)] disabled:bg-[var(--color-surface)] disabled:text-[var(--color-ink-muted)]"
-                    (change)="onProductoChange(line)">
+                    class="h-10 px-2.5 rounded-lg border border-[var(--color-border-soft)] bg-white text-[13px] focus:outline-none focus:border-[var(--color-primary-500)] disabled:bg-[var(--color-surface)] disabled:text-[var(--color-ink-muted)]">
                     <option [value]="0" disabled>Selecciona...</option>
                     @for (p of products.items(); track p.productoId) {
                       <option [value]="p.productoId">{{ p.nombre }}</option>
@@ -320,14 +319,6 @@ export class PurchaseFormComponent implements OnInit {
   removeLinea(index: number): void {
     if (this.detalle.length === 1) return;
     this.detalle.removeAt(index);
-  }
-
-  onProductoChange(line: FormGroup<DetalleFormGroup>): void {
-    const id = Number(line.controls.productoId.value);
-    const producto = this.products.findById(id);
-    if (producto) {
-      line.controls.costoUnitario.setValue(producto.costoUnitario);
-    }
   }
 
   lineaSubtotal(line: FormGroup<DetalleFormGroup>): number {

@@ -8,6 +8,10 @@ import { AuthStore } from '../auth/auth.store';
 
 const SUPPRESS_TOAST_PATHS = ['/auth/me', '/auth/refresh'];
 
+// La consulta RENIEC maneja sus errores inline (DNI no hallado, RENIEC caído…),
+// no debe disparar el toast global de "Datos inválidos".
+const SUPPRESS_TOAST_PREFIXES = ['/auth/reniec'];
+
 // Rutas públicas que no deben redirigir al login ante un 401
 const PUBLIC_API_PATHS = [
   '/api/v1/tipos-habitacion',
@@ -23,7 +27,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((err: HttpErrorResponse) => {
       const message = extractMessage(err);
       const path = new URL(req.url, window.location.origin).pathname;
-      const suppress = SUPPRESS_TOAST_PATHS.some((p) => path.endsWith(p));
+      const suppress =
+        SUPPRESS_TOAST_PATHS.some((p) => path.endsWith(p)) ||
+        SUPPRESS_TOAST_PREFIXES.some((p) => path.startsWith(p));
 
       const isPublicPath = PUBLIC_API_PATHS.some((p) => path.startsWith(p));
 

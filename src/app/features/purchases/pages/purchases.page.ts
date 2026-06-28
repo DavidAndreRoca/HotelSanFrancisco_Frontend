@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { ToastrService } from 'ngx-toastr';
 import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component';
@@ -13,11 +13,14 @@ import { PurchaseService } from '../services/purchase.service';
 import {
   Compra,
   CompraCreatePayload,
+  CompraFilterRequest,
   CompraFilters,
   CompraUpdatePayload,
   DEFAULT_COMPRA_FILTERS,
   ESTADO_COMPRA_CONFIG,
 } from '../models/purchase.model';
+
+const PAGE_SIZE = 15;
 
 @Component({
   selector: 'app-purchases-page',
@@ -95,7 +98,7 @@ import {
           }
         </div>
       </div>
-    } @else if (visible().length === 0) {
+    } @else if (service.items().length === 0) {
       <ui-empty-state
         icon="▣"
         title="No se encontraron compras"
@@ -104,7 +107,7 @@ import {
       </ui-empty-state>
     } @else {
       <div class="space-y-3">
-        @for (c of visible(); track c.compraId) {
+        @for (c of service.items(); track c.compraId) {
           <ui-card padding="sm">
             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div class="flex-1 min-w-0">
@@ -172,9 +175,28 @@ import {
           </ui-card>
         }
       </div>
-      <p class="mt-3 text-[12px] text-[var(--color-ink-muted)]">
-        Mostrando {{ visible().length }} de {{ service.items().length }} compras
-      </p>
+
+      <div class="flex items-center justify-between gap-3 mt-4">
+        <p class="text-[12px] text-[var(--color-ink-muted)]">
+          {{ service.totalElements() }} compra(s) · Página {{ pageIndex() + 1 }} de {{ service.totalPages() }}
+        </p>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="h-8 px-3 rounded-lg border border-[var(--color-border-soft)] text-[12px] font-medium text-[var(--color-ink-soft)] hover:bg-[var(--color-surface)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            [disabled]="pageIndex() === 0"
+            (click)="paginaAnterior()">
+            Anterior
+          </button>
+          <button
+            type="button"
+            class="h-8 px-3 rounded-lg border border-[var(--color-border-soft)] text-[12px] font-medium text-[var(--color-ink-soft)] hover:bg-[var(--color-surface)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            [disabled]="service.isLast()"
+            (click)="paginaSiguiente()">
+            Siguiente
+          </button>
+        </div>
+      </div>
     }
 
     @if (formOpen()) {
@@ -195,26 +217,25 @@ export class PurchasesPage implements OnInit {
   @ViewChild('formCmp') private formCmp?: PurchaseFormComponent;
 
   readonly filters = signal<CompraFilters>({ ...DEFAULT_COMPRA_FILTERS });
+  readonly pageIndex = signal(0);
   readonly formOpen = signal(false);
   readonly editingPurchase = signal<Compra | null>(null);
 
-  readonly visible = computed(() => {
-    const f = this.filters();
-    return this.service.items().filter((c) => {
-      if (f.estado && c.estado !== f.estado) return false;
-      if (f.search) {
-        const q = f.search.toLowerCase();
-        const hay =
-          (c.numeroFactura?.toLowerCase().includes(q) ?? false) ||
-          c.proveedorRazonSocial.toLowerCase().includes(q);
-        if (!hay) return false;
-      }
-      return true;
-    });
-  });
-
   ngOnInit(): void {
-    this.service.load();
+    this.cargar();
+    this.service.loadStats();
+  }
+
+  private cargar(): void {
+    const f = this.filters();
+    const req: CompraFilterRequest = {
+      search: f.search.trim() || undefined,
+      estado: f.estado || undefined,
+      page: this.pageIndex(),
+      size: PAGE_SIZE,
+      sort: 'fechaCompra,desc',
+    };
+    this.service.load(req);
   }
 
   estadoCfg(c: Compra) {
@@ -223,6 +244,20 @@ export class PurchasesPage implements OnInit {
 
   onFiltersChanged(patch: Partial<CompraFilters>): void {
     this.filters.update((f) => ({ ...f, ...patch }));
+    this.pageIndex.set(0);
+    this.cargar();
+  }
+
+  paginaAnterior(): void {
+    if (this.pageIndex() === 0) return;
+    this.pageIndex.update((p) => p - 1);
+    this.cargar();
+  }
+
+  paginaSiguiente(): void {
+    if (this.service.isLast()) return;
+    this.pageIndex.update((p) => p + 1);
+    this.cargar();
   }
 
   onCreate(): void {
@@ -240,6 +275,12 @@ export class PurchasesPage implements OnInit {
     this.editingPurchase.set(null);
   }
 
+  /** Recarga listado + tarjetas tras una mutación. */
+  private refrescar(): void {
+    this.cargar();
+    this.service.loadStats();
+  }
+
   onSubmit(payload: CompraCreatePayload): void {
     const editing = this.editingPurchase();
     const op$ = editing
@@ -251,6 +292,7 @@ export class PurchasesPage implements OnInit {
         this.formCmp?.finishSubmit();
         this.toastr.success(editing ? 'Compra actualizada.' : 'Compra registrada.');
         this.closeForm();
+        this.refrescar();
       },
       error: (err: { friendlyMessage?: string }) => {
         this.formCmp?.finishSubmit();
@@ -279,7 +321,10 @@ export class PurchasesPage implements OnInit {
     if (!ok) return;
 
     this.service.cambiarEstado(c.compraId, 'RECIBIDA').subscribe({
-      next: () => this.toastr.success('Compra marcada como recibida.'),
+      next: () => {
+        this.toastr.success('Compra marcada como recibida.');
+        this.refrescar();
+      },
       error: (err: { friendlyMessage?: string }) =>
         this.toastr.error(err.friendlyMessage ?? 'No se pudo actualizar la compra.', 'Error'),
     });
@@ -296,7 +341,10 @@ export class PurchasesPage implements OnInit {
     if (!ok) return;
 
     this.service.cambiarEstado(c.compraId, 'ANULADA').subscribe({
-      next: () => this.toastr.success('Compra anulada.'),
+      next: () => {
+        this.toastr.success('Compra anulada.');
+        this.refrescar();
+      },
       error: (err: { friendlyMessage?: string }) =>
         this.toastr.error(err.friendlyMessage ?? 'No se pudo anular la compra.', 'Error'),
     });
@@ -313,7 +361,13 @@ export class PurchasesPage implements OnInit {
     if (!ok) return;
 
     this.service.delete(c.compraId).subscribe({
-      next: () => this.toastr.success('Compra eliminada correctamente.'),
+      next: () => {
+        this.toastr.success('Compra eliminada correctamente.');
+        if (this.service.items().length === 1 && this.pageIndex() > 0) {
+          this.pageIndex.update((p) => p - 1);
+        }
+        this.refrescar();
+      },
       error: (err: { friendlyMessage?: string }) =>
         this.toastr.error(err.friendlyMessage ?? 'No se pudo eliminar la compra.', 'Error'),
     });

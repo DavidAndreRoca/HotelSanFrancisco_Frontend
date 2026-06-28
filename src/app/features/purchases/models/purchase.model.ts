@@ -57,6 +57,27 @@ export interface CompraFilters {
   estado: EstadoCompra | '';
 }
 
+/** Query params de `GET /api/v1/compras` (filtros + paginación server-side). */
+export interface CompraFilterRequest {
+  search?: string;
+  estado?: EstadoCompra;
+  proveedorId?: number;
+  fechaCompraDesde?: string;
+  fechaCompraHasta?: string;
+  page?: number;
+  size?: number;
+  sort?: string;
+}
+
+/** Respuesta de `GET /api/v1/compras/stats`. */
+export interface CompraStatsResponse {
+  total: number;
+  pendientes: number;
+  recibidas: number;
+  anuladas: number;
+  montoTotalPeriodo: number;
+}
+
 export const DEFAULT_COMPRA_FILTERS: CompraFilters = {
   search: '',
   estado: '',
