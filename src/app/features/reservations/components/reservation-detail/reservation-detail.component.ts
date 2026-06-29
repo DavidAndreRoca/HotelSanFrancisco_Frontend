@@ -47,31 +47,21 @@ const HAB_ESTADO: Record<EstadoReservaHabitacion, string> = {
                     max-h-[92vh] overflow-y-auto relative"
              (click)="$event.stopPropagation()">
 
-          <!-- Cerrar -->
-          <button type="button" (click)="onClose.emit()" aria-label="Cerrar"
-            class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white border border-[#EEE3D1]
-                   flex items-center justify-center text-[#2D2926]/40
-                   hover:bg-[#C5A048] hover:border-[#C5A048] hover:text-white transition-colors z-10">
-            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path stroke-linecap="round" d="M18 6 6 18M6 6l12 12"/>
-            </svg>
-          </button>
-
           <!-- Header -->
-          <div class="flex items-center justify-between flex-wrap gap-3 px-6 py-5
+          <div class="flex items-center justify-between gap-3 px-6 py-5
                       bg-white border-b-2 border-[#C5A048] rounded-t-2xl">
-            <div class="flex items-center gap-3">
-              <span class="font-mono text-base font-bold text-[#2D2926]">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="font-mono text-base font-bold text-[#2D2926] truncate">
                 {{ reserva()!.codReserva }}
               </span>
-              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
+              <span class="inline-flex shrink-0 items-center gap-1.5 px-2.5 py-1 rounded-full
                            text-[11px] font-semibold border"
                     [class]="estadoBadge(reserva()!.estado)">
                 <span class="w-1.5 h-1.5 rounded-full" [class]="estadoDot(reserva()!.estado)"></span>
                 {{ estadoLabel(reserva()!.estado) }}
               </span>
             </div>
-            <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-2 shrink-0">
               @if (!modoCliente() && puedeCheckIn()) {
                 <button type="button" (click)="onCheckIn.emit(reserva()!.reservaId)"
                   class="h-8 px-3 rounded-lg border border-emerald-200 text-[12px] font-semibold
@@ -104,6 +94,15 @@ const HAB_ESTADO: Record<EstadoReservaHabitacion, string> = {
                   Editar
                 </button>
               }
+              <!-- Cerrar -->
+              <button type="button" (click)="onClose.emit()" aria-label="Cerrar"
+                class="w-8 h-8 rounded-full bg-white border border-[#EEE3D1]
+                       flex items-center justify-center text-[#2D2926]/40
+                       hover:bg-[#C5A048] hover:border-[#C5A048] hover:text-white transition-colors">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" d="M18 6 6 18M6 6l12 12"/>
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -131,7 +130,7 @@ const HAB_ESTADO: Record<EstadoReservaHabitacion, string> = {
                 </div>
                 <div>
                   <p class="text-[10px] uppercase tracking-wider font-semibold text-[#8E6F2E] mb-0.5">Canal</p>
-                  <p class="text-sm text-[#2D2926]">{{ reserva()!.canalNombre ?? 'Sin canal' }}</p>
+                  <p class="text-sm text-[#2D2926]">{{ canalLabel(reserva()!) }}</p>
                 </div>
                 <div>
                   <p class="text-[10px] uppercase tracking-wider font-semibold text-[#8E6F2E] mb-0.5">Registrado por</p>
@@ -357,6 +356,12 @@ export class ReservationDetailComponent {
   puedeCancelar(): boolean {
     const e = this.reserva()?.estado;
     return e !== 'CANCELADA' && e !== 'CHECK_OUT' && e !== 'NO_SHOW';
+  }
+
+  private readonly CANAL_NOMBRES: Record<number, string> = { 1: 'Directa', 2: 'Booking', 3: 'Online' };
+
+  canalLabel(r: { canalNombre: string | null; canalId: number | null }): string {
+    return r.canalNombre ?? (r.canalId != null ? (this.CANAL_NOMBRES[r.canalId] ?? 'Sin canal') : 'Sin canal');
   }
 
   formatFecha(fecha: string): string {
