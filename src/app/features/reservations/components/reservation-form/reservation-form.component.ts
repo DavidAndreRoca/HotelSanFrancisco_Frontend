@@ -163,15 +163,17 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                     </div>
                   </div>
 
-                  <div>
-                    <label class="text-[13px] font-medium text-[#2D2926]/70">Canal de reserva</label>
-                    <select formControlName="canalId" [class]="ic1('canalId')">
-                      <option [value]="null">Sin canal específico</option>
-                      @for (c of canales; track c.canalId) {
-                        <option [value]="c.canalId">{{ c.nombre }}</option>
-                      }
-                    </select>
-                  </div>
+                  @if (!esCliente()) {
+                    <div>
+                      <label class="text-[13px] font-medium text-[#2D2926]/70">Canal de reserva</label>
+                      <select formControlName="canalId" [class]="ic1('canalId')">
+                        <option [value]="null">Sin canal específico</option>
+                        @for (c of canales; track c.canalId) {
+                          <option [value]="c.canalId">{{ c.nombre }}</option>
+                        }
+                      </select>
+                    </div>
+                  }
 
                   @if (noches() > 0) {
                     <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full

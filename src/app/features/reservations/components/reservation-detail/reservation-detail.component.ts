@@ -72,7 +72,7 @@ const HAB_ESTADO: Record<EstadoReservaHabitacion, string> = {
               </span>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
-              @if (puedeCheckIn()) {
+              @if (!modoCliente() && puedeCheckIn()) {
                 <button type="button" (click)="onCheckIn.emit(reserva()!.reservaId)"
                   class="h-8 px-3 rounded-lg border border-emerald-200 text-[12px] font-semibold
                          text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white
@@ -80,7 +80,7 @@ const HAB_ESTADO: Record<EstadoReservaHabitacion, string> = {
                   Check-in
                 </button>
               }
-              @if (puedeCheckOut()) {
+              @if (!modoCliente() && puedeCheckOut()) {
                 <button type="button" (click)="onCheckOut.emit(reserva()!.reservaId)"
                   class="h-8 px-3 rounded-lg border border-slate-200 text-[12px] font-semibold
                          text-slate-600 bg-slate-50 hover:bg-slate-600 hover:text-white
@@ -96,12 +96,14 @@ const HAB_ESTADO: Record<EstadoReservaHabitacion, string> = {
                   Cancelar
                 </button>
               }
-              <button type="button" (click)="onEditar.emit(reserva()!.reservaId)"
-                class="h-8 px-3 rounded-lg border border-[#EEE3D1] text-[12px] font-semibold
-                       text-[#8E6F2E] bg-[#FFF8E1] hover:bg-[#C5A048] hover:text-white
-                       hover:border-[#C5A048] transition-colors">
-                Editar
-              </button>
+              @if (!modoCliente()) {
+                <button type="button" (click)="onEditar.emit(reserva()!.reservaId)"
+                  class="h-8 px-3 rounded-lg border border-[#EEE3D1] text-[12px] font-semibold
+                         text-[#8E6F2E] bg-[#FFF8E1] hover:bg-[#C5A048] hover:text-white
+                         hover:border-[#C5A048] transition-colors">
+                  Editar
+                </button>
+              }
             </div>
           </div>
 
@@ -319,6 +321,8 @@ export class ReservationDetailComponent {
   reservaData = input<Reserva | null>(null);
   /** Muestra un estado de carga mientras se obtiene el detalle (ej. /mis-reservas/{id}). */
   loading = input<boolean>(false);
+  /** En true, oculta las acciones exclusivas de recepcionista (Check-in, Check-out, Editar). */
+  modoCliente = input<boolean>(false);
 
   onClose    = output<void>();
   onEditar   = output<number>();

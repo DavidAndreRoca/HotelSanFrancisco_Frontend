@@ -243,8 +243,8 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
       [reservaId]="reservaIdDetalle()"
       [reservaData]="reservaDetalle()"
       [loading]="detailLoading()"
+      [modoCliente]="true"
       (onClose)="detailAbierto.set(false)"
-      (onEditar)="detailAbierto.set(false)"
       (onCancelar)="iniciarCancelacionById($event)" />
 
     <app-cancelar-modal
