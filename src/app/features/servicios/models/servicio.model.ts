@@ -10,6 +10,8 @@ export interface TipoServicioResponse {
   nombre: string;
   costoBase: number;
   descripcion: string | null;
+  /** Tope máximo por pedido; null → se aplica el default global (50). */
+  cantidadMaxima: number | null;
   estado: EstadoActivo;
   fechaCreacion: string;
   fechaModificacion: string | null;
@@ -19,6 +21,8 @@ export interface CreateTipoServicioRequest {
   nombre: string;
   costoBase: number;
   descripcion?: string;
+  /** Tope máximo por pedido (1–99). Si se omite, el backend usa el default global. */
+  cantidadMaxima?: number;
   estado: EstadoActivo;
 }
 
@@ -34,6 +38,8 @@ export interface ServicioCatalogoItem {
   nombre: string;
   descripcion: string | null;
   costoBase: number;
+  /** Tope máximo por pedido; null → el front aplica el default global (50). */
+  cantidadMaxima: number | null;
   estado: EstadoActivo;
 }
 
