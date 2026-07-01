@@ -69,7 +69,7 @@ export interface PedidoServicio {
 
 export interface CrearPedidoServicio {
   tipoServicioId: number;
-  cantidad: number; // > 0, admite decimales
+  cantidad: number; // entero >= 1; el backend valida el tope (por tipo o default global)
   observaciones?: string; // opcional, máx 2000
 }
 

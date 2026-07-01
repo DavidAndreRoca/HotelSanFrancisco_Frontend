@@ -45,9 +45,11 @@ import { PedidoServicio, ServicioCatalogoItem } from '../models/servicio.model';
           <!-- Cantidad -->
           <div>
             <label class="block text-sm font-semibold text-[#2D2926] mb-1.5">Cantidad *</label>
-            <input type="number" min="1" step="1" [(ngModel)]="cantidad"
+            <input type="number" min="1" [max]="cantidadMaxima" step="1" inputmode="numeric"
+              [(ngModel)]="cantidad" (ngModelChange)="normalizarCantidad()"
               class="w-full h-10 px-3 rounded-lg border border-[#EEE3D1] bg-white text-sm
                      text-[#2D2926] focus:outline-none focus:border-[#C5A048]" />
+            <p class="text-[11px] text-[#2D2926]/45 mt-1">Entre 1 y {{ cantidadMaxima }} unidades.</p>
           </div>
 
           <!-- Observaciones -->
@@ -98,6 +100,13 @@ export class PedirServicioModalComponent {
   readonly cerrar = output<void>();
   readonly pedidoCreado = output<PedidoServicio>();
 
+  /**
+   * Tope máximo por pedido (Fase 1). Coincide con el default global del backend.
+   * Fase 2: reemplazar por `servicio()?.cantidadMaxima ?? CANTIDAD_MAXIMA` cuando
+   * el catálogo exponga el tope por tipo de servicio.
+   */
+  readonly cantidadMaxima = 50;
+
   readonly cantidad = signal<number | null>(1);
   readonly observaciones = signal('');
   readonly enviando = signal(false);
@@ -119,8 +128,23 @@ export class PedirServicioModalComponent {
     });
   }
 
+  /** Recorta la cantidad a un entero dentro de [1, cantidadMaxima] mientras el usuario escribe. */
+  normalizarCantidad(): void {
+    const raw = this.cantidad();
+    if (raw == null || Number.isNaN(Number(raw))) return; // deja el campo vacío para no pelear con el usuario
+    let n = Math.trunc(Number(raw));
+    if (n < 1) n = 1;
+    if (n > this.cantidadMaxima) n = this.cantidadMaxima;
+    if (n !== raw) this.cantidad.set(n);
+  }
+
+  private cantidadValida(): boolean {
+    const n = Number(this.cantidad());
+    return Number.isInteger(n) && n >= 1 && n <= this.cantidadMaxima;
+  }
+
   puedeEnviar(): boolean {
-    return this.servicio() != null && Number(this.cantidad()) > 0;
+    return this.servicio() != null && this.cantidadValida();
   }
 
   enviar(): void {
