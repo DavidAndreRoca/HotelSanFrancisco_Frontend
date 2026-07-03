@@ -1,0 +1,19 @@
+{
+  // Forzar UTF-8 sin transformaciones al guardar
+  "files.encoding": "utf8",
+  "files.autoGuessEncoding": false,
+
+  // Resaltar visualmente comillas curvas y caracteres ambiguos/invisibles
+  "editor.unicodeHighlight.ambiguousCharacters": true,
+  "editor.unicodeHighlight.invisibleCharacters": true,
+  "editor.unicodeHighlight.includeComments": true,
+  "editor.unicodeHighlight.includeStrings": true,
+
+  // Consistencia con .editorconfig del proyecto
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+
+  // TypeScript/JS usan comillas simples (alineado con .editorconfig y prettier)
+  "typescript.preferences.quoteStyle": "single",
+  "javascript.preferences.quoteStyle": "single"
+}

@@ -24,10 +24,10 @@ export interface ReservaFormSaveEvent {
   id?: number;
 }
 
+// Online (3) se asigna automáticamente al cliente; el staff solo elige entre Directa y Booking.
 const CANALES = [
   { canalId: 1, nombre: 'Directa' },
   { canalId: 2, nombre: 'Booking' },
-  { canalId: 3, nombre: 'Online' },
 ];
 
 const INPUT_BASE = 'mt-1.5 w-full h-10 px-3.5 rounded-lg border bg-white text-sm focus:outline-none transition';
@@ -163,15 +163,16 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                     </div>
                   </div>
 
-                  <div>
-                    <label class="text-[13px] font-medium text-[#2D2926]/70">Canal de reserva</label>
-                    <select formControlName="canalId" [class]="ic1('canalId')">
-                      <option [value]="null">Sin canal específico</option>
-                      @for (c of canales; track c.canalId) {
-                        <option [value]="c.canalId">{{ c.nombre }}</option>
-                      }
-                    </select>
-                  </div>
+                  @if (!esCliente()) {
+                    <div>
+                      <label class="text-[13px] font-medium text-[#2D2926]/70">Canal de reserva</label>
+                      <select formControlName="canalId" [class]="ic1('canalId')">
+                        @for (c of canales; track c.canalId) {
+                          <option [value]="c.canalId">{{ c.nombre }}</option>
+                        }
+                      </select>
+                    </div>
+                  }
 
                   @if (noches() > 0) {
                     <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
@@ -841,7 +842,7 @@ export class ReservationFormComponent {
     fechaFin:    ['', Validators.required],
     nroAdultos:  [1,  [Validators.required, Validators.min(1)]],
     nroNinos:    [0,  [Validators.min(0)]],
-    canalId:     [null as number | null],
+    canalId:     [1 as number | null],  // Directa por defecto para staff
   });
 
   readonly editForm = this.fb.group({
@@ -849,7 +850,7 @@ export class ReservationFormComponent {
     fechaFin:      ['', Validators.required],
     nroAdultos:    [1,  [Validators.required, Validators.min(1)]],
     nroNinos:      [0,  [Validators.min(0)]],
-    canalId:       [null as number | null],
+    canalId:       [1 as number | null],  // Directa por defecto para staff
     descuento:     [0,  Validators.min(0)],
     observaciones: [null as string | null, Validators.maxLength(500)],
   });
@@ -1218,10 +1219,12 @@ export class ReservationFormComponent {
       })),
     };
 
-    if (!this.esCliente()) {
+    if (this.esCliente()) {
+      payload.canalId = 3; // Online: el cliente reserva desde su dashboard
+    } else {
       payload.descuento = this.descuento();
       payload.usuarioId = this.authStore.user()?.usuarioId ?? null;
-      payload.canalId   = f1.canalId ?? null;
+      payload.canalId   = f1.canalId ?? 1; // Directa por defecto si el staff no elige
     }
 
     this.onSave.emit({ payload });

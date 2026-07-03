@@ -88,7 +88,7 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
             [class]="filtroActivo() === f.value
               ? 'bg-[#C5A048] border-[#C5A048] text-white'
               : 'bg-white border-[#EEE3D1] text-[#2D2926] hover:border-[#C5A048] hover:text-[#C5A048]'"
-            (click)="filtroActivo.set(f.value)">
+            (click)="setFiltro(f.value)">
             {{ f.label }}
             @if (f.count() > 0) {
               <span class="ml-1 opacity-75">{{ f.count() }}</span>
@@ -113,17 +113,15 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
       } @else if (reservasFiltradas().length === 0) {
         <div class="bg-white rounded-2xl border border-[#EEE3D1] py-16 text-center">
           <p class="text-sm font-semibold text-[#2D2926]">Sin reservas</p>
-          <p class="text-xs text-[#2D2926]/45 mt-1">
-            @if (misReservas().length === 0) {
-              Aún no tienes reservas. Usa “Reservar” para crear una.
-            } @else {
-              No hay reservas con el filtro seleccionado.
-            }
-          </p>
+          @if (misReservas().length === 0) {
+            <p class="text-xs text-[#2D2926]/45 mt-1">Aún no tienes reservas. Usa "Reservar" para crear una.</p>
+          } @else {
+            <p class="text-xs text-[#2D2926]/45 mt-1">No hay reservas con el filtro seleccionado.</p>
+          }
         </div>
       } @else {
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          @for (r of reservasFiltradas(); track r.reservaId) {
+          @for (r of reservasPaginadas(); track r.reservaId) {
             <div class="bg-white rounded-2xl border border-[#EEE3D1] overflow-hidden
                         hover:-translate-y-0.5 hover:shadow-md transition-all relative">
 
@@ -235,6 +233,54 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
         </div>
       }
 
+      <!-- Paginación -->
+      @if (totalPaginas() > 1) {
+        <nav class="flex items-center justify-between pt-2">
+          <p class="text-xs text-[#2D2926]/50">
+            Página {{ paginaActual() + 1 }} de {{ totalPaginas() }}
+            · {{ reservasFiltradas().length }} reservas
+          </p>
+          <div class="flex items-center gap-1">
+            <button type="button"
+              [disabled]="paginaActual() === 0"
+              (click)="irAPagina(paginaActual() - 1)"
+              class="h-8 w-8 flex items-center justify-center rounded-lg border border-[#EEE3D1]
+                     text-[#8E6F2E] hover:border-[#C5A048] hover:text-[#C5A048] transition-colors
+                     disabled:opacity-30 disabled:pointer-events-none">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+              </svg>
+            </button>
+
+            @for (p of paginas(); track $index) {
+              @if (p === '...') {
+                <span class="h-8 w-8 flex items-center justify-center text-xs text-[#2D2926]/40">…</span>
+              } @else {
+                <button type="button"
+                  (click)="irAPagina(+p)"
+                  class="h-8 w-8 flex items-center justify-center rounded-lg border text-xs font-semibold transition-colors"
+                  [class]="paginaActual() === p
+                    ? 'bg-[#C5A048] border-[#C5A048] text-white'
+                    : 'border-[#EEE3D1] text-[#2D2926] hover:border-[#C5A048] hover:text-[#C5A048]'">
+                  {{ +p + 1 }}
+                </button>
+              }
+            }
+
+            <button type="button"
+              [disabled]="paginaActual() === totalPaginas() - 1"
+              (click)="irAPagina(paginaActual() + 1)"
+              class="h-8 w-8 flex items-center justify-center rounded-lg border border-[#EEE3D1]
+                     text-[#8E6F2E] hover:border-[#C5A048] hover:text-[#C5A048] transition-colors
+                     disabled:opacity-30 disabled:pointer-events-none">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
+          </div>
+        </nav>
+      }
+
     </div>
 
     <!-- Modales -->
@@ -243,8 +289,8 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
       [reservaId]="reservaIdDetalle()"
       [reservaData]="reservaDetalle()"
       [loading]="detailLoading()"
+      [modoCliente]="true"
       (onClose)="detailAbierto.set(false)"
-      (onEditar)="detailAbierto.set(false)"
       (onCancelar)="iniciarCancelacionById($event)" />
 
     <app-cancelar-modal
@@ -265,7 +311,9 @@ export class MisReservasComponent {
   private  readonly misSvc  = inject(MisReservasService);
   private  readonly toastr  = inject(ToastrService);
 
-  readonly filtroActivo = signal<FiltroMisReservas>('todas');
+  readonly filtroActivo  = signal<FiltroMisReservas>('todas');
+  readonly paginaActual  = signal(0);
+  readonly tamanioPagina = 6;
 
   // ── Estado de datos ──────────────────────────────────────────────────────────
   readonly reservas = signal<Reserva[]>([]);
@@ -334,6 +382,27 @@ export class MisReservasComponent {
     return lista.filter(r => r.estado === filtro);
   });
 
+  readonly totalPaginas = computed(() =>
+    Math.ceil(this.reservasFiltradas().length / this.tamanioPagina)
+  );
+
+  readonly reservasPaginadas = computed(() => {
+    const inicio = this.paginaActual() * this.tamanioPagina;
+    return this.reservasFiltradas().slice(inicio, inicio + this.tamanioPagina);
+  });
+
+  readonly paginas = computed(() => {
+    const total = this.totalPaginas();
+    const actual = this.paginaActual();
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i);
+    const paginas: (number | '...')[] = [0];
+    if (actual > 2) paginas.push('...');
+    for (let i = Math.max(1, actual - 1); i <= Math.min(total - 2, actual + 1); i++) paginas.push(i);
+    if (actual < total - 3) paginas.push('...');
+    paginas.push(total - 1);
+    return paginas;
+  });
+
   readonly filtros: Array<{ value: FiltroMisReservas; label: string; count: () => number }> = [
     { value: 'todas',      label: 'Todas',      count: () => this.misReservas().length },
     { value: 'activas',    label: 'Activas',    count: () => this.activasCount() },
@@ -342,6 +411,15 @@ export class MisReservasComponent {
     { value: 'CHECK_IN',   label: 'Check-in',   count: () => this.misReservas().filter(r => r.estado === 'CHECK_IN').length },
     { value: 'CANCELADA',  label: 'Cancelada',  count: () => this.misReservas().filter(r => r.estado === 'CANCELADA').length },
   ];
+
+  setFiltro(f: FiltroMisReservas): void {
+    this.filtroActivo.set(f);
+    this.paginaActual.set(0);
+  }
+
+  irAPagina(p: number): void {
+    this.paginaActual.set(p);
+  }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 

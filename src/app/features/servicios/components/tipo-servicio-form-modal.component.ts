@@ -41,6 +41,13 @@ import { EstadoActivo, TipoServicioResponse } from '../models/servicio.model';
                    text-[#2D2926] focus:outline-none focus:border-[#C5A048]" />
         </div>
         <div>
+          <label class="block text-sm font-semibold text-[#2D2926] mb-1.5">Cantidad máxima por pedido</label>
+          <input type="number" min="1" max="99" step="1" inputmode="numeric" [(ngModel)]="cantidadMaxima"
+            class="w-full h-10 px-3 rounded-lg border border-[#EEE3D1] bg-white text-sm
+                   text-[#2D2926] focus:outline-none focus:border-[#C5A048]" />
+          <p class="text-[11px] text-[#2D2926]/45 mt-1">Déjalo vacío para usar el tope por defecto (50). Máximo 99.</p>
+        </div>
+        <div>
           <label class="block text-sm font-semibold text-[#2D2926] mb-1.5">Descripción</label>
           <textarea [(ngModel)]="descripcion" rows="2" maxlength="2000" placeholder="Opcional"
             class="w-full px-3 py-2 rounded-lg border border-[#EEE3D1] bg-white text-sm
@@ -84,6 +91,7 @@ export class TipoServicioFormModalComponent {
 
   readonly nombre = signal('');
   readonly costoBase = signal<number | null>(null);
+  readonly cantidadMaxima = signal<number | null>(null);
   readonly descripcion = signal('');
   readonly estado = signal<EstadoActivo>('ACTIVO');
   readonly guardando = signal(false);
@@ -95,13 +103,26 @@ export class TipoServicioFormModalComponent {
       const t = this.tipo();
       this.nombre.set(t?.nombre ?? '');
       this.costoBase.set(t?.costoBase ?? null);
+      this.cantidadMaxima.set(t?.cantidadMaxima ?? null);
       this.descripcion.set(t?.descripcion ?? '');
       this.estado.set(t?.estado ?? 'ACTIVO');
     });
   }
 
+  /** cantidadMaxima es opcional; si se llena debe ser entero entre 1 y 99. */
+  private cantidadMaximaValida(): boolean {
+    const c = this.cantidadMaxima();
+    if (c == null) return true; // vacío → el backend aplica el default
+    const n = Number(c);
+    return Number.isInteger(n) && n >= 1 && n <= 99;
+  }
+
   puedeGuardar(): boolean {
-    return this.nombre().trim().length > 0 && this.costoBase() != null && Number(this.costoBase()) >= 0;
+    return (
+      this.nombre().trim().length > 0 &&
+      this.costoBase() != null && Number(this.costoBase()) >= 0 &&
+      this.cantidadMaximaValida()
+    );
   }
 
   guardar(): void {
@@ -111,6 +132,7 @@ export class TipoServicioFormModalComponent {
     const payload = {
       nombre: this.nombre().trim(),
       costoBase: Number(this.costoBase()),
+      cantidadMaxima: this.cantidadMaxima() != null ? Number(this.cantidadMaxima()) : undefined,
       descripcion: this.descripcion().trim() || undefined,
       estado: this.estado(),
     };

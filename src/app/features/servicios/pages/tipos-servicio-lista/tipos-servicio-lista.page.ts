@@ -87,6 +87,7 @@ const PAGE_SIZE = 20;
                            tracking-wide text-[#2D2926]/50">
                   <th class="px-4 py-3 font-semibold">Nombre</th>
                   <th class="px-4 py-3 font-semibold text-right">Costo base</th>
+                  <th class="px-4 py-3 font-semibold text-right whitespace-nowrap">Máx.</th>
                   <th class="px-4 py-3 font-semibold">Descripción</th>
                   <th class="px-4 py-3 font-semibold">Estado</th>
                   <th class="px-4 py-3 font-semibold text-right whitespace-nowrap">Acciones</th>
@@ -97,6 +98,13 @@ const PAGE_SIZE = 20;
                   <tr class="border-b border-[#EEE3D1] last:border-0 hover:bg-[#F9F5F0] transition-colors">
                     <td class="px-4 py-3 font-medium text-[#2D2926] whitespace-nowrap">{{ t.nombre }}</td>
                     <td class="px-4 py-3 text-right text-[#2D2926]/70 whitespace-nowrap">S/. {{ t.costoBase }}</td>
+                    <td class="px-4 py-3 text-right text-[#2D2926]/70 whitespace-nowrap">
+                      @if (t.cantidadMaxima != null) {
+                        {{ t.cantidadMaxima }}
+                      } @else {
+                        <span class="text-[#2D2926]/40">50 (defecto)</span>
+                      }
+                    </td>
                     <td class="px-4 py-3 text-[#2D2926]/70">{{ t.descripcion ?? '—' }}</td>
                     <td class="px-4 py-3">
                       <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold"
