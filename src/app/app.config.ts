@@ -10,6 +10,7 @@ import { provideToastr } from 'ngx-toastr';
 
 import { routes } from './app.routes';
 import { credentialsInterceptor } from './core/interceptors/credentials.interceptor';
+import { csrfInterceptor } from './core/interceptors/csrf.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { bootstrapSession } from './core/auth/session-bootstrap';
 
@@ -22,7 +23,7 @@ export const appConfig: ApplicationConfig = {
       withInMemoryScrolling({ scrollPositionRestoration: 'top', anchorScrolling: 'enabled' }),
     ),
     provideHttpClient(
-      withInterceptors([credentialsInterceptor, errorInterceptor]),
+      withInterceptors([credentialsInterceptor, csrfInterceptor, errorInterceptor]),
       withXsrfConfiguration({ cookieName: 'XSRF-TOKEN', headerName: 'X-XSRF-TOKEN' }),
     ),
     provideAnimations(),

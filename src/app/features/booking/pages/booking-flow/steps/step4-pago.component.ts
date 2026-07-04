@@ -117,6 +117,8 @@ import { MetodoPagoPublico } from '../../../models/booking.model';
 export class Step4PagoComponent implements OnInit {
   @Output() next = new EventEmitter<void>();
   @Output() back = new EventEmitter<void>();
+  /** La habitación ya no está disponible (409): volver al paso de búsqueda. */
+  @Output() conflicto = new EventEmitter<void>();
 
   private readonly fb = inject(FormBuilder);
   private readonly bookingApi = inject(BookingApiService);
@@ -213,6 +215,14 @@ export class Step4PagoComponent implements OnInit {
       },
       error: (err: HttpErrorResponse) => {
         this.enviando.set(false);
+        if (err.status === 409) {
+          this.toastr.warning(
+            err.error?.message ?? 'La habitación ya no está disponible para las fechas seleccionadas.',
+            'Disponibilidad',
+          );
+          this.conflicto.emit();
+          return;
+        }
         this.toastr.error(err.error?.message ?? 'Error al procesar la reserva. Intente nuevamente.');
       },
     });

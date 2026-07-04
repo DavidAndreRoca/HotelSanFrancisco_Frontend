@@ -163,8 +163,18 @@ export class ReservationsDashboardComponent {
         this.formAbierto.set(false);
         this.toastr.success(event.id ? 'Reserva actualizada.' : 'Reserva creada.');
       },
-      error: (err: { friendlyMessage?: string }) =>
-        this.toastr.error(err.friendlyMessage ?? 'No se pudo guardar.', 'Error'),
+      error: (err: { status?: number; friendlyMessage?: string }) => {
+        if (err.status === 409) {
+          // La habitación fue tomada por otra reserva: el form queda abierto
+          // para volver a elegir habitación/fechas.
+          this.toastr.warning(
+            err.friendlyMessage ?? 'La habitación ya no está disponible para las fechas seleccionadas.',
+            'Disponibilidad',
+          );
+          return;
+        }
+        this.toastr.error(err.friendlyMessage ?? 'No se pudo guardar.', 'Error');
+      },
     });
   }
 
