@@ -8,7 +8,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { catchError, of } from 'rxjs';
 import { ApiClient } from '../../../../core/http/http-client.service';
-import { RoomService } from '../../services/room.services';
+import { RoomService } from '../../services/room.service';
 import { HabitacionCalendarioItem } from '../../models/room.model';
 
 // ── Mapeo de estados del mock local → backend ──────────────────

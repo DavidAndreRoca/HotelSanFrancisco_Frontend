@@ -1,6 +1,6 @@
 // features/rooms/components/room-filters/room-filters.component.ts
 import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
-import { RoomService } from '../../services/room.services';
+import { RoomService } from '../../services/room.service';
 import { RoomStatus } from '../../models/room.model';
 
 @Component({
