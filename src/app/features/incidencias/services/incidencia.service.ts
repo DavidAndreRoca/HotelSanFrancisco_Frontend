@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
-import { ApiClient } from '../../../core/http/http-client.service';
+import { EMPTY, Observable, Subject, catchError, switchMap, tap } from 'rxjs';
+import { ApiClient, QueryParams } from '../../../core/http/http-client.service';
 import {
   CambiarEstadoIncidenciaPayload,
   CreateIncidenciaPayload,
@@ -29,19 +29,31 @@ export class IncidenciaService {
   readonly incidencias = this._incidencias.asReadonly();
   readonly loading = this._loading.asReadonly();
 
+  // switchMap cancela la petición anterior si llega una nueva carga: evita que
+  // una respuesta lenta y obsoleta pise a la más reciente al cambiar filtros.
+  private readonly loadRequest$ = new Subject<QueryParams>();
+
+  constructor() {
+    this.loadRequest$
+      .pipe(
+        switchMap((params) =>
+          this.api.get<PageResponse<Incidencia>>(BASE, { params }).pipe(
+            catchError(() => {
+              this._loading.set(false);
+              return EMPTY;
+            }),
+          ),
+        ),
+      )
+      .subscribe((res) => {
+        this._incidencias.set(res.content);
+        this._loading.set(false);
+      });
+  }
+
   load(filters: IncidenciaFilters = {}, page = 0, size = 20): void {
     this._loading.set(true);
-    this.api
-      .get<PageResponse<Incidencia>>(BASE, {
-        params: { ...filters, page, size },
-      })
-      .subscribe({
-        next: (res) => {
-          this._incidencias.set(res.content);
-          this._loading.set(false);
-        },
-        error: () => this._loading.set(false),
-      });
+    this.loadRequest$.next({ ...filters, page, size });
   }
 
   getById(id: number): Observable<Incidencia> {

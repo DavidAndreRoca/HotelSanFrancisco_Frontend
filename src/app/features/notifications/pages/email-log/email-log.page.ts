@@ -6,6 +6,8 @@ import {
   signal,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject, debounceTime } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
@@ -209,7 +211,8 @@ export class EmailLogPage {
   readonly expandido = signal<number | null>(null);
   readonly reintentandoId = signal<number | null>(null);
 
-  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+  // Debounce de búsqueda; takeUntilDestroyed evita recargas tras destruir la página.
+  private readonly search$ = new Subject<void>();
 
   readonly loading = this.svc.logLoading;
   readonly filas = this.svc.logItems;
@@ -218,6 +221,9 @@ export class EmailLogPage {
   readonly esUltima = computed(() => this.svc.logPage()?.last ?? true);
 
   constructor() {
+    this.search$
+      .pipe(debounceTime(350), takeUntilDestroyed())
+      .subscribe(() => this.recargarDesdeInicio());
     this.cargar();
   }
 
@@ -240,9 +246,7 @@ export class EmailLogPage {
 
   onSearch(valor: string): void {
     this.fSearch.set(valor);
-    // Debounce para no disparar una petición por cada tecla.
-    if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.searchTimer = setTimeout(() => this.recargarDesdeInicio(), 350);
+    this.search$.next();
   }
 
   onEstado(valor: EmailStatus | ''): void {

@@ -6,6 +6,8 @@ import {
   signal,
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { EMPTY, Subject, catchError, switchMap } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { AsistenciaService } from '../../services/asistencia.service';
 import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
@@ -251,13 +253,36 @@ export class AsistenciaListaPage {
   readonly totalPages = computed(() => Math.max(1, this.page()?.totalPages ?? 1));
   readonly esUltima = computed(() => this.page()?.last ?? true);
 
+  // switchMap cancela la petición anterior si llega una nueva carga: evita que
+  // una respuesta lenta y obsoleta pise a la más reciente al cambiar filtros.
+  private readonly cargar$ = new Subject<void>();
+
   constructor() {
+    this.cargar$
+      .pipe(
+        switchMap(() =>
+          this.svc.listarPaginado(this.construirFiltros()).pipe(
+            catchError((err: HttpErrorResponse & { friendlyMessage?: string }) => {
+              this.loading.set(false);
+              this.toastr.error(
+                err.friendlyMessage ?? 'No se pudieron cargar las asistencias.',
+                'Error',
+              );
+              return EMPTY;
+            }),
+          ),
+        ),
+        takeUntilDestroyed(),
+      )
+      .subscribe((p) => {
+        this.page.set(p);
+        this.loading.set(false);
+      });
     this.cargar();
   }
 
-  private cargar(): void {
-    this.loading.set(true);
-    const filtros: AsistenciaFilterRequest = {
+  private construirFiltros(): AsistenciaFilterRequest {
+    return {
       usuarioId: this.fUsuarioId() ?? undefined,
       fechaInicio: this.fDesde() || undefined,
       fechaFin: this.fHasta() || undefined,
@@ -266,13 +291,11 @@ export class AsistenciaListaPage {
       size: PAGE_SIZE,
       sort: 'fecha,desc',
     };
-    this.svc.listarPaginado(filtros).subscribe({
-      next: (p) => { this.page.set(p); this.loading.set(false); },
-      error: (err: HttpErrorResponse & { friendlyMessage?: string }) => {
-        this.loading.set(false);
-        this.toastr.error(err.friendlyMessage ?? 'No se pudieron cargar las asistencias.', 'Error');
-      },
-    });
+  }
+
+  private cargar(): void {
+    this.loading.set(true);
+    this.cargar$.next();
   }
 
   onEmpleado(u: UsuarioResumen | null): void {

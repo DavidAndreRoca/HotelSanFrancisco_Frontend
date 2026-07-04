@@ -57,7 +57,12 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         toastr.error(message);
       }
 
-      return throwError(() => ({ ...err, friendlyMessage: message }));
+      // Clona preservando el prototipo: el spread plano rompía instanceof HttpErrorResponse.
+      return throwError(() =>
+        Object.assign(Object.create(Object.getPrototypeOf(err)), err, {
+          friendlyMessage: message,
+        }),
+      );
     }),
   );
 };

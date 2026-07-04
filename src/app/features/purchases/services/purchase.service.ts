@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, catchError, forkJoin, of } from 'rxjs';
+import { EMPTY, Observable, Subject, catchError, forkJoin, of, switchMap } from 'rxjs';
 import { ApiClient, QueryParams } from '../../../core/http/http-client.service';
 import { PageResponse } from '../../../core/api/api-response.interface';
 import {
@@ -39,21 +39,35 @@ export class PurchaseService {
   readonly loading = this._loading.asReadonly();
   readonly lastError = this._lastError.asReadonly();
 
+  // switchMap cancela la petición anterior si llega una nueva carga: evita que
+  // una respuesta lenta y obsoleta pise a la más reciente al cambiar filtros.
+  private readonly loadRequest$ = new Subject<CompraFilterRequest>();
+
+  constructor() {
+    this.loadRequest$
+      .pipe(
+        switchMap((filtros) =>
+          this.api.get<PageResponse<Compra>>(BASE, { params: filtros as QueryParams }).pipe(
+            catchError((err: { friendlyMessage?: string }) => {
+              this._page.set(null);
+              this._loading.set(false);
+              this._lastError.set(err.friendlyMessage ?? 'No se pudieron cargar las compras.');
+              return EMPTY;
+            }),
+          ),
+        ),
+      )
+      .subscribe((res) => {
+        this._page.set(res);
+        this._loading.set(false);
+      });
+  }
+
   /** Listado paginado y filtrado por el servidor. */
   load(filtros: CompraFilterRequest = {}): void {
     this._loading.set(true);
     this._lastError.set(null);
-    this.api.get<PageResponse<Compra>>(BASE, { params: filtros as QueryParams }).subscribe({
-      next: (res) => {
-        this._page.set(res);
-        this._loading.set(false);
-      },
-      error: (err: { friendlyMessage?: string }) => {
-        this._page.set(null);
-        this._loading.set(false);
-        this._lastError.set(err.friendlyMessage ?? 'No se pudieron cargar las compras.');
-      },
-    });
+    this.loadRequest$.next(filtros);
   }
 
   /**
