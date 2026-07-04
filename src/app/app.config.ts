@@ -1,10 +1,10 @@
-import { APP_INITIALIZER, ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
 import {
-  provideHttpClient,
-  withInterceptors,
-  withXsrfConfiguration,
-} from '@angular/common/http';
+  ApplicationConfig,
+  provideAppInitializer,
+  provideBrowserGlobalErrorListeners,
+} from '@angular/core';
+import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideToastr } from 'ngx-toastr';
 
@@ -22,9 +22,11 @@ export const appConfig: ApplicationConfig = {
       withComponentInputBinding(),
       withInMemoryScrolling({ scrollPositionRestoration: 'top', anchorScrolling: 'enabled' }),
     ),
+    // CSRF: patrón custom-header (csrfInterceptor). El withXsrfConfiguration de
+    // Angular se eliminó: el backend no emite XSRF-TOKEN y Angular tampoco lo
+    // enviaría con URLs absolutas.
     provideHttpClient(
       withInterceptors([credentialsInterceptor, csrfInterceptor, errorInterceptor]),
-      withXsrfConfiguration({ cookieName: 'XSRF-TOKEN', headerName: 'X-XSRF-TOKEN' }),
     ),
     provideAnimations(),
     provideToastr({
@@ -36,10 +38,6 @@ export const appConfig: ApplicationConfig = {
       tapToDismiss: true,
       newestOnTop: true,
     }),
-    {
-      provide: APP_INITIALIZER,
-      useFactory: bootstrapSession,
-      multi: true,
-    },
+    provideAppInitializer(() => bootstrapSession()()),
   ],
 };
