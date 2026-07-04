@@ -12,6 +12,10 @@ const SUPPRESS_TOAST_PATHS = ['/auth/me', '/auth/refresh'];
 // no debe disparar el toast global de "Datos inválidos".
 const SUPPRESS_TOAST_PREFIXES = ['/auth/reniec'];
 
+// El 409 (habitación ya tomada) al crear/editar reservas lo maneja el componente:
+// muestra el message del backend y devuelve al usuario a la selección de habitación.
+const CONFLICT_HANDLED_PREFIXES = ['/api/v1/booking', '/api/v1/reservas'];
+
 // Rutas públicas que no deben redirigir al login ante un 401
 const PUBLIC_API_PATHS = [
   '/api/v1/tipos-habitacion',
@@ -43,6 +47,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         }
       } else if (err.status === 403) {
         if (!suppress) toastr.error('No tienes permiso para realizar esta acción.', 'Acceso denegado');
+      } else if (err.status === 409 && CONFLICT_HANDLED_PREFIXES.some((p) => path.startsWith(p))) {
+        // Sin toast global: el componente de reserva lo notifica y redirige.
       } else if (err.status === 422 || err.status === 400) {
         if (!suppress) toastr.error(message, 'Datos inválidos');
       } else if (err.status >= 500) {

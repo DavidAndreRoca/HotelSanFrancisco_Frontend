@@ -101,7 +101,7 @@ const STEP_LABELS = ['Seleccionar', 'Datos', 'Resumen', 'Pago', 'Confirmación']
             <app-step3-resumen (next)="goNext()" (back)="goBack()" />
           }
           @case (4) {
-            <app-step4-pago (next)="goNext()" (back)="goBack()" />
+            <app-step4-pago (next)="goNext()" (back)="goBack()" (conflicto)="volverASeleccion()" />
           }
           @case (5) {
             <app-step5-confirmacion (restart)="restart()" />
@@ -137,6 +137,12 @@ export class BookingFlowPage implements OnInit {
 
   goBack(): void {
     this.step.update((s) => Math.max(s - 1, 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /** La disponibilidad cambió (409 al reservar): volver al paso de selección. */
+  volverASeleccion(): void {
+    this.step.set(1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 

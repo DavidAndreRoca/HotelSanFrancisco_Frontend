@@ -88,10 +88,13 @@ export class DniLookupComponent {
         this.mensaje.set('Datos encontrados en RENIEC.');
         this.found.emit(persona);
       },
-      error: (err: { friendlyMessage?: string }) => {
+      error: (err: { status?: number; friendlyMessage?: string }) => {
         this.estado.set('error');
+        // 429: el backend limita la consulta a 10 por minuto por IP.
         this.mensaje.set(
-          err.friendlyMessage ?? 'No se pudo consultar el DNI. Ingresa tus datos manualmente.',
+          err.status === 429
+            ? 'Demasiadas consultas, espera un momento e inténtalo de nuevo.'
+            : (err.friendlyMessage ?? 'No se pudo consultar el DNI. Ingresa tus datos manualmente.'),
         );
       },
     });
