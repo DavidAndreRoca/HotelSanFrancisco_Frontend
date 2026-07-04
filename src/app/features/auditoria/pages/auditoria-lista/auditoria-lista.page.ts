@@ -6,6 +6,8 @@ import {
   signal,
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { EMPTY, Subject, catchError, switchMap } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { AuditoriaService } from '../../services/auditoria.service';
 import { PageResponse } from '../../../../core/api/api-response.interface';
@@ -309,25 +311,37 @@ export class AuditoriaListaPage {
   readonly totalPages = computed(() => Math.max(1, this.page()?.totalPages ?? 1));
   readonly esUltima = computed(() => this.page()?.last ?? true);
 
+  // switchMap cancela la petición anterior si llega una nueva carga: evita que
+  // una respuesta lenta y obsoleta pise a la más reciente al cambiar filtros.
+  private readonly cargar$ = new Subject<void>();
+
   constructor() {
+    this.cargar$
+      .pipe(
+        switchMap(() =>
+          this.svc.listar(this.construirFiltros()).pipe(
+            catchError((err: HttpErrorResponse & { friendlyMessage?: string }) => {
+              this.loading.set(false);
+              this.toastr.error(
+                err.friendlyMessage ?? 'No se pudieron cargar los registros de auditoría.',
+                'Error',
+              );
+              return EMPTY;
+            }),
+          ),
+        ),
+        takeUntilDestroyed(),
+      )
+      .subscribe((page) => {
+        this.page.set(page);
+        this.loading.set(false);
+      });
     this.cargar();
   }
 
   private cargar(): void {
     this.loading.set(true);
-    this.svc.listar(this.construirFiltros()).subscribe({
-      next: (page) => {
-        this.page.set(page);
-        this.loading.set(false);
-      },
-      error: (err: HttpErrorResponse & { friendlyMessage?: string }) => {
-        this.loading.set(false);
-        this.toastr.error(
-          err.friendlyMessage ?? 'No se pudieron cargar los registros de auditoría.',
-          'Error',
-        );
-      },
-    });
+    this.cargar$.next();
   }
 
   private construirFiltros(): AuditoriaFilterRequest {

@@ -1,7 +1,7 @@
 // features/notifications/services/notification.service.ts
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, finalize, tap } from 'rxjs';
-import { ApiClient } from '../../../core/http/http-client.service';
+import { EMPTY, Observable, Subject, catchError, finalize, switchMap, tap } from 'rxjs';
+import { ApiClient, QueryParams } from '../../../core/http/http-client.service';
 import {
   EmailLogEntry,
   EmailLogFilters,
@@ -162,28 +162,38 @@ export class NotificationService {
   readonly logPage = this._logPage.asReadonly();
   readonly logLoading = this._logLoading.asReadonly();
 
+  // switchMap cancela la petición anterior si llega una nueva carga: evita que
+  // una respuesta lenta y obsoleta pise a la más reciente al cambiar filtros.
+  private readonly logRequest$ = new Subject<QueryParams>();
+  private readonly logRequestSub = this.logRequest$
+    .pipe(
+      switchMap((params) =>
+        this.api.get<PageResponse<EmailLogEntry>>(`${this.base}/log`, { params }).pipe(
+          catchError(() => {
+            this._logItems.set([]);
+            this._logLoading.set(false);
+            return EMPTY;
+          }),
+        ),
+      ),
+    )
+    .subscribe((res) => {
+      this._logItems.set(res.content);
+      const { content: _content, ...rest } = res;
+      this._logPage.set(rest);
+      this._logLoading.set(false);
+    });
+
   loadLog(params: Partial<EmailLogFilters> = {}): void {
     this._logLoading.set(true);
-    this.api
-      .get<PageResponse<EmailLogEntry>>(`${this.base}/log`, {
-        params: {
-          search: params.search ?? '',
-          estado: params.estado ?? '',
-          plantilla: params.plantilla ?? '',
-          page: params.page ?? 0,
-          size: params.size ?? 10,
-          sort: params.sort ?? 'enviadoEn,desc',
-        },
-      })
-      .pipe(finalize(() => this._logLoading.set(false)))
-      .subscribe({
-        next: (res) => {
-          this._logItems.set(res.content);
-          const { content: _content, ...rest } = res;
-          this._logPage.set(rest);
-        },
-        error: () => this._logItems.set([]),
-      });
+    this.logRequest$.next({
+      search: params.search ?? '',
+      estado: params.estado ?? '',
+      plantilla: params.plantilla ?? '',
+      page: params.page ?? 0,
+      size: params.size ?? 10,
+      sort: params.sort ?? 'enviadoEn,desc',
+    });
   }
 
   /** Reintenta el envío de un correo fallido */

@@ -6,6 +6,18 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#C5A048">
+
+  <!-- SEO -->
+  <meta name="description"
+    content="Hotel San Francisco en Ica, Perú. Reserva habitaciones en línea: consulta disponibilidad, tarifas y servicios. Atención las 24 horas.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Hotel San Francisco">
+  <meta property="og:title" content="Hotel San Francisco · Ica, Perú">
+  <meta property="og:description"
+    content="Reserva habitaciones en línea: disponibilidad, tarifas y servicios del Hotel San Francisco en Ica.">
+  <meta property="og:image" content="logo.png">
+  <meta name="twitter:card" content="summary">
+
   <link rel="icon" type="image/png" href="logo.png">
   <script>
     // sockjs-client espera `global` (Node). Polyfill antes de cualquier módulo.
@@ -13,8 +25,15 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Carga no bloqueante: media="print" descarga sin bloquear el primer render
+       y onload la aplica; el <noscript> cubre navegadores sin JS. -->
   <link rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    media="print" onload="this.media='all'">
+  <noscript>
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  </noscript>
 </head>
 <body class="font-sans antialiased">
   <app-root></app-root>

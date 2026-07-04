@@ -1,6 +1,6 @@
 // features/rooms/pages/rooms-dashboard/rooms-dashboard.component.ts (actualizado)
 import { Component, inject, ChangeDetectionStrategy, signal } from '@angular/core';
-import { RoomService } from '../../services/room.services';
+import { RoomService } from '../../services/room.service';
 import { RoomCardComponent } from '../../components/room-card/room-card.component';
 import { RoomFiltersComponent } from '../../components/room-filters/room-filter.component';
 import { RoomSidebarComponent } from '../../components/room-sidebar/room-sidebar.component';

@@ -1,7 +1,7 @@
 // features/rooms/components/room-modal/room-modal.component.ts
 import { Component, input, output, inject, ChangeDetectionStrategy, computed } from '@angular/core';
 import { Room, RoomStatus } from '../../models/room.model';
-import { RoomService } from '../../services/room.services';
+import { RoomService } from '../../services/room.service';
 
 @Component({
   selector: 'app-room-modal',
