@@ -10,8 +10,12 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
+import { catchError, forkJoin, of } from 'rxjs';
 import { AuthStore } from '../../../../core/auth/auth.store';
-import { ProductoResumen } from '../../../../core/productos/producto-lookup.service';
+import {
+  ProductoLookupService,
+  ProductoResumen,
+} from '../../../../core/productos/producto-lookup.service';
 import { ClienteResumen } from '../../../../core/clientes/cliente-lookup.service';
 import { ProductoSelectorComponent } from '../../../../shared/components/producto-selector/producto-selector.component';
 import { ClienteSelectorComponent } from '../../../../shared/components/cliente-selector/cliente-selector.component';
@@ -106,7 +110,7 @@ interface LineaEditable {
                            tracking-wide text-[#2D2926]/50">
                   <th class="px-2 py-2 font-semibold">Producto</th>
                   <th class="px-2 py-2 font-semibold w-24">Cantidad</th>
-                  <th class="px-2 py-2 font-semibold w-28">Precio</th>
+                  <th class="px-2 py-2 font-semibold w-28">Precio catálogo</th>
                   <th class="px-2 py-2 font-semibold w-28">Descuento</th>
                   <th class="px-2 py-2 font-semibold text-right w-24">Subtotal</th>
                   <th class="px-2 py-2 w-8"></th>
@@ -122,17 +126,22 @@ interface LineaEditable {
                         class="w-20 h-8 px-2 rounded border border-[#EEE3D1] text-sm
                                focus:outline-none focus:border-[#C5A048]" />
                     </td>
-                    <td class="px-2 py-2">
-                      <input type="number" min="0" step="0.01" [ngModel]="l.precioUnitario"
-                        (ngModelChange)="setLinea(i, 'precioUnitario', $event)"
-                        class="w-24 h-8 px-2 rounded border border-[#EEE3D1] text-sm
-                               focus:outline-none focus:border-[#C5A048]" />
+                    <td class="px-2 py-2 text-[#2D2926] whitespace-nowrap"
+                        title="Precio de catálogo; lo fija el sistema al guardar.">
+                      {{ monto(l.precioUnitario) }}
                     </td>
                     <td class="px-2 py-2">
                       <input type="number" min="0" step="0.01" [ngModel]="l.descuentoUnitario"
                         (ngModelChange)="setLinea(i, 'descuentoUnitario', $event)"
-                        class="w-24 h-8 px-2 rounded border border-[#EEE3D1] text-sm
-                               focus:outline-none focus:border-[#C5A048]" />
+                        class="w-24 h-8 px-2 rounded border text-sm focus:outline-none"
+                        [class]="descuentoInvalido(l)
+                          ? 'border-red-400 focus:border-red-500'
+                          : 'border-[#EEE3D1] focus:border-[#C5A048]'" />
+                      @if (descuentoInvalido(l)) {
+                        <p class="text-[11px] text-red-500 mt-1 whitespace-nowrap">
+                          Máx. {{ monto(l.precioUnitario) }}
+                        </p>
+                      }
                     </td>
                     <td class="px-2 py-2 text-right font-medium text-[#2D2926] whitespace-nowrap">
                       {{ monto(subtotalLinea(l)) }}
@@ -176,6 +185,7 @@ interface LineaEditable {
 })
 export class VentaFormPage {
   private readonly svc = inject(VentaService);
+  private readonly productoLookup = inject(ProductoLookupService);
   private readonly store = inject(AuthStore);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
@@ -226,7 +236,8 @@ export class VentaFormPage {
     ]);
   }
 
-  setLinea(i: number, campo: 'cantidad' | 'precioUnitario' | 'descuentoUnitario', valor: number): void {
+  // El precio no es editable: el backend siempre usa el precioVenta del catálogo.
+  setLinea(i: number, campo: 'cantidad' | 'descuentoUnitario', valor: number): void {
     this.lineas.update((ls) =>
       ls.map((l, idx) => (idx === i ? { ...l, [campo]: Number(valor) || 0 } : l)),
     );
@@ -240,10 +251,17 @@ export class VentaFormPage {
     return Math.max(0, (l.precioUnitario - l.descuentoUnitario) * l.cantidad);
   }
 
+  // Espejo de la validación del backend: descuentoUnitario <= precioVenta del catálogo.
+  descuentoInvalido(l: LineaEditable): boolean {
+    return l.descuentoUnitario > l.precioUnitario;
+  }
+
   puedeGuardar(): boolean {
     if (!this.codigoValido() || this.lineas().length === 0) return false;
     if (this.tipoVenta() === 'CARGO_HABITACION' && !this.estanciaId()) return false;
-    return this.lineas().every((l) => l.cantidad > 0 && l.precioUnitario >= 0);
+    return this.lineas().every(
+      (l) => l.cantidad > 0 && l.descuentoUnitario >= 0 && !this.descuentoInvalido(l),
+    );
   }
 
   guardar(): void {
@@ -255,6 +273,41 @@ export class VentaFormPage {
     }
 
     this.guardando.set(true);
+    // Refresca los precios del catálogo antes de enviar: el backend usará esos
+    // precios de todos modos, así el usuario confirma el total real.
+    forkJoin(
+      this.lineas().map((l) =>
+        this.productoLookup.obtenerPorId(l.productoId).pipe(catchError(() => of(null))),
+      ),
+    ).subscribe((productos) => {
+      const desactualizadas = this.lineas().filter((l) => {
+        const actual = productos.find((p) => p?.productoId === l.productoId);
+        return actual != null && actual.precioVenta !== l.precioUnitario;
+      });
+
+      if (desactualizadas.length > 0) {
+        this.lineas.update((ls) =>
+          ls.map((l) => {
+            const actual = productos.find((p) => p?.productoId === l.productoId);
+            return actual ? { ...l, precioUnitario: actual.precioVenta } : l;
+          }),
+        );
+        this.guardando.set(false);
+        this.toastr.warning(
+          'El catálogo cambió: se actualizaron los precios de ' +
+            desactualizadas.map((l) => l.productoNombre).join(', ') +
+            '. Revisa el total y vuelve a presionar "Crear venta".',
+          'Precios actualizados',
+        );
+        return;
+      }
+
+      this.enviarVenta();
+    });
+  }
+
+  private enviarVenta(): void {
+    const usuarioId = this.store.user()!.usuarioId;
     const payload: CreateVentaRequest = {
       codigoVenta: this.codigoVenta().trim(),
       tipoVenta: this.tipoVenta(),

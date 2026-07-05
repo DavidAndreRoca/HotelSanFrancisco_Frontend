@@ -99,6 +99,15 @@ import {
               @if (context()!.adelanto > 0) {
                 · Adelanto ya registrado: S/ {{ context()!.adelanto.toFixed(2) }}
               }
+              @if (saldoPendiente() !== null) {
+                · Saldo pendiente:
+                <button type="button"
+                  class="font-semibold text-[var(--color-primary-700)] hover:underline"
+                  title="Usar el saldo pendiente como monto"
+                  (click)="aplicarSaldoPendiente()">
+                  S/ {{ saldoPendiente()!.toFixed(2) }}
+                </button>
+              }
             </p>
           }
         </div>
@@ -175,7 +184,21 @@ export class PaymentModalComponent implements OnChanges {
 
   readonly montoError = signal<string | null>(null);
 
+  // Suma de pagos previos de la reserva (sin reembolsos). null = aún no cargada,
+  // en ese caso se usa ctx.adelanto como aproximación.
+  private readonly pagosPrevios = signal<number | null>(null);
+  private pagosCargadosDeReserva: number | null = null;
+
+  /** Saldo pendiente de la reserva; null si no hay contexto. */
+  readonly saldoPendiente = computed(() => {
+    const ctx = this.context();
+    if (!ctx) return null;
+    const pagado = this.pagosPrevios() ?? ctx.adelanto;
+    return Math.max(0, Math.round((ctx.montoTotal - pagado) * 100) / 100);
+  });
+
   ngOnChanges(): void {
+    this.cargarPagosPrevios();
     const p = this.payment();
     if (p) {
       this.form.patchValue({
@@ -200,6 +223,13 @@ export class PaymentModalComponent implements OnChanges {
     this.validarMonto();
   }
 
+  aplicarSaldoPendiente(): void {
+    const saldo = this.saldoPendiente();
+    if (saldo === null) return;
+    this.form.controls.monto.setValue(saldo);
+    this.validarMonto();
+  }
+
   montoErrorMsg(): string | null {
     return this.montoError();
   }
@@ -212,10 +242,39 @@ export class PaymentModalComponent implements OnChanges {
       : `${base} border-[var(--color-border-soft)]`;
   }
 
-  private validarMonto(): boolean {
+  /** Trae los pagos reales de la reserva para calcular el saldo como lo hace el backend. */
+  private cargarPagosPrevios(): void {
     const ctx = this.context();
+    if (!this.open() || !ctx) {
+      this.pagosPrevios.set(null);
+      this.pagosCargadosDeReserva = null;
+      return;
+    }
+    if (this.pagosCargadosDeReserva === ctx.reservaId) return;
+    this.pagosCargadosDeReserva = ctx.reservaId;
+    this.pagosPrevios.set(null);
+    this.paymentService.findByReserva(ctx.reservaId).subscribe({
+      next: (pagos) => {
+        const editandoId = this.payment()?.pagoId ?? null;
+        const total = pagos
+          .filter((p) => p.tipoPago !== 'REEMBOLSO' && p.pagoId !== editandoId)
+          .reduce((s, p) => s + p.monto, 0);
+        this.pagosPrevios.set(Math.round(total * 100) / 100);
+      },
+      // Si falla, se queda en null y validarMonto usa ctx.adelanto como respaldo.
+      error: () => this.pagosPrevios.set(null),
+    });
+  }
+
+  private validarMonto(): boolean {
     const monto = Number(this.form.controls.monto.value);
-    const saldo = ctx ? ctx.montoTotal - ctx.adelanto : Number.POSITIVE_INFINITY;
+    // Un reembolso devuelve dinero; el tope de saldo pendiente no aplica.
+    if (this.form.controls.tipoPago.value === 'REEMBOLSO') {
+      const error = this.paymentService.validarMonto(monto, Number.POSITIVE_INFINITY);
+      this.montoError.set(error);
+      return !error;
+    }
+    const saldo = this.saldoPendiente() ?? Number.POSITIVE_INFINITY;
     const error = this.paymentService.validarMonto(monto, saldo);
     this.montoError.set(error);
     return !error;
