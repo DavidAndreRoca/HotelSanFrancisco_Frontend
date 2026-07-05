@@ -106,7 +106,7 @@ interface LineaEditable {
                            tracking-wide text-[#2D2926]/50">
                   <th class="px-2 py-2 font-semibold">Producto</th>
                   <th class="px-2 py-2 font-semibold w-24">Cantidad</th>
-                  <th class="px-2 py-2 font-semibold w-28">Precio</th>
+                  <th class="px-2 py-2 font-semibold w-28">Precio catálogo</th>
                   <th class="px-2 py-2 font-semibold w-28">Descuento</th>
                   <th class="px-2 py-2 font-semibold text-right w-24">Subtotal</th>
                   <th class="px-2 py-2 w-8"></th>
@@ -122,11 +122,9 @@ interface LineaEditable {
                         class="w-20 h-8 px-2 rounded border border-[#EEE3D1] text-sm
                                focus:outline-none focus:border-[#C5A048]" />
                     </td>
-                    <td class="px-2 py-2">
-                      <input type="number" min="0" step="0.01" [ngModel]="l.precioUnitario"
-                        (ngModelChange)="setLinea(i, 'precioUnitario', $event)"
-                        class="w-24 h-8 px-2 rounded border border-[#EEE3D1] text-sm
-                               focus:outline-none focus:border-[#C5A048]" />
+                    <td class="px-2 py-2 text-[#2D2926] whitespace-nowrap"
+                        title="Precio de catálogo; lo fija el sistema al guardar.">
+                      {{ monto(l.precioUnitario) }}
                     </td>
                     <td class="px-2 py-2">
                       <input type="number" min="0" step="0.01" [ngModel]="l.descuentoUnitario"
@@ -226,7 +224,8 @@ export class VentaFormPage {
     ]);
   }
 
-  setLinea(i: number, campo: 'cantidad' | 'precioUnitario' | 'descuentoUnitario', valor: number): void {
+  // El precio no es editable: el backend siempre usa el precioVenta del catálogo.
+  setLinea(i: number, campo: 'cantidad' | 'descuentoUnitario', valor: number): void {
     this.lineas.update((ls) =>
       ls.map((l, idx) => (idx === i ? { ...l, [campo]: Number(valor) || 0 } : l)),
     );
