@@ -129,8 +129,15 @@ interface LineaEditable {
                     <td class="px-2 py-2">
                       <input type="number" min="0" step="0.01" [ngModel]="l.descuentoUnitario"
                         (ngModelChange)="setLinea(i, 'descuentoUnitario', $event)"
-                        class="w-24 h-8 px-2 rounded border border-[#EEE3D1] text-sm
-                               focus:outline-none focus:border-[#C5A048]" />
+                        class="w-24 h-8 px-2 rounded border text-sm focus:outline-none"
+                        [class]="descuentoInvalido(l)
+                          ? 'border-red-400 focus:border-red-500'
+                          : 'border-[#EEE3D1] focus:border-[#C5A048]'" />
+                      @if (descuentoInvalido(l)) {
+                        <p class="text-[11px] text-red-500 mt-1 whitespace-nowrap">
+                          Máx. {{ monto(l.precioUnitario) }}
+                        </p>
+                      }
                     </td>
                     <td class="px-2 py-2 text-right font-medium text-[#2D2926] whitespace-nowrap">
                       {{ monto(subtotalLinea(l)) }}
@@ -239,10 +246,17 @@ export class VentaFormPage {
     return Math.max(0, (l.precioUnitario - l.descuentoUnitario) * l.cantidad);
   }
 
+  // Espejo de la validación del backend: descuentoUnitario <= precioVenta del catálogo.
+  descuentoInvalido(l: LineaEditable): boolean {
+    return l.descuentoUnitario > l.precioUnitario;
+  }
+
   puedeGuardar(): boolean {
     if (!this.codigoValido() || this.lineas().length === 0) return false;
     if (this.tipoVenta() === 'CARGO_HABITACION' && !this.estanciaId()) return false;
-    return this.lineas().every((l) => l.cantidad > 0 && l.precioUnitario >= 0);
+    return this.lineas().every(
+      (l) => l.cantidad > 0 && l.descuentoUnitario >= 0 && !this.descuentoInvalido(l),
+    );
   }
 
   guardar(): void {
