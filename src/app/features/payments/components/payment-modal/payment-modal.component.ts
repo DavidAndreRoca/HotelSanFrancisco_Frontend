@@ -175,7 +175,13 @@ export class PaymentModalComponent implements OnChanges {
 
   readonly montoError = signal<string | null>(null);
 
+  // Suma de pagos previos de la reserva (sin reembolsos). null = aún no cargada,
+  // en ese caso se usa ctx.adelanto como aproximación.
+  private readonly pagosPrevios = signal<number | null>(null);
+  private pagosCargadosDeReserva: number | null = null;
+
   ngOnChanges(): void {
+    this.cargarPagosPrevios();
     const p = this.payment();
     if (p) {
       this.form.patchValue({
@@ -212,10 +218,42 @@ export class PaymentModalComponent implements OnChanges {
       : `${base} border-[var(--color-border-soft)]`;
   }
 
-  private validarMonto(): boolean {
+  /** Trae los pagos reales de la reserva para calcular el saldo como lo hace el backend. */
+  private cargarPagosPrevios(): void {
     const ctx = this.context();
+    if (!this.open() || !ctx) {
+      this.pagosPrevios.set(null);
+      this.pagosCargadosDeReserva = null;
+      return;
+    }
+    if (this.pagosCargadosDeReserva === ctx.reservaId) return;
+    this.pagosCargadosDeReserva = ctx.reservaId;
+    this.pagosPrevios.set(null);
+    this.paymentService.findByReserva(ctx.reservaId).subscribe({
+      next: (pagos) => {
+        const editandoId = this.payment()?.pagoId ?? null;
+        const total = pagos
+          .filter((p) => p.tipoPago !== 'REEMBOLSO' && p.pagoId !== editandoId)
+          .reduce((s, p) => s + p.monto, 0);
+        this.pagosPrevios.set(Math.round(total * 100) / 100);
+      },
+      // Si falla, se queda en null y validarMonto usa ctx.adelanto como respaldo.
+      error: () => this.pagosPrevios.set(null),
+    });
+  }
+
+  private validarMonto(): boolean {
     const monto = Number(this.form.controls.monto.value);
-    const saldo = ctx ? ctx.montoTotal - ctx.adelanto : Number.POSITIVE_INFINITY;
+    // Un reembolso devuelve dinero; el tope de saldo pendiente no aplica.
+    if (this.form.controls.tipoPago.value === 'REEMBOLSO') {
+      const error = this.paymentService.validarMonto(monto, Number.POSITIVE_INFINITY);
+      this.montoError.set(error);
+      return !error;
+    }
+    const ctx = this.context();
+    const saldo = ctx
+      ? Math.max(0, ctx.montoTotal - (this.pagosPrevios() ?? ctx.adelanto))
+      : Number.POSITIVE_INFINITY;
     const error = this.paymentService.validarMonto(monto, saldo);
     this.montoError.set(error);
     return !error;
