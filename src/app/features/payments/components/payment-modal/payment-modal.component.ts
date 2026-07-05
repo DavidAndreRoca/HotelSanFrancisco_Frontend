@@ -99,6 +99,15 @@ import {
               @if (context()!.adelanto > 0) {
                 · Adelanto ya registrado: S/ {{ context()!.adelanto.toFixed(2) }}
               }
+              @if (saldoPendiente() !== null) {
+                · Saldo pendiente:
+                <button type="button"
+                  class="font-semibold text-[var(--color-primary-700)] hover:underline"
+                  title="Usar el saldo pendiente como monto"
+                  (click)="aplicarSaldoPendiente()">
+                  S/ {{ saldoPendiente()!.toFixed(2) }}
+                </button>
+              }
             </p>
           }
         </div>
@@ -180,6 +189,14 @@ export class PaymentModalComponent implements OnChanges {
   private readonly pagosPrevios = signal<number | null>(null);
   private pagosCargadosDeReserva: number | null = null;
 
+  /** Saldo pendiente de la reserva; null si no hay contexto. */
+  readonly saldoPendiente = computed(() => {
+    const ctx = this.context();
+    if (!ctx) return null;
+    const pagado = this.pagosPrevios() ?? ctx.adelanto;
+    return Math.max(0, Math.round((ctx.montoTotal - pagado) * 100) / 100);
+  });
+
   ngOnChanges(): void {
     this.cargarPagosPrevios();
     const p = this.payment();
@@ -203,6 +220,13 @@ export class PaymentModalComponent implements OnChanges {
 
   aplicarSugerenciaAdelanto(): void {
     this.form.controls.monto.setValue(this.sugerenciaAdelanto());
+    this.validarMonto();
+  }
+
+  aplicarSaldoPendiente(): void {
+    const saldo = this.saldoPendiente();
+    if (saldo === null) return;
+    this.form.controls.monto.setValue(saldo);
     this.validarMonto();
   }
 
@@ -250,10 +274,7 @@ export class PaymentModalComponent implements OnChanges {
       this.montoError.set(error);
       return !error;
     }
-    const ctx = this.context();
-    const saldo = ctx
-      ? Math.max(0, ctx.montoTotal - (this.pagosPrevios() ?? ctx.adelanto))
-      : Number.POSITIVE_INFINITY;
+    const saldo = this.saldoPendiente() ?? Number.POSITIVE_INFINITY;
     const error = this.paymentService.validarMonto(monto, saldo);
     this.montoError.set(error);
     return !error;
