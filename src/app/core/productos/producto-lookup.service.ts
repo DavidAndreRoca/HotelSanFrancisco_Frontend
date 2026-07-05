@@ -17,6 +17,11 @@ export class ProductoLookupService {
   private readonly api = inject(ApiClient);
 
   /** Productos activos por nombre (GET /api/v1/productos?nombre=&estado=ACTIVO). */
+  /** Producto puntual (GET /api/v1/productos/{id}); usado para refrescar precios. */
+  obtenerPorId(id: number): Observable<ProductoResumen> {
+    return this.api.get<ProductoResumen>(`/api/v1/productos/${id}`);
+  }
+
   buscarActivos(nombre: string): Observable<ProductoResumen[]> {
     return this.api
       .get<PageResponse<ProductoResumen>>('/api/v1/productos', {

@@ -10,8 +10,12 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
+import { catchError, forkJoin, of } from 'rxjs';
 import { AuthStore } from '../../../../core/auth/auth.store';
-import { ProductoResumen } from '../../../../core/productos/producto-lookup.service';
+import {
+  ProductoLookupService,
+  ProductoResumen,
+} from '../../../../core/productos/producto-lookup.service';
 import { ClienteResumen } from '../../../../core/clientes/cliente-lookup.service';
 import { ProductoSelectorComponent } from '../../../../shared/components/producto-selector/producto-selector.component';
 import { ClienteSelectorComponent } from '../../../../shared/components/cliente-selector/cliente-selector.component';
@@ -181,6 +185,7 @@ interface LineaEditable {
 })
 export class VentaFormPage {
   private readonly svc = inject(VentaService);
+  private readonly productoLookup = inject(ProductoLookupService);
   private readonly store = inject(AuthStore);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
@@ -268,6 +273,41 @@ export class VentaFormPage {
     }
 
     this.guardando.set(true);
+    // Refresca los precios del catálogo antes de enviar: el backend usará esos
+    // precios de todos modos, así el usuario confirma el total real.
+    forkJoin(
+      this.lineas().map((l) =>
+        this.productoLookup.obtenerPorId(l.productoId).pipe(catchError(() => of(null))),
+      ),
+    ).subscribe((productos) => {
+      const desactualizadas = this.lineas().filter((l) => {
+        const actual = productos.find((p) => p?.productoId === l.productoId);
+        return actual != null && actual.precioVenta !== l.precioUnitario;
+      });
+
+      if (desactualizadas.length > 0) {
+        this.lineas.update((ls) =>
+          ls.map((l) => {
+            const actual = productos.find((p) => p?.productoId === l.productoId);
+            return actual ? { ...l, precioUnitario: actual.precioVenta } : l;
+          }),
+        );
+        this.guardando.set(false);
+        this.toastr.warning(
+          'El catálogo cambió: se actualizaron los precios de ' +
+            desactualizadas.map((l) => l.productoNombre).join(', ') +
+            '. Revisa el total y vuelve a presionar "Crear venta".',
+          'Precios actualizados',
+        );
+        return;
+      }
+
+      this.enviarVenta();
+    });
+  }
+
+  private enviarVenta(): void {
+    const usuarioId = this.store.user()!.usuarioId;
     const payload: CreateVentaRequest = {
       codigoVenta: this.codigoVenta().trim(),
       tipoVenta: this.tipoVenta(),
