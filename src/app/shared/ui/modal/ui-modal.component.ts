@@ -86,7 +86,7 @@ export class UiModalComponent {
       lg: 'max-w-2xl',
       xl: 'max-w-4xl',
     };
-    return `w-full ${widths[this.size()]} p-0 bg-white rounded-2xl shadow-[var(--shadow-elevated)] border border-[var(--color-border-soft)] overflow-hidden animate-fade-in`;
+    return `m-auto w-full ${widths[this.size()]} p-0 bg-white rounded-2xl shadow-[var(--shadow-elevated)] border border-[var(--color-border-soft)] overflow-hidden animate-fade-in`;
   });
 
   /** Escape: el navegador dispara `cancel`; delegamos el cierre al padre. */
