@@ -7,7 +7,6 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { HabitacionService } from '../../services/habitacion.service';
 import { WebSocketService } from '../../../../core/websocket/websocket.service';
@@ -166,10 +165,11 @@ export class HabitacionDashboardComponent implements OnInit {
   ngOnInit(): void {
     this.service.load();
     this.ws
-      .subscribe<{ payload: { habitacionId: number; estado: string } }>(WS_TOPICS.habitaciones)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .onTopic<{ payload: { habitacionId: number; estado: string } }>(
+        WS_TOPICS.habitaciones,
+        this.destroyRef,
+      )
       .subscribe(() => this.service.load());
-    this.ws.autoDisposeOn(this.destroyRef);
   }
 
   toggleFiltroEstado(estado: EstadoHabitacion): void {

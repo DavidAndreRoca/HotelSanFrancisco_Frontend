@@ -1,4 +1,5 @@
 import { DestroyRef, Injectable, NgZone, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { Observable, Subject } from 'rxjs';
@@ -76,7 +77,12 @@ export class WebSocketService {
     });
   }
 
-  autoDisposeOn(destroyRef: DestroyRef): void {
-    destroyRef.onDestroy(() => this.disconnect());
+  /**
+   * Suscripción a un topic ya atada al ciclo de vida del componente.
+   * La conexión WS es única por sesión (ver AuthStore); aquí solo se libera
+   * la suscripción STOMP cuando el componente se destruye, sin tumbar el socket.
+   */
+  onTopic<T>(destination: string, destroyRef: DestroyRef): Observable<T> {
+    return this.subscribe<T>(destination).pipe(takeUntilDestroyed(destroyRef));
   }
 }

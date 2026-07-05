@@ -1,8 +1,11 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthUser } from './auth-user.interface';
+import { WebSocketService } from '../websocket/websocket.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthStore {
+  private readonly ws = inject(WebSocketService);
+
   private readonly _user = signal<AuthUser | null>(null);
   private readonly _ready = signal<boolean>(false);
 
@@ -15,6 +18,8 @@ export class AuthStore {
   setUser(user: AuthUser): void {
     this._user.set(user);
     this._ready.set(true);
+    // Una sola conexión WS por sesión; connect() es idempotente.
+    this.ws.connect();
   }
 
   markReady(): void {
@@ -24,6 +29,7 @@ export class AuthStore {
   clear(): void {
     this._user.set(null);
     this._ready.set(true);
+    this.ws.disconnect();
   }
 
   hasPermission(permission: string): boolean {
