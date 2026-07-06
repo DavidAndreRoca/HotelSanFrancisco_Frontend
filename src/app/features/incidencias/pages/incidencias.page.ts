@@ -1,5 +1,15 @@
-import { ChangeDetectionStrategy, Component, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  ViewChild,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { debounceTime } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component';
 import { UiCardComponent } from '../../../shared/ui/card/ui-card.component';
@@ -8,6 +18,8 @@ import { UiEmptyStateComponent } from '../../../shared/ui/empty-state/ui-empty-s
 import { UiSkeletonComponent } from '../../../shared/ui/skeleton/ui-skeleton.component';
 import { ConfirmDialogService } from '../../../shared/ui/confirm-dialog/confirm-dialog.service';
 import { AuthStore } from '../../../core/auth/auth.store';
+import { WebSocketService } from '../../../core/websocket/websocket.service';
+import { WS_TOPICS } from '../../../core/websocket/websocket-channels';
 import { IncidenciaFiltersComponent } from '../components/incidencia-filters/incidencia-filters.component';
 import { IncidenciaFormComponent } from '../components/incidencia-form/incidencia-form.component';
 import { IncidenciaService } from '../services/incidencia.service';
@@ -132,31 +144,39 @@ import {
               </div>
 
               <div class="flex sm:flex-col items-end gap-2 shrink-0">
-                <select
-                  class="h-9 px-2.5 rounded-lg border border-[var(--color-border-soft)] bg-white text-[12px] focus:outline-none focus:border-[var(--color-primary-500)] cursor-pointer"
-                  [value]="inc.estado"
-                  (change)="onCambiarEstado(inc, $any($event.target).value)"
-                  [attr.aria-label]="'Cambiar estado de ' + inc.descripcion">
-                  <option value="ABIERTA">Abierta</option>
-                  <option value="EN_PROCESO">En proceso</option>
-                  <option value="RESUELTA">Resuelta</option>
-                  <option value="CERRADA">Cerrada</option>
-                </select>
+                @if (puedeCambiarEstado()) {
+                  <select
+                    class="h-9 px-2.5 rounded-lg border border-[var(--color-border-soft)] bg-white text-[12px] focus:outline-none focus:border-[var(--color-primary-500)] cursor-pointer"
+                    [value]="inc.estado"
+                    (change)="onCambiarEstado(inc, $any($event.target).value)"
+                    [attr.aria-label]="'Cambiar estado de ' + inc.descripcion">
+                    <option value="ABIERTA">Abierta</option>
+                    <option value="EN_PROCESO">En proceso</option>
+                    <option value="RESUELTA">Resuelta</option>
+                    <option value="CERRADA">Cerrada</option>
+                  </select>
+                }
 
-                <div class="flex gap-2">
-                  <button
-                    type="button"
-                    class="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[var(--color-border-soft)] hover:border-[var(--color-primary-500)] hover:text-[var(--color-primary-700)] transition-colors"
-                    (click)="onEdit(inc)">
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    class="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[var(--color-border-soft)] hover:border-[var(--color-danger-500)] hover:text-[var(--color-danger-500)] transition-colors"
-                    (click)="onDelete(inc)">
-                    Eliminar
-                  </button>
-                </div>
+                @if (puedeEditar() || puedeEliminar()) {
+                  <div class="flex gap-2">
+                    @if (puedeEditar()) {
+                      <button
+                        type="button"
+                        class="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[var(--color-border-soft)] hover:border-[var(--color-primary-500)] hover:text-[var(--color-primary-700)] transition-colors"
+                        (click)="onEdit(inc)">
+                        Editar
+                      </button>
+                    }
+                    @if (puedeEliminar()) {
+                      <button
+                        type="button"
+                        class="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[var(--color-border-soft)] hover:border-[var(--color-danger-500)] hover:text-[var(--color-danger-500)] transition-colors"
+                        (click)="onDelete(inc)">
+                        Eliminar
+                      </button>
+                    }
+                  </div>
+                }
               </div>
             </div>
           </ui-card>
@@ -184,8 +204,15 @@ export class IncidenciasPage implements OnInit {
   private readonly toastr = inject(ToastrService);
   private readonly confirm = inject(ConfirmDialogService);
   private readonly auth = inject(AuthStore);
+  private readonly ws = inject(WebSocketService);
+  private readonly destroyRef = inject(DestroyRef);
 
   @ViewChild('formCmp') private formCmp?: IncidenciaFormComponent;
+
+  // RECEPCION solo tiene incidencia:read + create; el resto es exclusivo de ADMIN.
+  readonly puedeEditar = computed(() => this.auth.hasPermission('incidencia:update'));
+  readonly puedeCambiarEstado = computed(() => this.auth.hasPermission('incidencia:change-status'));
+  readonly puedeEliminar = computed(() => this.auth.hasPermission('incidencia:delete'));
 
   readonly filters = signal<IncidenciaUiFilters>({ ...DEFAULT_INCIDENCIA_FILTERS });
   readonly formOpen = signal(false);
@@ -224,6 +251,10 @@ export class IncidenciasPage implements OnInit {
 
   ngOnInit(): void {
     this.service.load();
+    this.ws
+      .onTopic<unknown>(WS_TOPICS.incidencias, this.destroyRef)
+      .pipe(debounceTime(300))
+      .subscribe(() => this.service.load());
   }
 
   estadoCfg(inc: Incidencia) {

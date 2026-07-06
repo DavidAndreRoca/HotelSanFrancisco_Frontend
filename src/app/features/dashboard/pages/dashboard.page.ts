@@ -7,7 +7,6 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AuthStore } from '../../../core/auth/auth.store';
@@ -235,7 +234,6 @@ export class DashboardPage implements OnInit {
   ngOnInit(): void {
     this.roomsService.load({ size: 50 });
     this.subscribeReservas();
-    this.ws.autoDisposeOn(this.destroyRef);
   }
 
   refresh(): void {
@@ -244,10 +242,10 @@ export class DashboardPage implements OnInit {
 
   private subscribeReservas(): void {
     this.ws
-      .subscribe<{ type: string; entity: string; payload: ReservaWsPayload; timestamp: string }>(
+      .onTopic<{ type: string; entity: string; payload: ReservaWsPayload; timestamp: string }>(
         WS_TOPICS.reservas,
+        this.destroyRef,
       )
-      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((event) => {
         if (!event?.payload) return;
         this.activity.update((list) =>

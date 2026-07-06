@@ -1,6 +1,19 @@
-import { ChangeDetectionStrategy, Component, OnInit, ViewChild, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  ViewChild,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
+import { debounceTime } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
+import { AuthStore } from '../../../core/auth/auth.store';
+import { WebSocketService } from '../../../core/websocket/websocket.service';
+import { WS_TOPICS } from '../../../core/websocket/websocket-channels';
 import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component';
 import { UiCardComponent } from '../../../shared/ui/card/ui-card.component';
 import { UiBadgeComponent } from '../../../shared/ui/badge/ui-badge.component';
@@ -47,12 +60,14 @@ const PAGE_SIZE = 15;
           Registro de compras a proveedores y reposición de stock.
         </p>
       </div>
-      <ui-button (click)="onCreate()">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-          <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
-        </svg>
-        Nueva compra
-      </ui-button>
+      @if (puedeCrear()) {
+        <ui-button (click)="onCreate()">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
+          </svg>
+          Nueva compra
+        </ui-button>
+      }
     </header>
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -103,7 +118,9 @@ const PAGE_SIZE = 15;
         icon="▣"
         title="No se encontraron compras"
         description="Ajusta los filtros o registra una nueva compra para reponer inventario.">
-        <ui-button (click)="onCreate()">Registrar primera compra</ui-button>
+        @if (puedeCrear()) {
+          <ui-button (click)="onCreate()">Registrar primera compra</ui-button>
+        }
       </ui-empty-state>
     } @else {
       <div class="space-y-3">
@@ -140,20 +157,24 @@ const PAGE_SIZE = 15;
                 </div>
                 <div class="flex gap-2 flex-wrap justify-end">
                   @if (c.estado === 'PENDIENTE') {
-                    <button
-                      type="button"
-                      class="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[var(--color-success-500)] text-[var(--color-success-500)] hover:bg-[var(--color-success-500)]/10 transition-colors"
-                      (click)="onRecibir(c)">
-                      Recibir
-                    </button>
-                    <button
-                      type="button"
-                      class="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[var(--color-border-soft)] hover:border-[var(--color-primary-500)] hover:text-[var(--color-primary-700)] transition-colors"
-                      (click)="onEdit(c)">
-                      Editar
-                    </button>
+                    @if (puedeCambiarEstado()) {
+                      <button
+                        type="button"
+                        class="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[var(--color-success-500)] text-[var(--color-success-500)] hover:bg-[var(--color-success-500)]/10 transition-colors"
+                        (click)="onRecibir(c)">
+                        Recibir
+                      </button>
+                    }
+                    @if (puedeEditar()) {
+                      <button
+                        type="button"
+                        class="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[var(--color-border-soft)] hover:border-[var(--color-primary-500)] hover:text-[var(--color-primary-700)] transition-colors"
+                        (click)="onEdit(c)">
+                        Editar
+                      </button>
+                    }
                   }
-                  @if (c.estado !== 'ANULADA') {
+                  @if (c.estado !== 'ANULADA' && puedeCambiarEstado()) {
                     <button
                       type="button"
                       class="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[var(--color-border-soft)] hover:border-[var(--color-danger-500)] hover:text-[var(--color-danger-500)] transition-colors"
@@ -161,7 +182,7 @@ const PAGE_SIZE = 15;
                       Anular
                     </button>
                   }
-                  @if (c.estado === 'PENDIENTE' || c.estado === 'ANULADA') {
+                  @if ((c.estado === 'PENDIENTE' || c.estado === 'ANULADA') && puedeEliminar()) {
                     <button
                       type="button"
                       class="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[var(--color-border-soft)] hover:border-[var(--color-danger-500)] hover:text-[var(--color-danger-500)] transition-colors"
@@ -213,8 +234,16 @@ export class PurchasesPage implements OnInit {
   protected readonly service = inject(PurchaseService);
   private readonly toastr = inject(ToastrService);
   private readonly confirm = inject(ConfirmDialogService);
+  private readonly auth = inject(AuthStore);
+  private readonly ws = inject(WebSocketService);
+  private readonly destroyRef = inject(DestroyRef);
 
   @ViewChild('formCmp') private formCmp?: PurchaseFormComponent;
+
+  readonly puedeCrear = computed(() => this.auth.hasPermission('compra:create'));
+  readonly puedeEditar = computed(() => this.auth.hasPermission('compra:update'));
+  readonly puedeCambiarEstado = computed(() => this.auth.hasPermission('compra:change-status'));
+  readonly puedeEliminar = computed(() => this.auth.hasPermission('compra:delete'));
 
   readonly filters = signal<CompraFilters>({ ...DEFAULT_COMPRA_FILTERS });
   readonly pageIndex = signal(0);
@@ -224,6 +253,10 @@ export class PurchasesPage implements OnInit {
   ngOnInit(): void {
     this.cargar();
     this.service.loadStats();
+    this.ws
+      .onTopic<unknown>(WS_TOPICS.compras, this.destroyRef)
+      .pipe(debounceTime(300))
+      .subscribe(() => this.refrescar());
   }
 
   private cargar(): void {

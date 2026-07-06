@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   computed,
   inject,
   signal,
@@ -8,10 +9,12 @@ import {
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
-import { catchError, of } from 'rxjs';
+import { catchError, debounceTime, of } from 'rxjs';
 import { ServicioService } from '../../services/servicio.service';
 import { TipoServicioService } from '../../services/tipo-servicio.service';
 import { AuthStore } from '../../../../core/auth/auth.store';
+import { WebSocketService } from '../../../../core/websocket/websocket.service';
+import { WS_TOPICS } from '../../../../core/websocket/websocket-channels';
 import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
 import { PageResponse } from '../../../../core/api/api-response.interface';
 import {
@@ -222,6 +225,8 @@ export class ServiciosListaPage {
   private readonly store = inject(AuthStore);
   private readonly toastr = inject(ToastrService);
   private readonly confirm = inject(ConfirmDialogService);
+  private readonly ws = inject(WebSocketService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = signal(true);
   readonly page = signal<PageResponse<ServicioResponse> | null>(null);
@@ -252,6 +257,10 @@ export class ServiciosListaPage {
       .pipe(catchError(() => of([] as TipoServicioResponse[])))
       .subscribe((t) => this.tipos.set(t));
     this.cargar();
+    this.ws
+      .onTopic<unknown>(WS_TOPICS.servicios, this.destroyRef)
+      .pipe(debounceTime(300))
+      .subscribe(() => this.cargar());
   }
 
   private cargar(): void {

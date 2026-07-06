@@ -3,7 +3,9 @@ export const WS_TOPICS = {
   habitaciones: '/topic/habitaciones',
   incidencias: '/topic/incidencias',
   pagos: '/topic/pagos',
-  notificaciones: '/topic/notificaciones',
+  // Cola personal por usuario (Spring resuelve el prefijo /user/ a la sesión
+  // autenticada), no un broadcast: cada huésped recibe solo sus notificaciones.
+  notificaciones: '/user/queue/notificaciones',
   asistencia: '/topic/asistencia',
   nomina: '/topic/nomina',
   compras: '/topic/compras',

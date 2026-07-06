@@ -6,8 +6,8 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { debounceTime } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { HabitacionService } from '../../services/habitacion.service';
 import { WebSocketService } from '../../../../core/websocket/websocket.service';
@@ -102,10 +102,9 @@ export class LimpiezaPage implements OnInit {
   ngOnInit(): void {
     this.reload();
     this.ws
-      .subscribe<unknown>(WS_TOPICS.habitaciones)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .onTopic<unknown>(WS_TOPICS.habitaciones, this.destroyRef)
+      .pipe(debounceTime(300))
       .subscribe(() => this.reload());
-    this.ws.autoDisposeOn(this.destroyRef);
   }
 
   reload(): void {

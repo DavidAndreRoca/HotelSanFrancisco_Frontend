@@ -5,6 +5,11 @@ import { usuariosGuard } from './features/usuarios/guards/usuarios.guard';
 import { rolesGuard } from './features/roles/guards/roles.guard';
 import { serviciosGuard, tiposServicioGuard } from './features/servicios/guards/servicios.guard';
 import { posGuard, ventaCreateGuard } from './features/pos/guards/pos.guard';
+import { incidenciasGuard } from './features/incidencias/guards/incidencias.guard';
+import { productsGuard } from './features/products/guards/products.guard';
+import { purchasesGuard } from './features/purchases/guards/purchases.guard';
+import { nominaGuard } from './features/nomina/guards/nomina.guard';
+import { asistenciaGuard } from './features/asistencia/guards/asistencia.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -245,18 +250,21 @@ export const routes: Routes = [
       },
       {
         path: 'products',
+        canActivate: [productsGuard],
         loadComponent: () =>
           import('./features/products/pages/products.page').then((m) => m.ProductsPage),
         title: 'Productos · Hotel San Francisco',
       },
       {
         path: 'purchases',
+        canActivate: [purchasesGuard],
         loadComponent: () =>
           import('./features/purchases/pages/purchases.page').then((m) => m.PurchasesPage),
         title: 'Compras · Hotel San Francisco',
       },
       {
         path: 'incidencias',
+        canActivate: [incidenciasGuard],
         loadComponent: () =>
           import('./features/incidencias/pages/incidencias.page').then((m) => m.IncidenciasPage),
         title: 'Incidencias · Hotel San Francisco',
@@ -339,6 +347,24 @@ export const routes: Routes = [
             (m) => m.VentaDetallePage,
           ),
         title: 'Detalle de venta · Hotel San Francisco',
+      },
+      {
+        path: 'nomina',
+        canActivate: [nominaGuard],
+        loadComponent: () =>
+          import('./features/nomina/pages/nomina-lista/nomina-lista.page').then(
+            (m) => m.NominaListaPage,
+          ),
+        title: 'Nómina · Hotel San Francisco',
+      },
+      {
+        path: 'asistencia',
+        canActivate: [asistenciaGuard],
+        loadComponent: () =>
+          import('./features/asistencia/pages/asistencia-lista/asistencia-lista.page').then(
+            (m) => m.AsistenciaListaPage,
+          ),
+        title: 'Asistencia · Hotel San Francisco',
       },
       {
         path: 'solicitudes',
