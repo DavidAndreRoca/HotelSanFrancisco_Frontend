@@ -1,14 +1,17 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   computed,
   inject,
   signal,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { catchError, map, of } from 'rxjs';
+import { catchError, debounceTime, map, of } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { ApiClient } from '../../../../core/http/http-client.service';
+import { WebSocketService } from '../../../../core/websocket/websocket.service';
+import { WS_TOPICS } from '../../../../core/websocket/websocket-channels';
 import { NotificacionHuesped, TipoNotificacion } from '../../models/notification.model';
 
 interface GrupoNotificacion {
@@ -249,6 +252,8 @@ const PAGE_SIZE = 4;
 export class NotificationsListPage {
   private readonly api = inject(ApiClient);
   private readonly toastr = inject(ToastrService);
+  private readonly ws = inject(WebSocketService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = signal(true);
   readonly marcando = signal(false);
@@ -306,6 +311,11 @@ export class NotificationsListPage {
 
   constructor() {
     this.load();
+    // Cola personal del huésped: cada notificación nueva refresca la bandeja.
+    this.ws
+      .onTopic<unknown>(WS_TOPICS.notificaciones, this.destroyRef)
+      .pipe(debounceTime(300))
+      .subscribe(() => this.load());
   }
 
   private load(): void {

@@ -1,13 +1,17 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   computed,
   inject,
   signal,
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { debounceTime } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { NominaService } from '../../services/nomina.service';
+import { WebSocketService } from '../../../../core/websocket/websocket.service';
+import { WS_TOPICS } from '../../../../core/websocket/websocket-channels';
 import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
 import { EmpleadoSelectorComponent } from '../../../../shared/components/empleado-selector/empleado-selector.component';
 import { UsuarioResumen } from '../../../../core/usuarios/usuario-lookup.service';
@@ -230,6 +234,8 @@ export class NominaListaPage {
   private readonly svc = inject(NominaService);
   private readonly toastr = inject(ToastrService);
   private readonly confirm = inject(ConfirmDialogService);
+  private readonly ws = inject(WebSocketService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = signal(true);
   readonly page = signal<PageResponse<PagoNominaResponse> | null>(null);
@@ -251,6 +257,10 @@ export class NominaListaPage {
 
   constructor() {
     this.cargar();
+    this.ws
+      .onTopic<unknown>(WS_TOPICS.nomina, this.destroyRef)
+      .pipe(debounceTime(300))
+      .subscribe(() => this.cargar());
   }
 
   private cargar(): void {

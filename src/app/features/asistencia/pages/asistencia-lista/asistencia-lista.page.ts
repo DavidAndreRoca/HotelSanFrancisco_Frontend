@@ -1,15 +1,18 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   computed,
   inject,
   signal,
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { EMPTY, Subject, catchError, switchMap } from 'rxjs';
+import { EMPTY, Subject, catchError, debounceTime, switchMap } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { AsistenciaService } from '../../services/asistencia.service';
+import { WebSocketService } from '../../../../core/websocket/websocket.service';
+import { WS_TOPICS } from '../../../../core/websocket/websocket-channels';
 import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
 import { EmpleadoSelectorComponent } from '../../../../shared/components/empleado-selector/empleado-selector.component';
 import { UsuarioResumen } from '../../../../core/usuarios/usuario-lookup.service';
@@ -231,6 +234,8 @@ export class AsistenciaListaPage {
   private readonly svc = inject(AsistenciaService);
   private readonly toastr = inject(ToastrService);
   private readonly confirm = inject(ConfirmDialogService);
+  private readonly ws = inject(WebSocketService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = signal(true);
   readonly page = signal<PageResponse<AsistenciaResponse> | null>(null);
@@ -279,6 +284,10 @@ export class AsistenciaListaPage {
         this.loading.set(false);
       });
     this.cargar();
+    this.ws
+      .onTopic<unknown>(WS_TOPICS.asistencia, this.destroyRef)
+      .pipe(debounceTime(300))
+      .subscribe(() => this.cargar());
   }
 
   private construirFiltros(): AsistenciaFilterRequest {

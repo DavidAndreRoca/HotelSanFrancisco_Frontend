@@ -8,6 +8,8 @@ import { posGuard, ventaCreateGuard } from './features/pos/guards/pos.guard';
 import { incidenciasGuard } from './features/incidencias/guards/incidencias.guard';
 import { productsGuard } from './features/products/guards/products.guard';
 import { purchasesGuard } from './features/purchases/guards/purchases.guard';
+import { nominaGuard } from './features/nomina/guards/nomina.guard';
+import { asistenciaGuard } from './features/asistencia/guards/asistencia.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -345,6 +347,24 @@ export const routes: Routes = [
             (m) => m.VentaDetallePage,
           ),
         title: 'Detalle de venta · Hotel San Francisco',
+      },
+      {
+        path: 'nomina',
+        canActivate: [nominaGuard],
+        loadComponent: () =>
+          import('./features/nomina/pages/nomina-lista/nomina-lista.page').then(
+            (m) => m.NominaListaPage,
+          ),
+        title: 'Nómina · Hotel San Francisco',
+      },
+      {
+        path: 'asistencia',
+        canActivate: [asistenciaGuard],
+        loadComponent: () =>
+          import('./features/asistencia/pages/asistencia-lista/asistencia-lista.page').then(
+            (m) => m.AsistenciaListaPage,
+          ),
+        title: 'Asistencia · Hotel San Francisco',
       },
       {
         path: 'solicitudes',

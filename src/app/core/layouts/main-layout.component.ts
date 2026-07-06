@@ -312,6 +312,13 @@ export class MainLayoutComponent {
       ],
     },
     {
+      title: 'Personal',
+      items: [
+        { label: 'Nómina',     icon: 'card',   link: '/nomina',     permiso: 'nomina:read' },
+        { label: 'Asistencia', icon: 'idcard', link: '/asistencia', permiso: 'asistencia:read' },
+      ],
+    },
+    {
       title: 'Administración',
       items: [
         { label: 'Empleados', icon: 'idcard', link: '/employees' },
