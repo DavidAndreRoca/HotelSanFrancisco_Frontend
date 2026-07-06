@@ -7,6 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { debounceTime } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { HabitacionService } from '../../services/habitacion.service';
 import { WebSocketService } from '../../../../core/websocket/websocket.service';
@@ -102,6 +103,7 @@ export class LimpiezaPage implements OnInit {
     this.reload();
     this.ws
       .onTopic<unknown>(WS_TOPICS.habitaciones, this.destroyRef)
+      .pipe(debounceTime(300))
       .subscribe(() => this.reload());
   }
 

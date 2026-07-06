@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { debounceTime } from 'rxjs';
 import { HabitacionService } from '../../services/habitacion.service';
 import { WebSocketService } from '../../../../core/websocket/websocket.service';
 import { WS_TOPICS } from '../../../../core/websocket/websocket-channels';
@@ -169,6 +170,7 @@ export class HabitacionDashboardComponent implements OnInit {
         WS_TOPICS.habitaciones,
         this.destroyRef,
       )
+      .pipe(debounceTime(300))
       .subscribe(() => this.service.load());
   }
 

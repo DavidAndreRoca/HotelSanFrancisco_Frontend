@@ -1,7 +1,17 @@
 // features/payments/pages/payments-dashboard/payments-dashboard.component.ts
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  inject,
+  signal,
+} from '@angular/core';
+import { debounceTime } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { PaymentService } from '../../services/payment.service';
+import { WebSocketService } from '../../../../core/websocket/websocket.service';
+import { WS_TOPICS } from '../../../../core/websocket/websocket-channels';
 import { PaymentStatsComponent } from '../../components/payment-stats/payment-stats.component';
 import { PaymentFiltersComponent } from '../../components/payment-filters/payment-filters.component';
 import { PaymentTableComponent } from '../../components/payment-table/payment-table.component';
@@ -98,6 +108,8 @@ export class PaymentsDashboardComponent implements OnInit {
   readonly paymentService = inject(PaymentService);
   private readonly toastr = inject(ToastrService);
   private readonly confirmDialog = inject(ConfirmDialogService);
+  private readonly ws = inject(WebSocketService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly filters = signal<PaymentFilters>({ ...DEFAULT_PAYMENT_FILTERS });
   readonly modalOpen = signal(false);
@@ -108,6 +120,10 @@ export class PaymentsDashboardComponent implements OnInit {
   ngOnInit(): void {
     this.refresh();
     this.paymentService.loadMetodos();
+    this.ws
+      .onTopic<unknown>(WS_TOPICS.pagos, this.destroyRef)
+      .pipe(debounceTime(300))
+      .subscribe(() => this.refresh());
   }
 
   private refresh(): void {

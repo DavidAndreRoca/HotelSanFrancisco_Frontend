@@ -5,6 +5,7 @@ import { usuariosGuard } from './features/usuarios/guards/usuarios.guard';
 import { rolesGuard } from './features/roles/guards/roles.guard';
 import { serviciosGuard, tiposServicioGuard } from './features/servicios/guards/servicios.guard';
 import { posGuard, ventaCreateGuard } from './features/pos/guards/pos.guard';
+import { incidenciasGuard } from './features/incidencias/guards/incidencias.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -257,6 +258,7 @@ export const routes: Routes = [
       },
       {
         path: 'incidencias',
+        canActivate: [incidenciasGuard],
         loadComponent: () =>
           import('./features/incidencias/pages/incidencias.page').then((m) => m.IncidenciasPage),
         title: 'Incidencias · Hotel San Francisco',
