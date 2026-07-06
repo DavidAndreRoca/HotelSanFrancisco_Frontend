@@ -35,21 +35,7 @@ import { CreateIncidenciaPayload, Incidencia, PrioridadIncidencia } from '../../
           </p>
         </div>
 
-        <div class="grid sm:grid-cols-3 gap-4">
-          <div>
-            <label for="fechaReporte" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
-              Fecha de reporte <span class="text-[var(--color-danger-500)]">*</span>
-            </label>
-            <input
-              id="fechaReporte"
-              type="date"
-              formControlName="fechaReporte"
-              [class]="inputCls(form.controls.fechaReporte)" />
-            @if (errMsg('fechaReporte'); as msg) {
-              <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">{{ msg }}</p>
-            }
-          </div>
-
+        <div class="grid sm:grid-cols-2 gap-4">
           <div>
             <label for="prioridad" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
               Prioridad <span class="text-[var(--color-danger-500)]">*</span>
@@ -122,7 +108,6 @@ export class IncidenciaFormComponent implements OnInit {
 
   readonly form = this.fb.nonNullable.group({
     descripcion: ['', [Validators.required, Validators.maxLength(500)]],
-    fechaReporte: [this.todayIso(), [Validators.required]],
     prioridad: ['MEDIA' as PrioridadIncidencia, [Validators.required]],
     reservaHabitacionId: [null as number | null],
     solucion: [''],
@@ -136,16 +121,11 @@ export class IncidenciaFormComponent implements OnInit {
     this.applyEditing();
   }
 
-  private todayIso(): string {
-    return new Date().toISOString().slice(0, 10);
-  }
-
   applyEditing(): void {
     const edit = this.editing();
     if (edit) {
       this.form.patchValue({
         descripcion: edit.descripcion,
-        fechaReporte: edit.fechaReporte,
         prioridad: edit.prioridad,
         reservaHabitacionId: edit.reservaHabitacionId,
         solucion: edit.solucion ?? '',
@@ -153,7 +133,6 @@ export class IncidenciaFormComponent implements OnInit {
     } else {
       this.form.reset({
         descripcion: '',
-        fechaReporte: this.todayIso(),
         prioridad: 'MEDIA',
         reservaHabitacionId: null,
         solucion: '',
@@ -198,7 +177,6 @@ export class IncidenciaFormComponent implements OnInit {
 
     const payload: CreateIncidenciaPayload = {
       descripcion: v.descripcion.trim(),
-      fechaReporte: v.fechaReporte,
       prioridad: v.prioridad,
       usuarioId: this.currentUserId(),
       reservaHabitacionId: v.reservaHabitacionId ?? undefined,
