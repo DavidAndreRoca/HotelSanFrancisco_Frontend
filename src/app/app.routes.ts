@@ -6,6 +6,8 @@ import { rolesGuard } from './features/roles/guards/roles.guard';
 import { serviciosGuard, tiposServicioGuard } from './features/servicios/guards/servicios.guard';
 import { posGuard, ventaCreateGuard } from './features/pos/guards/pos.guard';
 import { incidenciasGuard } from './features/incidencias/guards/incidencias.guard';
+import { productsGuard } from './features/products/guards/products.guard';
+import { purchasesGuard } from './features/purchases/guards/purchases.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -246,12 +248,14 @@ export const routes: Routes = [
       },
       {
         path: 'products',
+        canActivate: [productsGuard],
         loadComponent: () =>
           import('./features/products/pages/products.page').then((m) => m.ProductsPage),
         title: 'Productos · Hotel San Francisco',
       },
       {
         path: 'purchases',
+        canActivate: [purchasesGuard],
         loadComponent: () =>
           import('./features/purchases/pages/purchases.page').then((m) => m.PurchasesPage),
         title: 'Compras · Hotel San Francisco',

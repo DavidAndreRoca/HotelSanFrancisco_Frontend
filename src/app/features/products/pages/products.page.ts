@@ -1,6 +1,19 @@
-import { ChangeDetectionStrategy, Component, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  ViewChild,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
+import { debounceTime } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
+import { AuthStore } from '../../../core/auth/auth.store';
+import { WebSocketService } from '../../../core/websocket/websocket.service';
+import { WS_TOPICS } from '../../../core/websocket/websocket-channels';
 import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component';
 import { UiCardComponent } from '../../../shared/ui/card/ui-card.component';
 import { UiBadgeComponent } from '../../../shared/ui/badge/ui-badge.component';
@@ -43,12 +56,14 @@ import {
           Catálogo de insumos, amenities y artículos de minibar del hotel.
         </p>
       </div>
-      <ui-button (click)="onCreate()">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-          <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
-        </svg>
-        Nuevo producto
-      </ui-button>
+      @if (puedeCrear()) {
+        <ui-button (click)="onCreate()">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
+          </svg>
+          Nuevo producto
+        </ui-button>
+      }
     </header>
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -99,7 +114,9 @@ import {
         icon="◈"
         title="No se encontraron productos"
         description="Ajusta los filtros o registra un nuevo producto en el catálogo.">
-        <ui-button (click)="onCreate()">Crear primer producto</ui-button>
+        @if (puedeCrear()) {
+          <ui-button (click)="onCreate()">Crear primer producto</ui-button>
+        }
       </ui-empty-state>
     } @else {
       <div class="bg-white rounded-2xl border border-[var(--color-border-soft)] overflow-hidden">
@@ -146,20 +163,30 @@ import {
                     </ui-badge>
                   </td>
                   <td class="px-4 py-3">
-                    <div class="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        class="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[var(--color-border-soft)] hover:border-[var(--color-primary-500)] hover:text-[var(--color-primary-700)] transition-colors"
-                        (click)="onEdit(p)">
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        class="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[var(--color-border-soft)] hover:border-[var(--color-danger-500)] hover:text-[var(--color-danger-500)] transition-colors"
-                        (click)="onDelete(p)">
-                        Eliminar
-                      </button>
-                    </div>
+                    @if (puedeEditar() || puedeEliminar()) {
+                      <div class="flex justify-end gap-2">
+                        @if (puedeEditar()) {
+                          <button
+                            type="button"
+                            class="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[var(--color-border-soft)] hover:border-[var(--color-primary-500)] hover:text-[var(--color-primary-700)] transition-colors"
+                            (click)="onEdit(p)">
+                            Editar
+                          </button>
+                        }
+                        @if (puedeEliminar()) {
+                          <button
+                            type="button"
+                            class="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[var(--color-border-soft)] hover:border-[var(--color-danger-500)] hover:text-[var(--color-danger-500)] transition-colors"
+                            (click)="onDelete(p)">
+                            Eliminar
+                          </button>
+                        }
+                      </div>
+                    } @else {
+                      <div class="flex justify-end">
+                        <span class="text-[12px] text-[var(--color-ink-muted)]">—</span>
+                      </div>
+                    }
                   </td>
                 </tr>
               }
@@ -189,8 +216,16 @@ export class ProductsPage implements OnInit {
   protected readonly service = inject(ProductService);
   private readonly toastr = inject(ToastrService);
   private readonly confirm = inject(ConfirmDialogService);
+  private readonly auth = inject(AuthStore);
+  private readonly ws = inject(WebSocketService);
+  private readonly destroyRef = inject(DestroyRef);
 
   @ViewChild('formCmp') private formCmp?: ProductFormComponent;
+
+  // CAJA solo tiene producto:read; crear/editar/eliminar es de ADMIN e INVENTARIO.
+  readonly puedeCrear = computed(() => this.auth.hasPermission('producto:create'));
+  readonly puedeEditar = computed(() => this.auth.hasPermission('producto:update'));
+  readonly puedeEliminar = computed(() => this.auth.hasPermission('producto:delete'));
 
   readonly filters = signal<ProductoFilters>({ ...DEFAULT_PRODUCTO_FILTERS });
   readonly formOpen = signal(false);
@@ -221,6 +256,10 @@ export class ProductsPage implements OnInit {
 
   ngOnInit(): void {
     this.service.load();
+    this.ws
+      .onTopic<unknown>(WS_TOPICS.inventario, this.destroyRef)
+      .pipe(debounceTime(300))
+      .subscribe(() => this.service.load());
   }
 
   stockClass(p: Producto): string {
