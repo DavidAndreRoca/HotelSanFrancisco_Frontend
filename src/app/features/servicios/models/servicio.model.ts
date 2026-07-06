@@ -116,8 +116,8 @@ export interface UpdateServicioRequest {
 export interface ServicioFilterRequest {
   tipoServicioId?: number;
   estanciaId?: number;
-  fechaConsumoDesde?: string;
-  fechaConsumoHasta?: string;
+  fechaConsumoDesde?: string; // fecha sola YYYY-MM-DD
+  fechaConsumoHasta?: string; // fecha sola YYYY-MM-DD (día completo, inclusivo)
   subtotalMin?: number;
   subtotalMax?: number;
   page?: number;

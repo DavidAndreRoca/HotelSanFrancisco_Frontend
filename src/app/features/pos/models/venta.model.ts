@@ -67,8 +67,8 @@ export interface VentaFilterRequest {
   usuarioId?: number;
   estanciaId?: number;
   huespedId?: number;
-  fechaVentaDesde?: string;
-  fechaVentaHasta?: string;
+  fechaVentaDesde?: string; // fecha sola YYYY-MM-DD
+  fechaVentaHasta?: string; // fecha sola YYYY-MM-DD (día completo, inclusivo)
   montoTotalMin?: number;
   montoTotalMax?: number;
   page?: number;
