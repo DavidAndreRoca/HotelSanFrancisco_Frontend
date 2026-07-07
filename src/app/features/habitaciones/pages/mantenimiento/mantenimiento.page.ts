@@ -253,7 +253,6 @@ export class MantenimientoPage implements OnInit {
 
     this.incidenciaService.create({
       descripcion: v.descripcion,
-      fechaReporte: new Date().toISOString().slice(0, 10),
       prioridad: v.prioridad as PrioridadIncidencia,
       usuarioId,
       reservaHabitacionId: v.reservaHabitacionId ?? undefined,

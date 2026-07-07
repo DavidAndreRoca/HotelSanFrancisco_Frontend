@@ -124,8 +124,8 @@ export interface SolicitudFilterRequest {
   moduloReferido?: ModuloReferido;
   solicitanteId?: number;
   responsableId?: number;
-  fechaRegistroDesde?: string; // ISO LocalDateTime
-  fechaRegistroHasta?: string;
+  fechaRegistroDesde?: string; // fecha sola YYYY-MM-DD
+  fechaRegistroHasta?: string; // fecha sola YYYY-MM-DD (día completo, inclusivo)
   page?: number;
   size?: number;
   sort?: string;

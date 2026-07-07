@@ -18,7 +18,6 @@ export interface Incidencia {
 
 export interface CreateIncidenciaPayload {
   descripcion: string;
-  fechaReporte: string;
   prioridad: PrioridadIncidencia;
   usuarioId: number;
   reservaHabitacionId?: number;

@@ -268,8 +268,8 @@ export class ServiciosListaPage {
     const filtros: ServicioFilterRequest = {
       tipoServicioId: this.fTipo() ? Number(this.fTipo()) : undefined,
       estanciaId: this.fEstancia() ? Number(this.fEstancia()) : undefined,
-      fechaConsumoDesde: this.fDesde() ? `${this.fDesde()}T00:00:00` : undefined,
-      fechaConsumoHasta: this.fHasta() ? `${this.fHasta()}T23:59:59` : undefined,
+      fechaConsumoDesde: this.fDesde() || undefined,
+      fechaConsumoHasta: this.fHasta() || undefined,
       page: this.pageIndex(),
       size: PAGE_SIZE,
       sort: 'fechaConsumo,desc',

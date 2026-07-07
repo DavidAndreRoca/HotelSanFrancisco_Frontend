@@ -43,7 +43,10 @@ export class WebSocketService {
     let stompSub: StompSubscription | undefined;
 
     const tryBind = () => {
-      if (!this.client?.active) return;
+      // `connected` (no `active`): tras activate() el cliente ya está "active"
+      // pero el frame STOMP CONNECTED aún no llegó, y subscribe() lanzaría
+      // "There is no underlying STOMP connection".
+      if (!this.client?.connected) return;
       stompSub = this.client.subscribe(destination, (msg: IMessage) => {
         try {
           const payload = msg.body ? (JSON.parse(msg.body) as T) : (null as unknown as T);
@@ -54,9 +57,12 @@ export class WebSocketService {
       });
     };
 
-    if (this.client?.active) {
+    if (this.client?.connected) {
+      // Ya conectado (navegaciones posteriores): enlazar de inmediato.
       tryBind();
     } else {
+      // Sin conexión o aún conectando: asegurar el cliente y diferir el bind
+      // al CONNECTED, encadenando el onConnect previo para no pisar otras subs.
       this.connect();
       const orig = this.client?.onConnect;
       if (this.client) {
