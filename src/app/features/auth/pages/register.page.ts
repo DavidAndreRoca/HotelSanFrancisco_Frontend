@@ -504,14 +504,16 @@ export class RegisterComponent implements OnInit {
       contrasena: v.contrasena,
     };
 
+    const correo = payload.correo;
     this.loading.set(true);
     this.auth.register(payload).subscribe({
-      next: (user) => {
+      next: (res) => {
         this.loading.set(false);
-        this.toastr.success(`Bienvenido, ${user.nombre}. Tu cuenta fue creada.`);
-        // El registro público crea un CLIENTE: lo llevamos a su panel, no al de admin.
-        const destino = user.rol === 'CLIENTE' ? '/dashboard-cliente' : '/dashboard';
-        this.router.navigateByUrl(destino);
+        // El registro ya no inicia sesión: hay que verificar el correo primero.
+        this.toastr.success(
+          res.message || 'Registro completado. Te enviamos un código de verificación a tu correo.',
+        );
+        this.router.navigate(['/verificar-correo'], { queryParams: { correo } });
       },
       error: (err: HttpErrorResponse & { friendlyMessage?: string }) => {
         this.loading.set(false);

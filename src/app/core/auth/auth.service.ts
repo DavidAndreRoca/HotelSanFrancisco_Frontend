@@ -14,8 +14,11 @@ import {
   PerfilUsuarioResponse,
   PublicDocumentType,
   RegisterRequest,
+  RegisterResponseBody,
+  ResendVerificationRequest,
   ResetPasswordRequest,
   UpdatePerfilRequest,
+  VerifyEmailRequest,
 } from './auth-user.interface';
 
 @Injectable({ providedIn: 'root' })
@@ -30,11 +33,34 @@ export class AuthService {
     );
   }
 
-  register(payload: RegisterRequest): Observable<AuthUser> {
-    return this.api.post<LoginResponseBody, RegisterRequest>('/auth/register', payload).pipe(
-      map((res) => res.user),
-      tap((user) => this.store.setUser(user)),
-    );
+  /**
+   * Registro con verificación de correo obligatoria: ya NO inicia sesión.
+   * Devuelve el mensaje del backend; el usuario debe verificar su correo antes
+   * de poder loguearse. No se setean cookies ni se toca el store.
+   */
+  register(payload: RegisterRequest): Observable<RegisterResponseBody> {
+    return this.api.post<RegisterResponseBody, RegisterRequest>('/auth/register', payload);
+  }
+
+  /** Confirma la cuenta con el código de 6 dígitos enviado por correo. No inicia sesión. */
+  verifyEmail(payload: VerifyEmailRequest): Observable<void> {
+    return this.api.post<void, VerifyEmailRequest>('/auth/verify-email', payload);
+  }
+
+  /**
+   * Reenvía el código de verificación (invalida el anterior). Siempre responde 200.
+   * Devuelve el `message` neutro del backend (vive en el sobre, no en `data`).
+   */
+  resendVerification(payload: ResendVerificationRequest): Observable<string> {
+    return this.api
+      .postFull<void, ResendVerificationRequest>('/auth/resend-verification', payload)
+      .pipe(
+        map(
+          (res) =>
+            res.message ??
+            'Si existe una cuenta sin verificar con ese correo, recibirás un nuevo código.',
+        ),
+      );
   }
 
   getDocumentTypes(): Observable<readonly PublicDocumentType[]> {
