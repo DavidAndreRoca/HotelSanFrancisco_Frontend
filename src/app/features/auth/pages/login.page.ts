@@ -138,6 +138,32 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
               }
             </div>
 
+            @if (needsVerification()) {
+              <div
+                class="rounded-lg border border-[var(--color-warning-500)]/40 bg-[var(--color-warning-500)]/10 p-4 text-[14px] leading-relaxed"
+                role="alert"
+              >
+                <p class="text-[var(--color-ink)]">{{ verificationMessage() }}</p>
+                <div class="mt-3 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    class="text-[13px] font-medium text-[var(--color-primary-700)] hover:underline"
+                    (click)="goToVerify()"
+                  >
+                    Verificar mi correo →
+                  </button>
+                  <button
+                    type="button"
+                    class="text-[13px] font-medium text-[var(--color-primary-700)] hover:underline disabled:opacity-50 disabled:no-underline"
+                    [disabled]="resending()"
+                    (click)="resendCode()"
+                  >
+                    {{ resending() ? 'Enviando…' : 'Reenviar código' }}
+                  </button>
+                </div>
+              </div>
+            }
+
             <ui-button type="submit" [block]="true" [loading]="loading()" [disabled]="form.invalid">
               Iniciar sesión
             </ui-button>
@@ -166,6 +192,9 @@ export class LoginPage {
 
   readonly loading = signal(false);
   readonly showPassword = signal(false);
+  readonly needsVerification = signal(false);
+  readonly verificationMessage = signal('');
+  readonly resending = signal(false);
 
   readonly form = this.fb.nonNullable.group({
     correo: ['', [Validators.required, Validators.email, Validators.maxLength(150)]],
@@ -204,6 +233,7 @@ export class LoginPage {
       return;
     }
 
+    this.needsVerification.set(false);
     this.loading.set(true);
     this.auth.login(this.form.getRawValue()).subscribe({
       next: (user) => {
@@ -220,12 +250,48 @@ export class LoginPage {
 
         this.router.navigateByUrl(targetUrl);
       },
-      error: (err) => {
+      error: (err: HttpErrorResponse & { friendlyMessage?: string; code?: string }) => {
         this.loading.set(false);
+
+        // Correo sin verificar: no son credenciales inválidas. Ofrecemos verificar/reenviar.
+        if (err.status === 403 && err.code === 'EMAIL_NOT_VERIFIED') {
+          this.needsVerification.set(true);
+          this.verificationMessage.set(
+            err.friendlyMessage ??
+              'Debes verificar tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.',
+          );
+          return;
+        }
+
         this.toastr.error(
           err.friendlyMessage ?? 'Credenciales inválidas.',
           'No se pudo iniciar sesión',
         );
+      },
+    });
+  }
+
+  goToVerify(): void {
+    this.router.navigate(['/verificar-correo'], {
+      queryParams: { correo: this.form.getRawValue().correo },
+    });
+  }
+
+  resendCode(): void {
+    const correo = this.form.getRawValue().correo;
+    if (!correo) {
+      this.toastr.warning('Ingresa tu correo primero.');
+      return;
+    }
+    this.resending.set(true);
+    this.auth.resendVerification({ correo }).subscribe({
+      next: (message) => {
+        this.resending.set(false);
+        this.toastr.info(message);
+        this.goToVerify();
+      },
+      error: () => {
+        this.resending.set(false);
       },
     });
   }

@@ -40,6 +40,13 @@ export const routes: Routes = [
         title: 'Registro · Hotel San Francisco',
       },
       {
+        path: 'verificar-correo',
+        canActivate: [publicOnlyGuard],
+        loadComponent: () =>
+          import('./features/auth/pages/verify-email.page').then((m) => m.VerifyEmailPage),
+        title: 'Verifica tu cuenta · Hotel San Francisco',
+      },
+      {
         path: 'recuperar-contrasena',
         canActivate: [publicOnlyGuard],
         loadComponent: () =>

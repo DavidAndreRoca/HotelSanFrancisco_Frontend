@@ -31,6 +31,19 @@ export class ApiClient {
       .pipe(map((res) => this.unwrap(res)));
   }
 
+  /**
+   * POST que devuelve el sobre `ApiResponse` completo (no solo `data`).
+   * Útil cuando el texto para el usuario viaja en `message` y `data` es null
+   * (ej. reenvío de verificación).
+   */
+  postFull<T, B = unknown>(
+    path: string,
+    body: B,
+    options: RequestOptions = {},
+  ): Observable<ApiResponse<T>> {
+    return this.http.post<ApiResponse<T>>(this.url(path), body, this.opts(options));
+  }
+
   put<T, B = unknown>(path: string, body: B, options: RequestOptions = {}): Observable<T> {
     return this.http
       .put<ApiResponse<T>>(this.url(path), body, this.opts(options))

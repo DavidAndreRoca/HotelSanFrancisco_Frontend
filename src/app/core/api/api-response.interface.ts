@@ -7,8 +7,13 @@ export interface ApiResponse<T> {
 
 export interface ApiErrorBody {
   success: false;
+  /** Código de negocio del backend (ej. EMAIL_NOT_VERIFIED, BUSINESS_ERROR, VALIDATION_ERROR). */
+  code?: string | null;
   message: string;
   errors?: Record<string, string[] | string> | null;
+  /** Errores por campo en validaciones @Valid (code === "VALIDATION_ERROR"). */
+  fieldErrors?: Record<string, string> | null;
+  path?: string | null;
   status?: number;
   timestamp?: string;
 }

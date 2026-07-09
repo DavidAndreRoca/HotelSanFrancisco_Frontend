@@ -130,6 +130,28 @@ export interface DashboardClienteResponse {
   estadias: DashboardReservaItem[];
 }
 
+/**
+ * Respuesta de POST /auth/register tras activar la verificación de correo obligatoria.
+ * `user` es null (no hay sesión) y `message` trae el texto para el usuario.
+ */
+export interface RegisterResponseBody {
+  success: boolean;
+  message: string;
+  user: AuthUser | null;
+  timestamp: string;
+}
+
+/** Body de POST /auth/verify-email. */
+export interface VerifyEmailRequest {
+  correo: string;
+  codigo: string;
+}
+
+/** Body de POST /auth/resend-verification. */
+export interface ResendVerificationRequest {
+  correo: string;
+}
+
 export interface RegisterRequest {
   nombre: string;
   apellidoPaterno: string;
