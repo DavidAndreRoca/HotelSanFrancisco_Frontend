@@ -14,12 +14,15 @@ import {
   ValidationErrors,
   Validators,
 } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { merge } from 'rxjs';
 import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../core/auth/auth.service';
 import { PublicDocumentType, RegisterRequest } from '../../../core/auth/auth-user.interface';
 import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component';
+import { UiDatePickerComponent } from '../../../shared/ui/date-picker/ui-date-picker.component';
 import { DniLookupComponent } from '../../../shared/components/dni-lookup/dni-lookup.component';
 import { ReniecPersona } from '../../../core/reniec/reniec.service';
 
@@ -32,7 +35,13 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
 @Component({
   selector: 'app-register',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, UiButtonComponent, DniLookupComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    UiButtonComponent,
+    UiDatePickerComponent,
+    DniLookupComponent,
+  ],
   template: `
     <div class="min-h-screen grid lg:grid-cols-[1.1fr_1.4fr] bg-[var(--color-surface)]">
       <!-- IMAGEN -->
@@ -153,6 +162,13 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
               }
             </div>
 
+            @if (nombresBloqueados()) {
+              <p class="flex items-center gap-1.5 text-xs text-[var(--color-ink-muted)] -mt-2">
+                <span aria-hidden="true">🔒</span>
+                Nombres verificados con RENIEC. Para editarlos, cambia el número de documento.
+              </p>
+            }
+
             <!-- Documento -->
             <div class="grid sm:grid-cols-[170px_1fr] gap-4">
               <div>
@@ -255,13 +271,13 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
                 >
                   Fecha de nacimiento
                 </label>
-                <input
-                  id="fechaNacimiento"
-                  type="date"
-                  formControlName="fechaNacimiento"
-                  [max]="todayIso"
-                  [class]="cls(form.controls.fechaNacimiento)"
-                />
+                <div class="mt-1.5">
+                  <ui-date-picker
+                    id="fechaNacimiento"
+                    formControlName="fechaNacimiento"
+                    [max]="todayIso"
+                  />
+                </div>
                 @if (errorMsg('fechaNacimiento'); as msg) {
                   <p class="text-xs text-[var(--color-danger-500)] mt-1.5" role="alert">
                     {{ msg }}
@@ -408,6 +424,17 @@ export class RegisterComponent implements OnInit {
     { validators: passwordMatchValidator },
   );
 
+  constructor() {
+    // Si cambian el documento (número o tipo), los datos de RENIEC dejan de ser
+    // válidos: se desbloquean los nombres para permitir una nueva búsqueda.
+    merge(
+      this.form.controls.numeroDocumento.valueChanges,
+      this.form.controls.tipoDocumentoId.valueChanges,
+    )
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.desbloquearNombres());
+  }
+
   readonly showMismatch = computed(() => {
     const c = this.form.controls.confirmarContrasena;
     return this.form.hasError('passwordMismatch') && (c.dirty || c.touched);
@@ -429,12 +456,33 @@ export class RegisterComponent implements OnInit {
     return this.documentTypes().find((t) => t.tipoDocumentoId === id)?.acronimo === 'DNI';
   }
 
+  /** Los nombres provienen de RENIEC (datos oficiales) y quedan bloqueados. */
+  readonly nombresBloqueados = signal(false);
+
   onReniec(p: ReniecPersona): void {
     this.form.patchValue({
       nombre: p.nombres,
       apellidoPaterno: p.apellidoPaterno,
       apellidoMaterno: p.apellidoMaterno,
     });
+    this.bloquearNombres();
+  }
+
+  private bloquearNombres(): void {
+    this.form.controls.nombre.disable();
+    this.form.controls.apellidoPaterno.disable();
+    this.form.controls.apellidoMaterno.disable();
+    this.nombresBloqueados.set(true);
+  }
+
+  private desbloquearNombres(): void {
+    if (!this.nombresBloqueados()) return;
+    // Los datos ya no corresponden al documento: se limpian y se habilitan.
+    this.form.patchValue({ nombre: '', apellidoPaterno: '', apellidoMaterno: '' });
+    this.form.controls.nombre.enable();
+    this.form.controls.apellidoPaterno.enable();
+    this.form.controls.apellidoMaterno.enable();
+    this.nombresBloqueados.set(false);
   }
 
   ngOnInit(): void {
@@ -476,7 +524,7 @@ export class RegisterComponent implements OnInit {
 
   cls(control: AbstractControl | FormControl): string {
     const base =
-      'w-full h-11 px-3.5 rounded-lg border bg-white text-[15px] placeholder:text-[var(--color-ink-muted)] focus:outline-none transition-all mt-1.5';
+      'w-full h-11 px-3.5 rounded-lg border bg-white text-[15px] placeholder:text-[var(--color-ink-muted)] focus:outline-none transition-all mt-1.5 disabled:bg-[var(--color-surface)] disabled:text-[var(--color-ink-muted)] disabled:cursor-not-allowed';
     const invalid = control.invalid && (control.touched || control.dirty);
     return invalid
       ? `${base} border-[var(--color-danger-500)] focus:ring-2 focus:ring-[var(--color-danger-500)]/30`
