@@ -1,8 +1,10 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component';
+import { UiDatePickerComponent } from '../../../shared/ui/date-picker/ui-date-picker.component';
 import { RoomTypesService } from '../../rooms/services/room-types.service';
 import { RoomType } from '../../rooms/models/room-type.model';
 
@@ -24,7 +26,7 @@ interface Service {
 @Component({
   selector: 'app-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, ReactiveFormsModule, UiButtonComponent],
+  imports: [RouterLink, ReactiveFormsModule, UiButtonComponent, UiDatePickerComponent],
   templateUrl: './home.page.html',
 })
 export class HomeComponent implements OnInit {
@@ -38,6 +40,11 @@ export class HomeComponent implements OnInit {
     checkOut: ['', Validators.required],
     guests: ['2', Validators.required],
   });
+
+  private readonly checkInValue = toSignal(this.searchForm.controls.checkIn.valueChanges, {
+    initialValue: this.searchForm.controls.checkIn.value,
+  });
+  readonly minCheckOut = computed(() => this.checkInValue() || '');
 
   readonly roomTypes = this.roomTypesSvc.items;
   readonly loadingRooms = this.roomTypesSvc.loading;

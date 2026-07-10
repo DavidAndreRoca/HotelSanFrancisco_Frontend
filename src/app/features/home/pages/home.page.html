@@ -1,7 +1,7 @@
 <!-- HERO -->
 <section
   id="home"
-  class="relative min-h-[88vh] flex flex-col overflow-hidden bg-[var(--color-ink)] text-white"
+  class="relative min-h-[88vh] flex flex-col bg-[var(--color-ink)] text-white"
 >
   <div
     class="absolute inset-0 bg-cover bg-center"
@@ -105,7 +105,7 @@
     <form
       [formGroup]="searchForm"
       (ngSubmit)="onSearch()"
-      class="mt-10 bg-white/95 backdrop-blur rounded-2xl p-4 md:p-5 grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-3 shadow-2xl"
+      class="mt-10 bg-white rounded-2xl p-4 md:p-5 grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-3 shadow-2xl"
       aria-label="Buscar disponibilidad"
     >
       <div class="flex flex-col">
@@ -114,12 +114,7 @@
           class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] mb-1"
           >Entrada</label
         >
-        <input
-          id="checkIn"
-          type="date"
-          formControlName="checkIn"
-          class="h-11 text-black px-3 rounded-lg border border-[var(--color-border-soft)] text-[15px] focus:outline-none focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-500)]/25"
-        />
+        <ui-date-picker id="checkIn" formControlName="checkIn" />
       </div>
       <div class="flex flex-col">
         <label
@@ -127,12 +122,7 @@
           class="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted)] mb-1"
           >Salida</label
         >
-        <input
-          id="checkOut"
-          type="date"
-          formControlName="checkOut"
-          class="h-11 text-black px-3 rounded-lg border border-[var(--color-border-soft)] text-[15px] focus:outline-none focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-500)]/25"
-        />
+        <ui-date-picker id="checkOut" formControlName="checkOut" [min]="minCheckOut()" />
       </div>
       <div class="flex flex-col">
         <label
@@ -151,7 +141,16 @@
           <option value="4">4 adultos</option>
         </select>
       </div>
-      <ui-button type="submit" size="lg" class="self-center">Buscar</ui-button>
+      <div class="flex flex-col">
+        <span
+          class="hidden md:block text-[11px] uppercase tracking-wider mb-1 invisible"
+          aria-hidden="true"
+          >Buscar</span
+        >
+        <ui-button type="submit" size="md" [block]="true" class="w-full md:w-auto"
+          >Buscar</ui-button
+        >
+      </div>
     </form>
   </div>
 </section>
