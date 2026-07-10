@@ -7,12 +7,14 @@ import { ToastrService } from 'ngx-toastr';
 import { AuthStore } from '../../../../core/auth/auth.store';
 import { MisReservasService } from '../../services/mis-reservas.service';
 import { ReservationDetailComponent } from '../../components/reservation-detail/reservation-detail.component';
+import { EditarAcompanantesModalComponent } from '../../components/editar-acompanantes-modal/editar-acompanantes-modal.component';
 import { CancelarModalComponent } from '../../components/cancelar-modal/cancelar-modal.component';
 import {
   ReservationFormComponent,
   ReservaFormSaveEvent,
 } from '../../components/reservation-form/reservation-form.component';
 import {
+  Acompanante,
   CancelarReservaPayload,
   CreateReservaPayload,
   EstadoReserva,
@@ -33,7 +35,7 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
 @Component({
   selector: 'app-mis-reservas',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DecimalPipe, ReservationDetailComponent, CancelarModalComponent, ReservationFormComponent],
+  imports: [DecimalPipe, ReservationDetailComponent, EditarAcompanantesModalComponent, CancelarModalComponent, ReservationFormComponent],
   template: `
     <div class="space-y-6">
 
@@ -291,7 +293,15 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
       [loading]="detailLoading()"
       [modoCliente]="true"
       (onClose)="detailAbierto.set(false)"
+      (onEditarAcompanantes)="abrirEditarAcompanantes()"
       (onCancelar)="iniciarCancelacionById($event)" />
+
+    <app-editar-acompanantes-modal
+      [isOpen]="editarAcompAbierto()"
+      [reserva]="reservaDetalle()"
+      [saving]="savingAcomp()"
+      (onClose)="editarAcompAbierto.set(false)"
+      (onSave)="guardarAcompanantes($event)" />
 
     <app-cancelar-modal
       [isOpen]="cancelarAbierto()"
@@ -327,6 +337,8 @@ export class MisReservasComponent {
   readonly cancelarAbierto  = signal(false);
   readonly reservaACancelar = signal<Reserva | null>(null);
   readonly formAbierto      = signal(false);
+  readonly editarAcompAbierto = signal(false);
+  readonly savingAcomp        = signal(false);
 
   constructor() {
     this.cargar();
@@ -521,6 +533,34 @@ export class MisReservasComponent {
       },
       error: (err: HttpErrorResponse & { friendlyMessage?: string }) => {
         this.toastr.error(err.friendlyMessage ?? 'No se pudo crear la reserva.', 'Error');
+      },
+    });
+  }
+
+  // ── Editar acompañantes ──────────────────────────────────────────────────────
+
+  abrirEditarAcompanantes(): void {
+    // Se abre sobre el detalle ya cargado (reservaDetalle); mantenemos el detalle
+    // abierto detrás para volver a él tras guardar.
+    if (this.reservaDetalle()) this.editarAcompAbierto.set(true);
+  }
+
+  guardarAcompanantes(acompanantes: Acompanante[]): void {
+    const reserva = this.reservaDetalle();
+    if (!reserva) return;
+    this.savingAcomp.set(true);
+    this.misSvc.actualizarAcompanantes(reserva.reservaId, acompanantes).subscribe({
+      next: (actualizada) => {
+        this.savingAcomp.set(false);
+        this.editarAcompAbierto.set(false);
+        // La respuesta trae la reserva con huespedes[] repoblado: refrescamos el detalle.
+        this.reservaDetalle.set(actualizada);
+        this.toastr.success('Acompañantes actualizados.');
+        this.cargar();
+      },
+      error: (err: HttpErrorResponse & { friendlyMessage?: string }) => {
+        this.savingAcomp.set(false);
+        this.toastr.error(err.friendlyMessage ?? 'No se pudieron actualizar los acompañantes.', 'Error');
       },
     });
   }
