@@ -18,7 +18,12 @@ export interface ReservaHabitacion {
 export interface DetalleHuesped {
   huespedId: number;
   nombreCompleto: string;
+  /** Campos partidos (para pre-llenar la edición de acompañantes sin adivinar). */
+  nombre: string;
+  apellidoPaterno: string;
+  apellidoMaterno: string | null;
   numeroDocumento: string;
+  nacionalidad: string | null;
   correo: string | null;
   telefono: string | null;
   esPrincipal: boolean;
@@ -94,6 +99,21 @@ export interface HuespedReservaPayload {
   esPrincipal: boolean;
 }
 
+/**
+ * Acompañante de una reserva de cliente: huésped sin cuenta (p. ej. un hijo).
+ * El titular NO se incluye aquí; el backend lo deriva del JWT y lo marca principal.
+ * El backend reutiliza un acompañante existente por `numeroDocumento`.
+ */
+export interface Acompanante {
+  nombre: string; // requerido, máx 80
+  apellidoPaterno: string; // requerido, máx 80
+  apellidoMaterno?: string; // opcional, máx 80
+  numeroDocumento: string; // requerido, máx 20
+  nacionalidad?: string; // opcional, máx 60
+  correo?: string; // opcional, email válido, máx 150
+  telefono?: string; // opcional, máx 20
+}
+
 export interface CreateReservaPayload {
   fechaInicio: string;
   fechaFin: string;
@@ -109,6 +129,8 @@ export interface CreateReservaPayload {
   canalId?: number | null;
   habitaciones: ReservaHabitacionPayload[];
   huespedes: HuespedReservaPayload[];
+  /** Acompañantes sin cuenta (solo cliente). Se puede omitir o enviar []. */
+  acompanantes?: Acompanante[];
   forzar?: boolean;
 }
 
@@ -124,6 +146,13 @@ export interface UpdateReservaPayload {
   canalId?: number | null;
   habitaciones?: ReservaHabitacionPayload[];
   huespedes?: HuespedReservaPayload[];
+  /**
+   * Acompañantes sin cuenta (staff). Según el modo:
+   * - Solo `acompanantes`: preserva el titular y REEMPLAZA (borra) los demás
+   *   no-principales por esta lista. Modo destructivo con huéspedes-por-id.
+   * - Con `huespedes`: se fusionan como no-principales (dedup por documento).
+   */
+  acompanantes?: Acompanante[];
 }
 
 export interface CambiarEstadoPayload {

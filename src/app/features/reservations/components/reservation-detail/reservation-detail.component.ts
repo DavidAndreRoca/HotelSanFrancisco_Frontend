@@ -191,10 +191,19 @@ const HAB_ESTADO: Record<EstadoReservaHabitacion, string> = {
 
             <!-- Huéspedes -->
             <section>
-              <p class="text-[10px] uppercase tracking-[0.25em] font-semibold text-[#C5A048]
-                         pb-2 mb-3 border-b border-[#EEE3D1]">
-                Huéspedes
-              </p>
+              <div class="flex items-center justify-between pb-2 mb-3 border-b border-[#EEE3D1]">
+                <p class="text-[10px] uppercase tracking-[0.25em] font-semibold text-[#C5A048]">
+                  Huéspedes
+                </p>
+                @if (puedeEditarAcompanantes()) {
+                  <button type="button" (click)="onEditarAcompanantes.emit(reserva()!.reservaId)"
+                    class="h-7 px-2.5 rounded-lg border border-[#EEE3D1] text-[11px] font-semibold
+                           text-[#8E6F2E] bg-[#FFF8E1] hover:bg-[#C5A048] hover:text-white
+                           hover:border-[#C5A048] transition-colors">
+                    Editar acompañantes
+                  </button>
+                }
+              </div>
               <div class="space-y-2">
                 @for (h of reserva()!.huespedes; track h.huespedId) {
                   <div class="flex items-center gap-3 p-3 bg-white rounded-xl border transition-colors"
@@ -210,6 +219,11 @@ const HAB_ESTADO: Record<EstadoReservaHabitacion, string> = {
                           <span class="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-bold
                                        bg-[#FFF8E1] text-[#C5A048] border border-[#FDE68A]">
                             Principal
+                          </span>
+                        } @else {
+                          <span class="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-semibold
+                                       bg-[#F9F5F0] text-[#8E6F2E] border border-[#EEE3D1]">
+                            Acompañante
                           </span>
                         }
                       </div>
@@ -325,9 +339,16 @@ export class ReservationDetailComponent {
 
   onClose    = output<void>();
   onEditar   = output<number>();
+  onEditarAcompanantes = output<number>();
   onCheckIn  = output<number>();
   onCheckOut = output<number>();
   onCancelar = output<number>();
+
+  /** El cliente puede editar acompañantes solo en estados PENDIENTE/CONFIRMADA. */
+  readonly puedeEditarAcompanantes = computed(() => {
+    const e = this.reserva()?.estado;
+    return this.modoCliente() && (e === 'PENDIENTE' || e === 'CONFIRMADA');
+  });
 
   readonly reserva = computed(() => {
     const preload = this.reservaData();

@@ -10,13 +10,13 @@ import {
   signal,
 } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { DisponibilidadService, HabitacionDisponible } from '../../services/disponibilidad.service';
 import { ClienteService } from '../../../clients/services/cliente.service';
 import { AuthStore } from '../../../../core/auth/auth.store';
-import { Reserva, CreateReservaPayload, UpdateReservaPayload, ModalidadPago } from '../../models/reservation.model';
+import { Acompanante, Reserva, CreateReservaPayload, UpdateReservaPayload, ModalidadPago } from '../../models/reservation.model';
 import { Cliente, CreateClientePayload } from '../../../clients/models/cliente.model';
 
 export interface ReservaFormSaveEvent {
@@ -343,6 +343,115 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                       seleccionar huéspedes.
                     </p>
                   </div>
+
+                  <!-- Acompañantes: huéspedes sin cuenta (p. ej. un hijo). El titular es automático. -->
+                  <div>
+                    <div class="flex items-center justify-between mb-2">
+                      <p class="text-[11px] uppercase tracking-wider text-[#C5A048] font-semibold">
+                        Acompañantes
+                      </p>
+                      @if (maxAcompanantes() > 0) {
+                        <span class="text-[11px] text-[#2D2926]/50">
+                          Puedes agregar hasta {{ maxAcompanantes() }}
+                          acompañante{{ maxAcompanantes() !== 1 ? 's' : '' }}
+                        </span>
+                      }
+                    </div>
+
+                    @for (grupo of acompanantesCtrls(); track $index) {
+                      <div [formGroup]="grupo"
+                           class="bg-white border border-[#EEE3D1] rounded-xl p-4 mb-3 space-y-3">
+                        <div class="flex items-center justify-between">
+                          <p class="text-xs font-semibold text-[#8E6F2E]">
+                            Acompañante {{ $index + 1 }}
+                          </p>
+                          <button type="button" (click)="quitarAcompanante($index)"
+                            class="w-7 h-7 rounded-lg flex items-center justify-center
+                                   text-red-400 hover:bg-red-50 transition-colors"
+                            aria-label="Eliminar acompañante">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="2.5">
+                              <path stroke-linecap="round" d="M18 6 6 18M6 6l12 12"/>
+                            </svg>
+                          </button>
+                        </div>
+
+                        <div class="grid sm:grid-cols-2 gap-3">
+                          <div>
+                            <label class="text-[13px] font-medium text-[#2D2926]/70">
+                              Nombre <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" formControlName="nombre" maxlength="80" placeholder="Juan"
+                              [class]="icAcomp($index, 'nombre')" />
+                          </div>
+                          <div>
+                            <label class="text-[13px] font-medium text-[#2D2926]/70">
+                              Apellido paterno <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" formControlName="apellidoPaterno" maxlength="80" placeholder="Pérez"
+                              [class]="icAcomp($index, 'apellidoPaterno')" />
+                          </div>
+                        </div>
+
+                        <div class="grid sm:grid-cols-2 gap-3">
+                          <div>
+                            <label class="text-[13px] font-medium text-[#2D2926]/70">Apellido materno</label>
+                            <input type="text" formControlName="apellidoMaterno" maxlength="80" placeholder="Quispe"
+                              [class]="icAcomp($index, 'apellidoMaterno')" />
+                          </div>
+                          <div>
+                            <label class="text-[13px] font-medium text-[#2D2926]/70">
+                              N° documento <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" formControlName="numeroDocumento" maxlength="20" placeholder="71234567"
+                              [class]="icAcomp($index, 'numeroDocumento')" />
+                          </div>
+                        </div>
+
+                        <div class="grid sm:grid-cols-2 gap-3">
+                          <div>
+                            <label class="text-[13px] font-medium text-[#2D2926]/70">Nacionalidad</label>
+                            <input type="text" formControlName="nacionalidad" maxlength="60" placeholder="Peruana"
+                              [class]="icAcomp($index, 'nacionalidad')" />
+                          </div>
+                          <div>
+                            <label class="text-[13px] font-medium text-[#2D2926]/70">Correo</label>
+                            <input type="email" formControlName="correo" maxlength="150" placeholder="correo@ejemplo.com"
+                              [class]="icAcomp($index, 'correo')" />
+                            @if (invAcomp($index, 'correo')) {
+                              <p class="text-xs text-red-500 mt-1">Correo no válido.</p>
+                            }
+                          </div>
+                        </div>
+
+                        <div class="grid sm:grid-cols-2 gap-3">
+                          <div>
+                            <label class="text-[13px] font-medium text-[#2D2926]/70">Teléfono</label>
+                            <input type="tel" formControlName="telefono" maxlength="20" placeholder="987 654 321"
+                              [class]="icAcomp($index, 'telefono')" />
+                          </div>
+                        </div>
+                      </div>
+                    }
+
+                    @if (maxAcompanantes() === 0) {
+                      <p class="text-[11px] text-[#2D2926]/50">
+                        Esta reserva es para 1 persona; no puedes agregar acompañantes.
+                      </p>
+                    } @else {
+                      <button type="button" (click)="agregarAcompanante()"
+                        [disabled]="acompanantes.length >= maxAcompanantes()"
+                        class="w-full h-10 rounded-xl border-2 border-dashed border-[#C5A048] text-[#C5A048]
+                               text-sm font-semibold hover:bg-[#FFF8E1] transition-colors
+                               flex items-center justify-center gap-2
+                               disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                          <path stroke-linecap="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                        </svg>
+                        Agregar acompañante
+                      </button>
+                    }
+                  </div>
                 }
 
                 @if (!esCliente()) {
@@ -508,7 +617,8 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                   Volver
                 </button>
                 <button type="button" (click)="avanzarPaso()"
-                  [disabled]="!esCliente() && huespedesSeleccionados().length === 0"
+                  [disabled]="(!esCliente() && huespedesSeleccionados().length === 0)
+                              || (esCliente() && acompanantes.invalid)"
                   class="h-9 px-5 rounded-xl bg-[#C5A048] text-white text-sm font-semibold
                          hover:bg-[#8E6F2E] transition-colors disabled:opacity-50 flex items-center gap-2">
                   Continuar
@@ -721,6 +831,102 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                   </select>
                 </div>
 
+                <!-- Acompañantes (staff): reemplazan a los huéspedes no-principales. -->
+                <div class="pt-2 border-t border-[#EEE3D1]">
+                  <div class="flex items-center justify-between mb-1">
+                    <p class="text-[11px] uppercase tracking-wider text-[#C5A048] font-semibold">
+                      Acompañantes
+                    </p>
+                    @if (maxAcompanantes() > 0) {
+                      <span class="text-[11px] text-[#2D2926]/50">
+                        Hasta {{ maxAcompanantes() }} (1 titular + acompañantes ≤ huéspedes)
+                      </span>
+                    }
+                  </div>
+                  <p class="text-[11px] text-[#2D2926]/50 mb-3">
+                    Los acompañantes que quites de esta lista se eliminarán de la reserva al guardar.
+                  </p>
+
+                  @for (grupo of acompanantesCtrls(); track $index) {
+                    <div [formGroup]="grupo" class="bg-[#F9F5F0] border border-[#EEE3D1] rounded-xl p-3 mb-3 space-y-3">
+                      <div class="flex items-center justify-between">
+                        <p class="text-xs font-semibold text-[#8E6F2E]">Acompañante {{ $index + 1 }}</p>
+                        <button type="button" (click)="quitarAcompanante($index); acompanantes.markAsDirty()"
+                          class="w-7 h-7 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-50 transition-colors"
+                          aria-label="Eliminar acompañante">
+                          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" d="M18 6 6 18M6 6l12 12"/>
+                          </svg>
+                        </button>
+                      </div>
+                      <div class="grid sm:grid-cols-2 gap-3">
+                        <div>
+                          <label class="text-[13px] font-medium text-[#2D2926]/70">
+                            Nombre <span class="text-red-500">*</span>
+                          </label>
+                          <input type="text" formControlName="nombre" maxlength="80" placeholder="Ana"
+                            [class]="icAcomp($index, 'nombre')" />
+                        </div>
+                        <div>
+                          <label class="text-[13px] font-medium text-[#2D2926]/70">
+                            Apellido paterno <span class="text-red-500">*</span>
+                          </label>
+                          <input type="text" formControlName="apellidoPaterno" maxlength="80" placeholder="Gómez"
+                            [class]="icAcomp($index, 'apellidoPaterno')" />
+                        </div>
+                      </div>
+                      <div class="grid sm:grid-cols-2 gap-3">
+                        <div>
+                          <label class="text-[13px] font-medium text-[#2D2926]/70">Apellido materno</label>
+                          <input type="text" formControlName="apellidoMaterno" maxlength="80" placeholder="López"
+                            [class]="icAcomp($index, 'apellidoMaterno')" />
+                        </div>
+                        <div>
+                          <label class="text-[13px] font-medium text-[#2D2926]/70">
+                            N° documento <span class="text-red-500">*</span>
+                          </label>
+                          <input type="text" formControlName="numeroDocumento" maxlength="20" placeholder="99999999"
+                            [class]="icAcomp($index, 'numeroDocumento')" />
+                        </div>
+                      </div>
+                      <div class="grid sm:grid-cols-2 gap-3">
+                        <div>
+                          <label class="text-[13px] font-medium text-[#2D2926]/70">Nacionalidad</label>
+                          <input type="text" formControlName="nacionalidad" maxlength="60" placeholder="Peruana"
+                            [class]="icAcomp($index, 'nacionalidad')" />
+                        </div>
+                        <div>
+                          <label class="text-[13px] font-medium text-[#2D2926]/70">Correo</label>
+                          <input type="email" formControlName="correo" maxlength="150" placeholder="correo@ejemplo.com"
+                            [class]="icAcomp($index, 'correo')" />
+                          @if (invAcomp($index, 'correo')) {
+                            <p class="text-xs text-red-500 mt-1">Correo no válido.</p>
+                          }
+                        </div>
+                      </div>
+                      <div class="grid sm:grid-cols-2 gap-3">
+                        <div>
+                          <label class="text-[13px] font-medium text-[#2D2926]/70">Teléfono</label>
+                          <input type="tel" formControlName="telefono" maxlength="20" placeholder="999 888 777"
+                            [class]="icAcomp($index, 'telefono')" />
+                        </div>
+                      </div>
+                    </div>
+                  }
+
+                  @if (maxAcompanantes() > 0 && acompanantes.length < maxAcompanantes()) {
+                    <button type="button" (click)="agregarAcompanante(); acompanantes.markAsDirty()"
+                      class="w-full h-9 rounded-xl border-2 border-dashed border-[#C5A048] text-[#C5A048]
+                             text-sm font-semibold hover:bg-[#FFF8E1] transition-colors
+                             flex items-center justify-center gap-2">
+                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                      </svg>
+                      Agregar acompañante
+                    </button>
+                  }
+                </div>
+
                 <div class="pt-2 border-t border-[#EEE3D1]">
                   <p class="text-[11px] uppercase tracking-wider text-[#C5A048] font-semibold mb-3">
                     Datos económicos
@@ -831,10 +1037,20 @@ export class ReservationFormComponent {
 
   private readonly _fechaInicio = signal('');
   private readonly _fechaFin    = signal('');
+  private readonly _nroAdultos  = signal(1);
+  private readonly _nroNinos    = signal(0);
+
+  /** Tope de acompañantes: 1 titular + acompañantes ≤ nroAdultos + nroNinos. */
+  readonly maxAcompanantes = computed(() =>
+    Math.max(0, this._nroAdultos() + this._nroNinos() - 1),
+  );
 
   readonly descuento    = signal(0);
   readonly modalidadPago = signal<ModalidadPago>('PARCIAL');
   readonly observaciones = signal<string | null>(null);
+
+  /** Acompañantes (cliente): huéspedes sin cuenta. El titular NO va aquí. */
+  readonly acompanantes = new FormArray<FormGroup>([]);
 
   // ── Forms ──────────────────────────────────────────────────────────────────
   readonly paso1Form = this.fb.group({
@@ -944,10 +1160,12 @@ export class ReservationFormComponent {
       .slice(0, 5);
   });
 
+  private readonly _editHydratedId = signal<number | null>(null);
+
   constructor() {
     effect(() => {
       const r = this.reserva();
-      if (r) {
+      if (r && this._editHydratedId() !== r.reservaId) {
         this.editForm.patchValue({
           fechaInicio:   r.fechaInicio,
           fechaFin:      r.fechaFin,
@@ -959,11 +1177,25 @@ export class ReservationFormComponent {
         });
         this.descuento.set(r.descuento);
         this.modalidadPago.set(r.modalidadPago ?? 'PARCIAL');
+        // Pax → tope de acompañantes; luego se pre-llenan los actuales (no-principales).
+        this._nroAdultos.set(r.nroAdultos);
+        this._nroNinos.set(r.nroNinos);
+        this.hidratarAcompanantes(r);
+        this._editHydratedId.set(r.reservaId);
       }
     });
 
     effect(() => {
       if (!this.isOpen()) this.reset();
+    });
+
+    // Si se reduce nroAdultos/nroNinos tras agregar acompañantes, recorta los
+    // sobrantes para no exceder el tope (1 titular + acompañantes ≤ pax).
+    effect(() => {
+      const max = this.maxAcompanantes();
+      while (this.acompanantes.length > max) {
+        this.acompanantes.removeAt(this.acompanantes.length - 1);
+      }
     });
 
     effect(() => {
@@ -977,6 +1209,7 @@ export class ReservationFormComponent {
         });
         this._fechaInicio.set(init.fechaInicio);
         this._fechaFin.set(init.fechaFin);
+        this._nroAdultos.set(init.nroAdultos);
       }
     });
 
@@ -988,10 +1221,28 @@ export class ReservationFormComponent {
       debounceTime(100), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef),
     ).subscribe(v => this._fechaFin.set(v ?? ''));
 
+    // Pax → signals para calcular el tope de acompañantes reactivamente.
+    this.paso1Form.get('nroAdultos')!.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(v => this._nroAdultos.set(Number(v ?? 1)));
+
+    this.paso1Form.get('nroNinos')!.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(v => this._nroNinos.set(Number(v ?? 0)));
+
     // En edición, reflejar el descuento del form en el signal para el preview de totales.
     this.editForm.get('descuento')!.valueChanges.pipe(
       takeUntilDestroyed(this.destroyRef),
     ).subscribe(v => this.descuento.set(Number(v ?? 0)));
+
+    // En edición, pax del editForm → signals del tope de acompañantes.
+    this.editForm.get('nroAdultos')!.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(v => this._nroAdultos.set(Number(v ?? 1)));
+
+    this.editForm.get('nroNinos')!.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(v => this._nroNinos.set(Number(v ?? 0)));
   }
 
   reset(): void {
@@ -1006,6 +1257,10 @@ export class ReservationFormComponent {
     this.observaciones.set(null);
     this._fechaInicio.set('');
     this._fechaFin.set('');
+    this._nroAdultos.set(1);
+    this._nroNinos.set(0);
+    this.acompanantes.clear();
+    this._editHydratedId.set(null);
     this.paso1Form.reset({ nroAdultos: 1, nroNinos: 0 });
     this.nuevoClienteForm.reset();
     this.disponibilidadSvc.limpiar();
@@ -1062,6 +1317,19 @@ export class ReservationFormComponent {
       if (!this.esCliente() && this.huespedesSeleccionados().length === 0) {
         this.errorPaso.set('Agrega al menos un huésped para continuar.');
         return;
+      }
+      if (this.esCliente()) {
+        if (this.acompanantes.length > this.maxAcompanantes()) {
+          this.errorPaso.set(
+            `Máximo ${this.maxAcompanantes()} acompañante(s) para el número de huéspedes indicado.`,
+          );
+          return;
+        }
+        if (this.acompanantes.invalid) {
+          this.acompanantes.markAllAsTouched();
+          this.errorPaso.set('Completa los datos obligatorios de los acompañantes.');
+          return;
+        }
       }
       this.pasoActual.set(4);
     }
@@ -1143,6 +1411,80 @@ export class ReservationFormComponent {
     return t < base * 0.5 || t > base * 2;
   }
 
+  // ── Acompañantes (cliente) ───────────────────────────────────────────────────
+
+  /** Devuelve los grupos del FormArray tipados para el template. */
+  acompanantesCtrls(): FormGroup[] {
+    return this.acompanantes.controls as FormGroup[];
+  }
+
+  private nuevoAcompananteGroup(v: Partial<Record<string, string>> = {}): FormGroup {
+    return this.fb.group({
+      nombre:          [v['nombre'] ?? '', [Validators.required, Validators.maxLength(80)]],
+      apellidoPaterno: [v['apellidoPaterno'] ?? '', [Validators.required, Validators.maxLength(80)]],
+      apellidoMaterno: [v['apellidoMaterno'] ?? '', Validators.maxLength(80)],
+      numeroDocumento: [v['numeroDocumento'] ?? '', [Validators.required, Validators.maxLength(20)]],
+      nacionalidad:    [v['nacionalidad'] ?? '', Validators.maxLength(60)],
+      correo:          [v['correo'] ?? '', [Validators.email, Validators.maxLength(150)]],
+      telefono:        [v['telefono'] ?? '', Validators.maxLength(20)],
+    });
+  }
+
+  /** Rellena el FormArray con los acompañantes actuales (no-principales) de la reserva. */
+  private hidratarAcompanantes(r: Reserva): void {
+    this.acompanantes.clear();
+    for (const h of r.huespedes.filter(x => !x.esPrincipal)) {
+      this.acompanantes.push(this.nuevoAcompananteGroup({
+        nombre:          h.nombre,
+        apellidoPaterno: h.apellidoPaterno,
+        apellidoMaterno: h.apellidoMaterno ?? '',
+        numeroDocumento: h.numeroDocumento,
+        nacionalidad:    h.nacionalidad ?? '',
+        correo:          h.correo ?? '',
+        telefono:        h.telefono ?? '',
+      }));
+    }
+  }
+
+  agregarAcompanante(): void {
+    if (this.acompanantes.length >= this.maxAcompanantes()) return;
+    this.acompanantes.push(this.nuevoAcompananteGroup());
+  }
+
+  quitarAcompanante(index: number): void {
+    this.acompanantes.removeAt(index);
+  }
+
+  invAcomp(index: number, field: string): boolean {
+    const c = this.acompanantes.at(index)?.get(field);
+    return !!(c?.invalid && c.touched);
+  }
+
+  icAcomp(index: number, field: string): string {
+    return this.invAcomp(index, field) ? INPUT_ERR : INPUT_OK;
+  }
+
+  /** Construye el arreglo `Acompanante[]` del payload, omitiendo campos opcionales vacíos. */
+  private construirAcompanantes(): Acompanante[] {
+    return this.acompanantesCtrls().map(g => {
+      const v = g.getRawValue() as Record<string, string | null>;
+      const a: Acompanante = {
+        nombre:          (v['nombre'] ?? '').trim(),
+        apellidoPaterno: (v['apellidoPaterno'] ?? '').trim(),
+        numeroDocumento: (v['numeroDocumento'] ?? '').trim(),
+      };
+      const apMaterno = v['apellidoMaterno']?.trim();
+      const nacionalidad = v['nacionalidad']?.trim();
+      const correo = v['correo']?.trim();
+      const telefono = v['telefono']?.trim();
+      if (apMaterno)   a.apellidoMaterno = apMaterno;
+      if (nacionalidad) a.nacionalidad = nacionalidad;
+      if (correo)      a.correo = correo;
+      if (telefono)    a.telefono = telefono;
+      return a;
+    });
+  }
+
   // ── Guest management ───────────────────────────────────────────────────────
 
   agregarHuesped(cliente: Cliente): void {
@@ -1221,6 +1563,15 @@ export class ReservationFormComponent {
 
     if (this.esCliente()) {
       payload.canalId = 3; // Online: el cliente reserva desde su dashboard
+      // Titular NO va en acompanantes (backend lo deriva del JWT). Solo si hay ≥1.
+      if (this.acompanantes.invalid) {
+        this.acompanantes.markAllAsTouched();
+        this.errorPaso.set('Completa los datos obligatorios de los acompañantes.');
+        return;
+      }
+      if (this.acompanantes.length > 0) {
+        payload.acompanantes = this.construirAcompanantes();
+      }
     } else {
       payload.descuento = this.descuento();
       payload.usuarioId = this.authStore.user()?.usuarioId ?? null;
@@ -1239,6 +1590,17 @@ export class ReservationFormComponent {
       this.errorPaso.set('El descuento no puede superar el 30% del subtotal.');
       return;
     }
+    if (this.acompanantes.invalid) {
+      this.acompanantes.markAllAsTouched();
+      this.errorPaso.set('Completa los datos obligatorios de los acompañantes.');
+      return;
+    }
+    if (this.acompanantes.length > this.maxAcompanantes()) {
+      this.errorPaso.set(
+        `Máximo ${this.maxAcompanantes()} acompañante(s) para el número de huéspedes indicado.`,
+      );
+      return;
+    }
     const v = this.editForm.value;
     // No se envían impuesto ni adelanto: el backend los recalcula/deriva.
     const payload: UpdateReservaPayload = {
@@ -1251,6 +1613,11 @@ export class ReservationFormComponent {
       modalidadPago: this.modalidadPago(),
       observaciones: v.observaciones?.trim() || null,
     };
+    // Solo se envían acompañantes si el staff los modificó (evita el modo destructivo
+    // "solo acompanantes" cuando no se tocaron). Reenviarlos preserva a los actuales.
+    if (this.acompanantes.dirty) {
+      payload.acompanantes = this.construirAcompanantes();
+    }
     this.onSave.emit({ payload, id: this.reserva()!.reservaId });
   }
 

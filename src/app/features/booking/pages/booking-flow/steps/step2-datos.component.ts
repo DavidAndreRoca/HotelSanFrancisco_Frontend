@@ -4,7 +4,9 @@ import {
   EventEmitter,
   inject,
   Output,
+  signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
@@ -75,6 +77,13 @@ import { ReniecPersona } from '../../../../../core/reniec/reniec.service';
                 }
               </div>
             </div>
+
+            @if (nombresBloqueados()) {
+              <p class="flex items-center gap-1.5 text-xs text-[var(--color-ink-muted)]">
+                <span aria-hidden="true">🔒</span>
+                Nombres verificados con RENIEC. Para editarlos, cambia el número de documento.
+              </p>
+            }
 
             <div>
               <label class="block text-[13px] font-medium text-[var(--color-ink-soft)] mb-1.5">
@@ -194,9 +203,18 @@ export class Step2DatosComponent {
     serviciosAdicionales: [''],
   });
 
+  /** Los nombres provienen de RENIEC (datos oficiales) y quedan bloqueados. */
+  readonly nombresBloqueados = signal(false);
+
   constructor() {
     const existing = this.state.datosHuesped();
     if (existing) this.form.patchValue(existing);
+
+    // Si cambian el documento, los datos de RENIEC dejan de corresponder:
+    // se desbloquean los nombres para permitir una nueva búsqueda.
+    this.form.controls.numeroDocumento.valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.desbloquearNombres());
   }
 
   onReniec(p: ReniecPersona): void {
@@ -204,11 +222,26 @@ export class Step2DatosComponent {
       nombres: p.nombres,
       apellidos: `${p.apellidoPaterno} ${p.apellidoMaterno}`.trim(),
     });
+    this.bloquearNombres();
+  }
+
+  private bloquearNombres(): void {
+    this.form.controls.nombres.disable();
+    this.form.controls.apellidos.disable();
+    this.nombresBloqueados.set(true);
+  }
+
+  private desbloquearNombres(): void {
+    if (!this.nombresBloqueados()) return;
+    this.form.patchValue({ nombres: '', apellidos: '' });
+    this.form.controls.nombres.enable();
+    this.form.controls.apellidos.enable();
+    this.nombresBloqueados.set(false);
   }
 
   inputClass(field: string): string {
     const invalid = this.err(field);
-    return `w-full h-10 px-3.5 rounded-lg border text-[14px] bg-white focus:outline-none focus:ring-2 focus:ring-[#C5A048] ${
+    return `w-full h-10 px-3.5 rounded-lg border text-[14px] bg-white focus:outline-none focus:ring-2 focus:ring-[#C5A048] disabled:bg-[var(--color-surface)] disabled:text-[var(--color-ink-muted)] disabled:cursor-not-allowed ${
       invalid ? 'border-[var(--color-danger-500)]' : 'border-[var(--color-border-soft)]'
     }`;
   }

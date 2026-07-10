@@ -1,5 +1,7 @@
+import { TestBed } from '@angular/core/testing';
 import { AuthStore } from './auth.store';
 import { AuthUser } from './auth-user.interface';
+import { WebSocketService } from '../websocket/websocket.service';
 
 function makeUser(overrides: Partial<AuthUser> = {}): AuthUser {
   return {
@@ -19,7 +21,15 @@ describe('AuthStore', () => {
   let store: AuthStore;
 
   beforeEach(() => {
-    store = new AuthStore();
+    // AuthStore inyecta WebSocketService (connect/disconnect en setUser/clear);
+    // se provee un stub y se resuelve vía TestBed para tener contexto de inyección.
+    TestBed.configureTestingModule({
+      providers: [
+        AuthStore,
+        { provide: WebSocketService, useValue: { connect: () => undefined, disconnect: () => undefined } },
+      ],
+    });
+    store = TestBed.inject(AuthStore);
   });
 
   it('arranca sin usuario, no autenticado y no listo', () => {
