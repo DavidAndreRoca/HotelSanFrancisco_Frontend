@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiClient, QueryParams } from '../../../core/http/http-client.service';
 import { PageResponse } from '../../../core/api/api-response.interface';
-import { CreateReservaPayload, EstadoReserva, Reserva } from '../models/reservation.model';
+import { Acompanante, CreateReservaPayload, EstadoReserva, Reserva } from '../models/reservation.model';
 
 /**
  * Reservas del propio huésped autenticado (rol CLIENTE).
@@ -38,6 +38,18 @@ export class MisReservasService {
 
   crear(payload: CreateReservaPayload): Observable<Reserva> {
     return this.api.post<Reserva, CreateReservaPayload>(this.base, payload);
+  }
+
+  /**
+   * Reemplaza TOTALMENTE los acompañantes de la reserva propia (el titular no se toca).
+   * Solo válido si la reserva está en PENDIENTE o CONFIRMADA. Devuelve la reserva
+   * actualizada con `huespedes[]` repoblado (no hace falta un GET extra).
+   */
+  actualizarAcompanantes(id: number, acompanantes: Acompanante[]): Observable<Reserva> {
+    return this.api.patch<Reserva, { acompanantes: Acompanante[] }>(
+      `${this.base}/${id}/acompanantes`,
+      { acompanantes },
+    );
   }
 
   /** Cancela la propia reserva (DELETE con body { motivo }). */
