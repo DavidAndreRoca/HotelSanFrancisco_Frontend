@@ -39,6 +39,7 @@ export interface HorarioFilterRequest {
 // ── Asignación de horario ─────────────────────────────────────────────────────
 
 export interface DetalleHorarioResponse {
+  detalleHorarioId: number;
   usuarioId: number;
   usuarioNombreCompleto: string;
   horarioId: number;
@@ -57,7 +58,7 @@ export interface AsignarHorarioRequest {
   fechaVigenciaFin?: string | null;
 }
 
-/** Body de PUT /asignaciones-horario/usuario/{uid}/horario/{hid}. */
+/** Body de PUT /asignaciones-horario/{detalleHorarioId}. */
 export interface ActualizarAsignacionRequest {
   diaSemana?: number;
   fechaVigenciaInicio?: string;

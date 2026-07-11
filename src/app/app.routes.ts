@@ -10,6 +10,9 @@ import { productsGuard } from './features/products/guards/products.guard';
 import { purchasesGuard } from './features/purchases/guards/purchases.guard';
 import { nominaGuard } from './features/nomina/guards/nomina.guard';
 import { asistenciaGuard } from './features/asistencia/guards/asistencia.guard';
+import { miAsistenciaGuard } from './features/mi-asistencia/guards/mi-asistencia.guard';
+import { turnosGuard } from './features/turnos/guards/turnos.guard';
+import { horariosGuard } from './features/horarios/guards/horarios.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -372,6 +375,42 @@ export const routes: Routes = [
             (m) => m.AsistenciaListaPage,
           ),
         title: 'Asistencia · Hotel San Francisco',
+      },
+      {
+        path: 'horarios',
+        canActivate: [horariosGuard],
+        loadComponent: () =>
+          import('./features/horarios/pages/horarios-lista/horarios-lista.page').then(
+            (m) => m.HorariosListaPage,
+          ),
+        title: 'Horarios · Hotel San Francisco',
+      },
+      {
+        path: 'horarios/asignaciones',
+        canActivate: [horariosGuard],
+        loadComponent: () =>
+          import('./features/horarios/pages/asignaciones/asignaciones-horario.page').then(
+            (m) => m.AsignacionesHorarioPage,
+          ),
+        title: 'Asignación de horarios · Hotel San Francisco',
+      },
+      {
+        path: 'turnos',
+        canActivate: [turnosGuard],
+        loadComponent: () =>
+          import('./features/turnos/pages/turnos-calendario/turnos-calendario.page').then(
+            (m) => m.TurnosCalendarioPage,
+          ),
+        title: 'Turnos · Hotel San Francisco',
+      },
+      {
+        path: 'mi-asistencia',
+        canActivate: [miAsistenciaGuard],
+        loadComponent: () =>
+          import('./features/mi-asistencia/pages/mi-asistencia/mi-asistencia.page').then(
+            (m) => m.MiAsistenciaPage,
+          ),
+        title: 'Mi asistencia · Hotel San Francisco',
       },
       {
         path: 'solicitudes',

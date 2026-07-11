@@ -22,18 +22,17 @@ export class AsignacionHorarioService {
   }
 
   actualizar(
-    usuarioId: number,
-    horarioId: number,
+    detalleHorarioId: number,
     payload: ActualizarAsignacionRequest,
   ): Observable<DetalleHorarioResponse> {
     return this.api.put<DetalleHorarioResponse, ActualizarAsignacionRequest>(
-      `${this.base}/usuario/${usuarioId}/horario/${horarioId}`,
+      `${this.base}/${detalleHorarioId}`,
       payload,
     );
   }
 
   /** Baja lógica de la asignación (→ INACTIVO). */
-  remover(usuarioId: number, horarioId: number): Observable<void> {
-    return this.api.delete<void>(`${this.base}/usuario/${usuarioId}/horario/${horarioId}`);
+  remover(detalleHorarioId: number): Observable<void> {
+    return this.api.delete<void>(`${this.base}/${detalleHorarioId}`);
   }
 }

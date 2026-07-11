@@ -88,7 +88,7 @@ const DIAS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                   </tr>
                 </thead>
                 <tbody>
-                  @for (a of asignaciones(); track a.horarioId) {
+                  @for (a of asignaciones(); track a.detalleHorarioId) {
                     <tr class="border-b border-[#EEE3D1] last:border-0 hover:bg-[#F9F5F0] transition-colors">
                       <td class="px-4 py-3 font-medium text-[#2D2926]">{{ a.horarioNombreTurno }}</td>
                       <td class="px-4 py-3 text-[#2D2926]/70">{{ diaLabel(a.diaSemana) }}</td>
@@ -172,7 +172,7 @@ export class AsignacionesHorarioPage {
       variant: 'danger',
     });
     if (!ok) return;
-    this.svc.remover(a.usuarioId, a.horarioId).subscribe({
+    this.svc.remover(a.detalleHorarioId).subscribe({
       next: () => {
         this.toastr.success('Asignación removida.');
         const emp = this.empleado();
