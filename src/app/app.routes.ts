@@ -10,6 +10,7 @@ import { productsGuard } from './features/products/guards/products.guard';
 import { purchasesGuard } from './features/purchases/guards/purchases.guard';
 import { nominaGuard } from './features/nomina/guards/nomina.guard';
 import { asistenciaGuard } from './features/asistencia/guards/asistencia.guard';
+import { miAsistenciaGuard } from './features/mi-asistencia/guards/mi-asistencia.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -372,6 +373,15 @@ export const routes: Routes = [
             (m) => m.AsistenciaListaPage,
           ),
         title: 'Asistencia · Hotel San Francisco',
+      },
+      {
+        path: 'mi-asistencia',
+        canActivate: [miAsistenciaGuard],
+        loadComponent: () =>
+          import('./features/mi-asistencia/pages/mi-asistencia/mi-asistencia.page').then(
+            (m) => m.MiAsistenciaPage,
+          ),
+        title: 'Mi asistencia · Hotel San Francisco',
       },
       {
         path: 'solicitudes',
