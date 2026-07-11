@@ -316,6 +316,7 @@ export class MainLayoutComponent {
       items: [
         { label: 'Nómina',        icon: 'card',   link: '/nomina',        permiso: 'nomina:read' },
         { label: 'Asistencia',    icon: 'idcard', link: '/asistencia',    permiso: 'asistencia:read' },
+        { label: 'Turnos',        icon: 'calendar', link: '/turnos',      permiso: 'turnos:read' },
         { label: 'Mi asistencia', icon: 'idcard', link: '/mi-asistencia', permiso: 'mi-asistencia:marcar' },
       ],
     },

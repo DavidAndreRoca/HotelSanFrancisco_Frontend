@@ -11,6 +11,7 @@ import { purchasesGuard } from './features/purchases/guards/purchases.guard';
 import { nominaGuard } from './features/nomina/guards/nomina.guard';
 import { asistenciaGuard } from './features/asistencia/guards/asistencia.guard';
 import { miAsistenciaGuard } from './features/mi-asistencia/guards/mi-asistencia.guard';
+import { turnosGuard } from './features/turnos/guards/turnos.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -373,6 +374,15 @@ export const routes: Routes = [
             (m) => m.AsistenciaListaPage,
           ),
         title: 'Asistencia · Hotel San Francisco',
+      },
+      {
+        path: 'turnos',
+        canActivate: [turnosGuard],
+        loadComponent: () =>
+          import('./features/turnos/pages/turnos-calendario/turnos-calendario.page').then(
+            (m) => m.TurnosCalendarioPage,
+          ),
+        title: 'Turnos · Hotel San Francisco',
       },
       {
         path: 'mi-asistencia',
