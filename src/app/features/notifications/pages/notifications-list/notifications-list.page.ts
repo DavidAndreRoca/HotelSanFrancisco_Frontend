@@ -106,6 +106,29 @@ const PAGE_SIZE = 4;
           }
         </div>
 
+      <!-- Estado de error -->
+      } @else if (error()) {
+        <div class="bg-white rounded-2xl border border-[#EEE3D1] py-20 flex flex-col items-center gap-3">
+          <div class="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+            <svg class="w-7 h-7 text-red-400" fill="none" viewBox="0 0 24 24"
+                 stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667
+                       1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34
+                       16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+          </div>
+          <p class="text-sm font-semibold text-[#2D2926]">No se pudieron cargar las notificaciones</p>
+          <p class="text-xs text-[#2D2926]/45">Vuelve a intentarlo en unos momentos.</p>
+          <button
+            type="button"
+            (click)="reintentar()"
+            class="mt-1 inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-[#C5A048]
+                   text-white text-sm font-medium transition-colors hover:bg-[#8E6F2E]">
+            Reintentar
+          </button>
+        </div>
+
       <!-- Estado vacío -->
       } @else if (grupos().length === 0) {
         <div class="bg-white rounded-2xl border border-[#EEE3D1] py-20 flex flex-col items-center gap-3">
@@ -256,6 +279,7 @@ export class NotificationsListPage {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = signal(true);
+  readonly error = signal(false);
   readonly marcando = signal(false);
   readonly notificaciones = signal<NotificacionHuesped[]>([]);
   readonly filtro = signal<string>('TODAS');
@@ -319,11 +343,18 @@ export class NotificationsListPage {
   }
 
   private load(): void {
+    this.error.set(false);
     this.api
-      .get<{ content: NotificacionHuesped[] }>('/api/v1/notificaciones')
+      .get<{ content: NotificacionHuesped[] } | null>('/api/v1/notificaciones')
+      // `res?.content ?? []` sobrevive al periodo entre despliegues: si el backend
+      // aún responde crudo (sin el sobre `data`), `unwrap` devuelve undefined y
+      // aquí queda como lista vacía en vez de romper. Nunca mostramos datos falsos.
       .pipe(
-        map((res) => res.content ?? []),
-        catchError(() => of(this.mockData())),
+        map((res) => res?.content ?? []),
+        catchError(() => {
+          this.error.set(true);
+          return of<NotificacionHuesped[]>([]);
+        }),
       )
       .subscribe((data) => {
         this.notificaciones.set(data);
@@ -346,6 +377,11 @@ export class NotificationsListPage {
 
   ajustes(): void {
     this.toastr.info('Ajustes de notificaciones próximamente.', 'Próximamente');
+  }
+
+  reintentar(): void {
+    this.loading.set(true);
+    this.load();
   }
 
   setFiltro(key: string): void {
@@ -411,70 +447,5 @@ export class NotificationsListPage {
     return [...map.values()]
       .sort((a, b) => b.ts - a.ts)
       .map(({ label, items }) => ({ label, items }));
-  }
-
-  private mockData(): NotificacionHuesped[] {
-    const ts = (daysBack: number, hoursOffset: number): string => {
-      const d = new Date();
-      d.setDate(d.getDate() - daysBack);
-      if (daysBack > 0) d.setHours(10 - hoursOffset, 0, 0, 0);
-      else d.setMinutes(d.getMinutes() - hoursOffset * 60);
-      return d.toISOString();
-    };
-
-    return [
-      {
-        notificacionId: 1, tipo: 'CHECK_IN',
-        titulo: 'Check-in disponible',
-        mensaje: 'Tu habitación 401 está lista. Puedes hacer el check-in desde las 14:00 hrs.',
-        leida: false, fechaCreacion: ts(0, 0),
-      },
-      {
-        notificacionId: 2, tipo: 'PAGO',
-        titulo: 'Pago Confirmado',
-        mensaje: 'Se registró tu pago de S/ 750.00 para la reserva SF-A1B2C3. ¡Gracias!',
-        leida: false, fechaCreacion: ts(0, 1),
-      },
-      {
-        notificacionId: 3, tipo: 'CONFIRMACION',
-        titulo: 'Reserva Confirmada',
-        mensaje:
-          'Tu reserva para la habitación Doble (201) del 10 al 13 de abril ha sido confirmada.',
-        leida: false, fechaCreacion: ts(0, 3),
-      },
-      {
-        notificacionId: 4, tipo: 'CHECK_OUT',
-        titulo: 'Recordatorio de Check-out',
-        mensaje: 'Tu check-out de la Suite Premium es mañana a las 12:00. ¡Gracias por tu estadía!',
-        leida: true, fechaCreacion: ts(1, 0),
-      },
-      {
-        notificacionId: 5, tipo: 'SERVICIO',
-        titulo: 'Servicio a la habitación',
-        mensaje:
-          'Tu solicitud de servicio a la habitación ha sido confirmada para las 08:00 hrs.',
-        leida: true, fechaCreacion: ts(1, 2),
-      },
-      {
-        notificacionId: 6, tipo: 'FACTURA',
-        titulo: 'Factura disponible',
-        mensaje:
-          'La factura de tu estadía ya está disponible y lista para descargar desde el portal.',
-        leida: true, fechaCreacion: ts(1, 4),
-      },
-      {
-        notificacionId: 7, tipo: 'SERVICIO',
-        titulo: 'Servicio a la habitación',
-        mensaje: 'Tu solicitud para el spa ha sido confirmada para las 11:00 hrs. ¡Disfrútalo!',
-        leida: true, fechaCreacion: ts(2, 0),
-      },
-      {
-        notificacionId: 8, tipo: 'SERVICIO',
-        titulo: 'Servicio a la habitación',
-        mensaje:
-          'Tu solicitud de servicio a la habitación ha sido confirmada para las 08:00 hrs.',
-        leida: true, fechaCreacion: ts(2, 2),
-      },
-    ];
   }
 }
