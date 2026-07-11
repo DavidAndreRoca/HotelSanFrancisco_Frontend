@@ -61,8 +61,15 @@ const DIAS_CORTOS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
             }
           </div>
         } @else if (filas().length === 0) {
-          <div class="py-12 text-center">
-            <p class="text-sm text-[#2D2926]/45">No hay turnos en esta semana.</p>
+          <div class="py-12 text-center space-y-3">
+            <p class="text-sm text-[#2D2926]/45">Aún no hay turnos en esta semana.</p>
+            @if (puedeGenerar()) {
+              <button type="button" (click)="generarSemana()" [disabled]="generando()"
+                class="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-[#C5A048] text-white
+                       text-sm font-medium hover:bg-[#8E6F2E] transition-colors disabled:opacity-40">
+                {{ generando() ? 'Generando…' : 'Generar semana' }}
+              </button>
+            }
           </div>
         } @else {
           <div class="overflow-x-auto">

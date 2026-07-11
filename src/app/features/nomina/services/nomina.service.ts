@@ -3,6 +3,8 @@ import { Observable } from 'rxjs';
 import { ApiClient, QueryParams } from '../../../core/http/http-client.service';
 import { PageResponse } from '../../../core/api/api-response.interface';
 import {
+  CalcularNominaRequest,
+  CalculoNominaResponse,
   CambiarEstadoPagoNominaRequest,
   CreatePagoNominaRequest,
   PagoNominaFilterRequest,
@@ -27,6 +29,14 @@ export class NominaService {
   /** Crear pago. El backend pone totalBonos=0 y calcula montoNeto. */
   crear(payload: CreatePagoNominaRequest): Observable<PagoNominaResponse> {
     return this.api.post<PagoNominaResponse, CreatePagoNominaRequest>(this.base, payload);
+  }
+
+  /** Preview del cálculo desde asistencia. No persiste nada. */
+  calcular(payload: CalcularNominaRequest): Observable<CalculoNominaResponse> {
+    return this.api.post<CalculoNominaResponse, CalcularNominaRequest>(
+      `${this.base}/calcular`,
+      payload,
+    );
   }
 
   /** Cambiar estado (PATCH). Solo PENDIENTE → PAGADO|ANULADO. */

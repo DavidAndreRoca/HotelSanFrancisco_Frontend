@@ -29,6 +29,25 @@ export interface CreatePagoNominaRequest {
   // NO enviar totalBonos ni montoNeto — los calcula el backend.
 }
 
+/** Body de POST /pagos-nomina/calcular. periodo = "YYYY-MM". */
+export interface CalcularNominaRequest {
+  usuarioId: number;
+  periodo: string; // "YYYY-MM"
+}
+
+/** Desglose asistido calculado desde la asistencia. Solo preview, no se persiste. */
+export interface CalculoNominaResponse {
+  sueldoBase: number;
+  diasLaborables: number;
+  horasReales: number;
+  tardanzas: number;
+  descuentoFaltas: number;
+  descuentoTardanzas: number;
+  totalDescuentos: number;
+  totalBonos: number;
+  montoNeto: number;
+}
+
 export interface CambiarEstadoPagoNominaRequest {
   nuevoEstado: EstadoNomina;
   motivo?: string; // no se persiste en BD

@@ -12,6 +12,7 @@ import { nominaGuard } from './features/nomina/guards/nomina.guard';
 import { asistenciaGuard } from './features/asistencia/guards/asistencia.guard';
 import { miAsistenciaGuard } from './features/mi-asistencia/guards/mi-asistencia.guard';
 import { turnosGuard } from './features/turnos/guards/turnos.guard';
+import { horariosGuard } from './features/horarios/guards/horarios.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -374,6 +375,24 @@ export const routes: Routes = [
             (m) => m.AsistenciaListaPage,
           ),
         title: 'Asistencia · Hotel San Francisco',
+      },
+      {
+        path: 'horarios',
+        canActivate: [horariosGuard],
+        loadComponent: () =>
+          import('./features/horarios/pages/horarios-lista/horarios-lista.page').then(
+            (m) => m.HorariosListaPage,
+          ),
+        title: 'Horarios · Hotel San Francisco',
+      },
+      {
+        path: 'horarios/asignaciones',
+        canActivate: [horariosGuard],
+        loadComponent: () =>
+          import('./features/horarios/pages/asignaciones/asignaciones-horario.page').then(
+            (m) => m.AsignacionesHorarioPage,
+          ),
+        title: 'Asignación de horarios · Hotel San Francisco',
       },
       {
         path: 'turnos',
