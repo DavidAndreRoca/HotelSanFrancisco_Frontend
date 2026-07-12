@@ -39,7 +39,7 @@ const PAGE_SIZE = 20;
                    text-sm font-medium text-[#2D2926]/70 hover:bg-[#F9F5F0] transition-colors">
             Consumos
           </a>
-          @if (puedeGestionar()) {
+          @if (puedeCrear()) {
             <button type="button" (click)="abrirNuevo()"
               class="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-[#C5A048] text-white
                      text-sm font-medium hover:bg-[#8E6F2E] transition-colors">
@@ -111,18 +111,22 @@ const PAGE_SIZE = 20;
                             [class]="estadoBadge(t.estado)">{{ estadoLabel(t.estado) }}</span>
                     </td>
                     <td class="px-4 py-3 whitespace-nowrap text-right">
-                      @if (puedeGestionar()) {
+                      @if (puedeEditar() || puedeEliminar()) {
                         <div class="flex items-center justify-end gap-2">
-                          <button type="button" (click)="abrirEditar(t)"
-                            class="h-7 px-2.5 rounded-lg border border-[#C5A048] text-[#C5A048]
-                                   text-xs font-medium hover:bg-[#C5A048]/5 transition-colors">
-                            Editar
-                          </button>
-                          <button type="button" (click)="eliminar(t)"
-                            class="h-7 px-2.5 rounded-lg border border-red-200 text-red-600
-                                   text-xs font-medium hover:bg-red-50 transition-colors">
-                            Eliminar
-                          </button>
+                          @if (puedeEditar()) {
+                            <button type="button" (click)="abrirEditar(t)"
+                              class="h-7 px-2.5 rounded-lg border border-[#C5A048] text-[#C5A048]
+                                     text-xs font-medium hover:bg-[#C5A048]/5 transition-colors">
+                              Editar
+                            </button>
+                          }
+                          @if (puedeEliminar()) {
+                            <button type="button" (click)="eliminar(t)"
+                              class="h-7 px-2.5 rounded-lg border border-red-200 text-red-600
+                                     text-xs font-medium hover:bg-red-50 transition-colors">
+                              Eliminar
+                            </button>
+                          }
                         </div>
                       } @else {
                         <span class="text-xs text-[#2D2926]/40">—</span>
@@ -182,7 +186,9 @@ export class TiposServicioListaPage {
   readonly totalPages = computed(() => Math.max(1, this.page()?.totalPages ?? 1));
   readonly esUltima = computed(() => this.page()?.last ?? true);
 
-  readonly puedeGestionar = computed(() => this.store.hasPermission('tipo-servicio:create'));
+  readonly puedeCrear    = computed(() => this.store.hasPermission('tipo-servicio:create'));
+  readonly puedeEditar   = computed(() => this.store.hasPermission('tipo-servicio:update'));
+  readonly puedeEliminar = computed(() => this.store.hasPermission('tipo-servicio:delete'));
 
   constructor() {
     this.cargar();

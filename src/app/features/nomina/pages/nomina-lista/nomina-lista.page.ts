@@ -9,6 +9,7 @@ import {
 import { HttpErrorResponse } from '@angular/common/http';
 import { debounceTime } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
+import { AuthStore } from '../../../../core/auth/auth.store';
 import { NominaService } from '../../services/nomina.service';
 import { WebSocketService } from '../../../../core/websocket/websocket.service';
 import { WS_TOPICS } from '../../../../core/websocket/websocket-channels';
@@ -44,14 +45,16 @@ const PAGE_SIZE = 20;
           <h1 class="text-2xl font-bold text-[#2D2926]">Nómina</h1>
           <p class="text-sm text-[#2D2926]/55 mt-0.5">Pagos de planilla del personal</p>
         </div>
-        <button type="button" (click)="formAbierto.set(true)"
-          class="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-[#C5A048] text-white
-                 text-sm font-medium hover:bg-[#8E6F2E] transition-colors">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-          </svg>
-          Nuevo pago
-        </button>
+        @if (puedeCrear()) {
+          <button type="button" (click)="formAbierto.set(true)"
+            class="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-[#C5A048] text-white
+                   text-sm font-medium hover:bg-[#8E6F2E] transition-colors">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+            Nuevo pago
+          </button>
+        }
       </div>
 
       <!-- Filtros -->
@@ -138,14 +141,14 @@ const PAGE_SIZE = 20;
                     </td>
                     <td class="px-4 py-3 whitespace-nowrap text-right">
                       <div class="flex items-center justify-end gap-2">
-                        @if (p.estado === 'PENDIENTE') {
+                        @if (puedeCambiarEstado() && p.estado === 'PENDIENTE') {
                           <button type="button" (click)="abrirEstado(p)"
                             class="h-7 px-2.5 rounded-lg border border-[#C5A048] text-[#C5A048]
                                    text-xs font-medium hover:bg-[#C5A048]/5 transition-colors">
                             Cambiar estado
                           </button>
                         }
-                        @if (p.estado !== 'PAGADO') {
+                        @if (puedeEliminar() && p.estado !== 'PAGADO') {
                           <button type="button" (click)="eliminar(p)"
                             class="h-7 px-2.5 rounded-lg border border-red-200 text-red-600
                                    text-xs font-medium hover:bg-red-50 transition-colors">
@@ -236,6 +239,11 @@ export class NominaListaPage {
   private readonly confirm = inject(ConfirmDialogService);
   private readonly ws = inject(WebSocketService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly auth = inject(AuthStore);
+
+  readonly puedeCrear         = computed(() => this.auth.hasPermission('nomina:create'));
+  readonly puedeCambiarEstado = computed(() => this.auth.hasPermission('nomina:change-status'));
+  readonly puedeEliminar      = computed(() => this.auth.hasPermission('nomina:delete'));
 
   readonly loading = signal(true);
   readonly page = signal<PageResponse<PagoNominaResponse> | null>(null);

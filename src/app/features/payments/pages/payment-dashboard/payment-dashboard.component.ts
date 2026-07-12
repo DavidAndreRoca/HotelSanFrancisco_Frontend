@@ -4,9 +4,11 @@ import {
   Component,
   DestroyRef,
   OnInit,
+  computed,
   inject,
   signal,
 } from '@angular/core';
+import { AuthStore } from '../../../../core/auth/auth.store';
 import { debounceTime } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { PaymentService } from '../../services/payment.service';
@@ -45,9 +47,11 @@ import {
             Historial de pagos, anticipos y reembolsos asociados a reservas y ventas.
           </p>
         </div>
-        <ui-button variant="primary" (click)="openCreateModal()">
-          Registrar pago
-        </ui-button>
+        @if (puedeCrear()) {
+          <ui-button variant="primary" (click)="openCreateModal()">
+            Registrar pago
+          </ui-button>
+        }
       </header>
 
       <app-payment-stats [items]="paymentService.items()" />
@@ -59,6 +63,8 @@ import {
       <app-payment-table
         [items]="paymentService.items()"
         [loading]="paymentService.loading()"
+        [canEditar]="puedeEditar()"
+        [canEliminar]="puedeEliminar()"
         (edit)="openEditModal($event)"
         (remove)="confirmDelete($event)" />
 
@@ -110,6 +116,11 @@ export class PaymentsDashboardComponent implements OnInit {
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly ws = inject(WebSocketService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly auth = inject(AuthStore);
+
+  readonly puedeCrear    = computed(() => this.auth.hasPermission('pago:create'));
+  readonly puedeEditar   = computed(() => this.auth.hasPermission('pago:update'));
+  readonly puedeEliminar = computed(() => this.auth.hasPermission('pago:delete'));
 
   readonly filters = signal<PaymentFilters>({ ...DEFAULT_PAYMENT_FILTERS });
   readonly modalOpen = signal(false);

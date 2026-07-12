@@ -86,7 +86,7 @@ const HAB_ESTADO: Record<EstadoReservaHabitacion, string> = {
                   Cancelar
                 </button>
               }
-              @if (!modoCliente()) {
+              @if (!modoCliente() && canEditar()) {
                 <button type="button" (click)="onEditar.emit(reserva()!.reservaId)"
                   class="h-8 px-3 rounded-lg border border-[#EEE3D1] text-[12px] font-semibold
                          text-[#8E6F2E] bg-[#FFF8E1] hover:bg-[#C5A048] hover:text-white
@@ -336,6 +336,9 @@ export class ReservationDetailComponent {
   loading = input<boolean>(false);
   /** En true, oculta las acciones exclusivas de recepcionista (Check-in, Check-out, Editar). */
   modoCliente = input<boolean>(false);
+  /** Permisos del usuario autenticado (reserva:update / reserva:change-status). */
+  canEditar        = input<boolean>(true);
+  canCambiarEstado = input<boolean>(true);
 
   onClose    = output<void>();
   onEditar   = output<number>();
@@ -367,16 +370,16 @@ export class ReservationDetailComponent {
 
   puedeCheckIn(): boolean {
     const e = this.reserva()?.estado;
-    return e === 'CONFIRMADA' || e === 'PENDIENTE';
+    return this.canCambiarEstado() && (e === 'CONFIRMADA' || e === 'PENDIENTE');
   }
 
   puedeCheckOut(): boolean {
-    return this.reserva()?.estado === 'CHECK_IN';
+    return this.canCambiarEstado() && this.reserva()?.estado === 'CHECK_IN';
   }
 
   puedeCancelar(): boolean {
     const e = this.reserva()?.estado;
-    return e !== 'CANCELADA' && e !== 'CHECK_OUT' && e !== 'NO_SHOW';
+    return this.canCambiarEstado() && e !== 'CANCELADA' && e !== 'CHECK_OUT' && e !== 'NO_SHOW';
   }
 
   private readonly CANAL_NOMBRES: Record<number, string> = { 1: 'Directa', 2: 'Booking', 3: 'Online' };

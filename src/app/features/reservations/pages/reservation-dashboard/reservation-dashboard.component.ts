@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ToastrService } from 'ngx-toastr';
+import { AuthStore } from '../../../../core/auth/auth.store';
 import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
 import { ReservationService } from '../../services/reservation.service';
 import { ReservationStatsComponent } from '../../components/reservation-stats/reservation-stats.component';
@@ -42,15 +43,17 @@ import {
             Administra las reservas y el estado de los huéspedes.
           </p>
         </div>
-        <button type="button" (click)="abrirNuevaReserva()"
-          class="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[#C5A048] text-white
-                 text-sm font-semibold hover:bg-[#8E6F2E] transition-colors shrink-0">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="2.5" aria-hidden="true">
-            <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
-          </svg>
-          Nueva reserva
-        </button>
+        @if (puedeCrear()) {
+          <button type="button" (click)="abrirNuevaReserva()"
+            class="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[#C5A048] text-white
+                   text-sm font-semibold hover:bg-[#8E6F2E] transition-colors shrink-0">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" aria-hidden="true">
+              <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
+            </svg>
+            Nueva reserva
+          </button>
+        }
       </header>
 
       <!-- Stats -->
@@ -70,6 +73,8 @@ import {
       <!-- Tabla -->
       <app-reservation-table
         [reservas]="svc.filteredReservas()"
+        [canEditar]="puedeEditar()"
+        [canCambiarEstado]="puedeCambiarEstado()"
         (onVerReserva)="abrirDetalle($event)"
         (onEditarReserva)="abrirEditar($event)"
         (onCheckIn)="handleCheckIn($event)"
@@ -82,6 +87,8 @@ import {
     <app-reservation-detail
       [isOpen]="detailAbierto()"
       [reservaId]="reservaIdDetalle()"
+      [canEditar]="puedeEditar()"
+      [canCambiarEstado]="puedeCambiarEstado()"
       (onClose)="detailAbierto.set(false)"
       (onEditar)="abrirEditarDesdeDetalle($event)"
       (onCheckIn)="handleCheckInDesdeDetalle($event)"
@@ -105,6 +112,11 @@ export class ReservationsDashboardComponent {
   protected readonly svc    = inject(ReservationService);
   private readonly confirm  = inject(ConfirmDialogService);
   private readonly toastr   = inject(ToastrService);
+  private readonly auth     = inject(AuthStore);
+
+  readonly puedeCrear         = computed(() => this.auth.hasPermission('reserva:create'));
+  readonly puedeEditar        = computed(() => this.auth.hasPermission('reserva:update'));
+  readonly puedeCambiarEstado = computed(() => this.auth.hasPermission('reserva:change-status'));
 
   readonly detailAbierto    = signal(false);
   readonly reservaIdDetalle = signal<number | null>(null);

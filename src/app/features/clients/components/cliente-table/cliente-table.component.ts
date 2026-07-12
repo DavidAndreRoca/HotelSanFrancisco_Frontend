@@ -73,29 +73,35 @@ import { Cliente } from '../../models/cliente.model';
                         title="Ver detalles">
                         Ver
                       </button>
-                      <button type="button"
-                        (click)="onEditarCliente.emit(c.huespedId)"
-                        class="h-7 px-2.5 rounded-lg border border-[#EEE3D1] text-[11px] font-medium
-                               text-[#2D2926]/60 hover:border-[#C5A048] hover:text-[#C5A048] transition-colors"
-                        title="Editar">
-                        Editar
-                      </button>
-                      <button type="button"
-                        (click)="onToggleEstado.emit(c.huespedId)"
-                        class="h-7 px-2.5 rounded-lg border text-[11px] font-medium transition-colors"
-                        [class]="c.estado === 'ACTIVO'
-                          ? 'border-red-100 text-red-500 hover:bg-red-50'
-                          : 'border-emerald-100 text-emerald-600 hover:bg-emerald-50'"
-                        [title]="c.estado === 'ACTIVO' ? 'Desactivar' : 'Activar'">
-                        {{ c.estado === 'ACTIVO' ? 'Desactivar' : 'Activar' }}
-                      </button>
-                      <button type="button"
-                        (click)="onEliminarCliente.emit(c.huespedId)"
-                        class="h-7 px-2.5 rounded-lg border border-red-100 text-[11px] font-medium
-                               text-red-500 hover:bg-red-50 transition-colors"
-                        title="Eliminar">
-                        Eliminar
-                      </button>
+                      @if (canEditar()) {
+                        <button type="button"
+                          (click)="onEditarCliente.emit(c.huespedId)"
+                          class="h-7 px-2.5 rounded-lg border border-[#EEE3D1] text-[11px] font-medium
+                                 text-[#2D2926]/60 hover:border-[#C5A048] hover:text-[#C5A048] transition-colors"
+                          title="Editar">
+                          Editar
+                        </button>
+                      }
+                      @if (canCambiarEstado()) {
+                        <button type="button"
+                          (click)="onToggleEstado.emit(c.huespedId)"
+                          class="h-7 px-2.5 rounded-lg border text-[11px] font-medium transition-colors"
+                          [class]="c.estado === 'ACTIVO'
+                            ? 'border-red-100 text-red-500 hover:bg-red-50'
+                            : 'border-emerald-100 text-emerald-600 hover:bg-emerald-50'"
+                          [title]="c.estado === 'ACTIVO' ? 'Desactivar' : 'Activar'">
+                          {{ c.estado === 'ACTIVO' ? 'Desactivar' : 'Activar' }}
+                        </button>
+                      }
+                      @if (canEliminar()) {
+                        <button type="button"
+                          (click)="onEliminarCliente.emit(c.huespedId)"
+                          class="h-7 px-2.5 rounded-lg border border-red-100 text-[11px] font-medium
+                                 text-red-500 hover:bg-red-50 transition-colors"
+                          title="Eliminar">
+                          Eliminar
+                        </button>
+                      }
                     </div>
                   </td>
 
@@ -111,6 +117,10 @@ import { Cliente } from '../../models/cliente.model';
 })
 export class ClienteTableComponent {
   clientes = input.required<Cliente[]>();
+
+  canEditar        = input<boolean>(true);
+  canCambiarEstado = input<boolean>(true);
+  canEliminar      = input<boolean>(true);
 
   onVerCliente      = output<number>();
   onEditarCliente   = output<number>();

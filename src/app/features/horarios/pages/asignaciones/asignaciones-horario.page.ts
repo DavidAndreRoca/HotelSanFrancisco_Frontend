@@ -1,12 +1,14 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
+import { AuthStore } from '../../../../core/auth/auth.store';
 import { AsignacionHorarioService } from '../../services/asignacion-horario.service';
 import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
 import { EmpleadoSelectorComponent } from '../../../../shared/components/empleado-selector/empleado-selector.component';
@@ -54,14 +56,16 @@ const DIAS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
         <div class="bg-white rounded-2xl border border-[#EEE3D1] overflow-hidden">
           <div class="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-[#EEE3D1]">
             <p class="text-sm font-semibold text-[#2D2926]">Turnos de {{ emp.nombreCompleto }}</p>
-            <button type="button" (click)="modalAbierto.set(true)"
-              class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-[#C5A048] text-white
-                     text-xs font-medium hover:bg-[#8E6F2E] transition-colors">
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-              </svg>
-              Asignar horario
-            </button>
+            @if (puedeCrear()) {
+              <button type="button" (click)="modalAbierto.set(true)"
+                class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-[#C5A048] text-white
+                       text-xs font-medium hover:bg-[#8E6F2E] transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                </svg>
+                Asignar horario
+              </button>
+            }
           </div>
 
           @if (cargando()) {
@@ -100,7 +104,7 @@ const DIAS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                               [class]="estadoBadge(a.estado)">{{ estadoLabel(a.estado) }}</span>
                       </td>
                       <td class="px-4 py-3 whitespace-nowrap text-right">
-                        @if (a.estado === 'ACTIVO') {
+                        @if (puedeEliminar() && a.estado === 'ACTIVO') {
                           <button type="button" (click)="remover(a)"
                             class="h-7 px-2.5 rounded-lg border border-red-200 text-red-600
                                    text-xs font-medium hover:bg-red-50 transition-colors">
@@ -134,6 +138,10 @@ export class AsignacionesHorarioPage {
   private readonly svc = inject(AsignacionHorarioService);
   private readonly toastr = inject(ToastrService);
   private readonly confirm = inject(ConfirmDialogService);
+  private readonly auth = inject(AuthStore);
+
+  readonly puedeCrear    = computed(() => this.auth.hasPermission('asignacion-horario:create'));
+  readonly puedeEliminar = computed(() => this.auth.hasPermission('asignacion-horario:delete'));
 
   readonly empleado = signal<UsuarioResumen | null>(null);
   readonly asignaciones = signal<DetalleHorarioResponse[]>([]);

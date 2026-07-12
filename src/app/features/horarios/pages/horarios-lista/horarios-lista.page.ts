@@ -8,6 +8,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
+import { AuthStore } from '../../../../core/auth/auth.store';
 import { HorarioService } from '../../services/horario.service';
 import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
 import { PageResponse } from '../../../../core/api/api-response.interface';
@@ -39,14 +40,16 @@ const PAGE_SIZE = 20;
                    text-sm font-medium text-[#2D2926]/70 hover:bg-[#F9F5F0] transition-colors">
             Asignaciones
           </a>
-          <button type="button" (click)="abrirNuevo()"
-            class="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-[#C5A048] text-white
-                   text-sm font-medium hover:bg-[#8E6F2E] transition-colors">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-            </svg>
-            Nuevo horario
-          </button>
+          @if (puedeCrear()) {
+            <button type="button" (click)="abrirNuevo()"
+              class="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-[#C5A048] text-white
+                     text-sm font-medium hover:bg-[#8E6F2E] transition-colors">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+              </svg>
+              Nuevo horario
+            </button>
+          }
         </div>
       </div>
 
@@ -114,12 +117,14 @@ const PAGE_SIZE = 20;
                     </td>
                     <td class="px-4 py-3 whitespace-nowrap">
                       <div class="flex items-center justify-end gap-2">
-                        <button type="button" (click)="abrirEditar(h)"
-                          class="h-7 px-2.5 rounded-lg border border-[#C5A048] text-[#C5A048]
-                                 text-xs font-medium hover:bg-[#C5A048]/5 transition-colors">
-                          Editar
-                        </button>
-                        @if (h.estado === 'ACTIVO') {
+                        @if (puedeEditar()) {
+                          <button type="button" (click)="abrirEditar(h)"
+                            class="h-7 px-2.5 rounded-lg border border-[#C5A048] text-[#C5A048]
+                                   text-xs font-medium hover:bg-[#C5A048]/5 transition-colors">
+                            Editar
+                          </button>
+                        }
+                        @if (puedeEliminar() && h.estado === 'ACTIVO') {
                           <button type="button" (click)="inhabilitar(h)"
                             class="h-7 px-2.5 rounded-lg border border-red-200 text-red-600
                                    text-xs font-medium hover:bg-red-50 transition-colors">
@@ -166,6 +171,11 @@ export class HorariosListaPage {
   private readonly svc = inject(HorarioService);
   private readonly toastr = inject(ToastrService);
   private readonly confirm = inject(ConfirmDialogService);
+  private readonly auth = inject(AuthStore);
+
+  readonly puedeCrear    = computed(() => this.auth.hasPermission('horario:create'));
+  readonly puedeEditar   = computed(() => this.auth.hasPermission('horario:update'));
+  readonly puedeEliminar = computed(() => this.auth.hasPermission('horario:delete'));
 
   readonly loading = signal(true);
   readonly page = signal<PageResponse<HorarioResponse> | null>(null);

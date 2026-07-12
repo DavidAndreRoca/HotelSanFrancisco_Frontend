@@ -1,4 +1,5 @@
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { AuthStore } from '../../../../core/auth/auth.store';
 import { ClienteService } from '../../services/cliente.service';
 import { ClienteStatsComponent } from '../../components/cliente-stats/cliente-stats.component';
 import { ClienteFiltersComponent } from '../../components/cliente-filters/cliente-filters.component';
@@ -32,15 +33,17 @@ import { Cliente, EstadoActivo } from '../../models/cliente.model';
             Registro y administración de clientes / huéspedes.
           </p>
         </div>
-        <button type="button" (click)="abrirCrear()"
-          class="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[#C5A048] text-white
-                 text-sm font-semibold hover:bg-[#8E6F2E] transition-colors shrink-0">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="2.5" aria-hidden="true">
-            <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
-          </svg>
-          Nuevo cliente
-        </button>
+        @if (puedeCrear()) {
+          <button type="button" (click)="abrirCrear()"
+            class="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[#C5A048] text-white
+                   text-sm font-semibold hover:bg-[#8E6F2E] transition-colors shrink-0">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" aria-hidden="true">
+              <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
+            </svg>
+            Nuevo cliente
+          </button>
+        }
       </header>
 
       <!-- Stats -->
@@ -56,6 +59,9 @@ import { Cliente, EstadoActivo } from '../../models/cliente.model';
       <!-- Tabla -->
       <app-cliente-table
         [clientes]="svc.filteredClientes()"
+        [canEditar]="puedeEditar()"
+        [canCambiarEstado]="puedeCambiarEstado()"
+        [canEliminar]="puedeEliminar()"
         (onVerCliente)="abrirVer($event)"
         (onEditarCliente)="abrirEditar($event)"
         (onToggleEstado)="toggleEstado($event)"
@@ -75,6 +81,12 @@ import { Cliente, EstadoActivo } from '../../models/cliente.model';
 export class ClientesDashboardComponent {
   protected svc   = inject(ClienteService);
   private confirm = inject(ConfirmDialogService);
+  private readonly auth = inject(AuthStore);
+
+  readonly puedeCrear         = computed(() => this.auth.hasPermission('cliente:create'));
+  readonly puedeEditar        = computed(() => this.auth.hasPermission('cliente:update'));
+  readonly puedeCambiarEstado = computed(() => this.auth.hasPermission('cliente:change-status'));
+  readonly puedeEliminar      = computed(() => this.auth.hasPermission('cliente:delete'));
 
   modalAbierto        = signal(false);
   clienteSeleccionado = signal<Cliente | null>(null);

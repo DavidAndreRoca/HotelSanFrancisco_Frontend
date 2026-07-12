@@ -61,12 +61,14 @@ import {
           Reporta y da seguimiento a problemas de habitaciones y áreas comunes.
         </p>
       </div>
-      <ui-button (click)="onCreate()">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-          <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
-        </svg>
-        Reportar incidencia
-      </ui-button>
+      @if (puedeCrear()) {
+        <ui-button (click)="onCreate()">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
+          </svg>
+          Reportar incidencia
+        </ui-button>
+      }
     </header>
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -105,7 +107,9 @@ import {
         icon="⚠"
         title="No se encontraron incidencias"
         description="Ajusta los filtros o reporta una nueva incidencia.">
-        <ui-button (click)="onCreate()">Reportar primera incidencia</ui-button>
+        @if (puedeCrear()) {
+          <ui-button (click)="onCreate()">Reportar primera incidencia</ui-button>
+        }
       </ui-empty-state>
     } @else {
       <div class="space-y-3">
@@ -210,6 +214,7 @@ export class IncidenciasPage implements OnInit {
   @ViewChild('formCmp') private formCmp?: IncidenciaFormComponent;
 
   // RECEPCION solo tiene incidencia:read + create; el resto es exclusivo de ADMIN.
+  readonly puedeCrear = computed(() => this.auth.hasPermission('incidencia:create'));
   readonly puedeEditar = computed(() => this.auth.hasPermission('incidencia:update'));
   readonly puedeCambiarEstado = computed(() => this.auth.hasPermission('incidencia:change-status'));
   readonly puedeEliminar = computed(() => this.auth.hasPermission('incidencia:delete'));

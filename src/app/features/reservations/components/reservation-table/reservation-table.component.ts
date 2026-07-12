@@ -88,14 +88,16 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; bg: string; text: strin
                         title="Ver detalle">
                         Ver
                       </button>
-                      <button type="button"
-                        (click)="onEditarReserva.emit(r.reservaId)"
-                        class="h-7 px-2.5 rounded-lg border border-[#EEE3D1] text-[11px] font-medium
-                               text-[#2D2926]/60 hover:border-[#C5A048] hover:text-[#C5A048] transition-colors"
-                        title="Editar">
-                        Editar
-                      </button>
-                      @if (r.estado === 'CONFIRMADA' || r.estado === 'PENDIENTE') {
+                      @if (canEditar()) {
+                        <button type="button"
+                          (click)="onEditarReserva.emit(r.reservaId)"
+                          class="h-7 px-2.5 rounded-lg border border-[#EEE3D1] text-[11px] font-medium
+                                 text-[#2D2926]/60 hover:border-[#C5A048] hover:text-[#C5A048] transition-colors"
+                          title="Editar">
+                          Editar
+                        </button>
+                      }
+                      @if (canCambiarEstado() && (r.estado === 'CONFIRMADA' || r.estado === 'PENDIENTE')) {
                         <button type="button"
                           (click)="onCheckIn.emit(r.reservaId)"
                           class="h-7 px-2.5 rounded-lg border border-emerald-200 text-[11px] font-medium
@@ -104,7 +106,7 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; bg: string; text: strin
                           Check-in
                         </button>
                       }
-                      @if (r.estado === 'CHECK_IN') {
+                      @if (canCambiarEstado() && r.estado === 'CHECK_IN') {
                         <button type="button"
                           (click)="onCheckOut.emit(r.reservaId)"
                           class="h-7 px-2.5 rounded-lg border border-slate-200 text-[11px] font-medium
@@ -113,7 +115,7 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; bg: string; text: strin
                           Check-out
                         </button>
                       }
-                      @if (r.estado !== 'CANCELADA' && r.estado !== 'CHECK_OUT' && r.estado !== 'NO_SHOW') {
+                      @if (canCambiarEstado() && r.estado !== 'CANCELADA' && r.estado !== 'CHECK_OUT' && r.estado !== 'NO_SHOW') {
                         <button type="button"
                           (click)="onCancelarReserva.emit(r.reservaId)"
                           class="h-7 px-2.5 rounded-lg border border-red-100 text-[11px] font-medium
@@ -136,6 +138,9 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; bg: string; text: strin
 })
 export class ReservationTableComponent {
   reservas = input.required<Reserva[]>();
+
+  canEditar        = input<boolean>(true);
+  canCambiarEstado = input<boolean>(true);
 
   onVerReserva      = output<number>();
   onEditarReserva   = output<number>();
