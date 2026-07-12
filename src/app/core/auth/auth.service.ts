@@ -67,14 +67,15 @@ export class AuthService {
     return this.api.get<readonly PublicDocumentType[]>('/auth/document-types');
   }
 
+  // Responsabilidad única: rota el token y setea el usuario en éxito. NO limpia
+  // la sesión en fallo: el clear() + redirect vive en un solo lugar
+  // (errorInterceptor), que es el que ve el 401 definitivo cuando el refresh
+  // falla. Único consumidor: refreshInterceptor.
   refresh(): Observable<AuthUser | null> {
     return this.api.post<LoginResponseBody, null>('/auth/refresh', null).pipe(
       map((res) => res.user),
       tap((user) => this.store.setUser(user)),
-      catchError(() => {
-        this.store.clear();
-        return of(null);
-      }),
+      catchError(() => of(null)),
     );
   }
 

@@ -2,7 +2,6 @@
 
 export type ReportPeriod = 'TODAY' | 'WEEK' | 'MONTH' | 'QUARTER' | 'YEAR' | 'CUSTOM';
 export type ReportGroupBy = 'DAY' | 'WEEK' | 'MONTH';
-export type ExportFormat = 'PDF' | 'EXCEL';
 
 export interface ReportDateRange {
   period: ReportPeriod;
@@ -138,8 +137,24 @@ export interface ManagementDashboard {
 // Punto 17: Exportación
 // ---------------------------------------------------------------------
 
+// Coincide con ExportReporteRequest del backend (fuente de la verdad).
+// El backend genera CSV, EXCEL (.xlsx) y PDF; si se omite formato, default CSV.
+export type ExportFormat = 'CSV' | 'EXCEL' | 'PDF';
+export type ExportTipo = 'ingresos' | 'reservas' | 'ocupacion' | 'gerencial';
+
+// Solo para el nombre de archivo de fallback: el nombre real (con su
+// extensión) viene en el header Content-Disposition de la respuesta.
+export const EXPORT_EXTENSION: Record<ExportFormat, string> = {
+  CSV: 'csv',
+  EXCEL: 'xlsx',
+  PDF: 'pdf',
+};
+
 export interface ExportRequest {
-  tipo: 'INGRESOS' | 'RESERVAS' | 'OCUPACION' | 'GERENCIAL';
+  tipo: ExportTipo;
   formato: ExportFormat;
-  rango: ReportDateRange;
+  period: ReportPeriod;
+  groupBy: ReportGroupBy;
+  fechaInicio: string | null;
+  fechaFin: string | null;
 }

@@ -8,13 +8,14 @@ import {
   signal,
 } from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { finalize } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { ReportService } from '../../services/report.service';
 import { RevenueChartComponent } from '../../components/revenue-chart/revenue-chart.component';
 import { OccupancyChartComponent } from '../../components/occupancy-chart/occupancy-chart.component';
 import { UiButtonComponent } from '../../../../shared/ui/button/ui-button.component';
 import { UiSkeletonComponent } from '../../../../shared/ui/skeleton/ui-skeleton.component';
-import { DEFAULT_REPORT_RANGE } from '../../models/report.model';
+import { DEFAULT_REPORT_RANGE, EXPORT_EXTENSION, ExportFormat } from '../../models/report.model';
 
 interface KpiCard {
   label: string;
@@ -56,10 +57,13 @@ interface KpiCard {
             Actualizar
           </ui-button>
           <ui-button variant="outline" [loading]="exporting()" (click)="exportConsolidado('PDF')">
-            ↓ PDF ejecutivo
+            ↓ PDF
           </ui-button>
           <ui-button variant="outline" [loading]="exporting()" (click)="exportConsolidado('EXCEL')">
             ↓ Excel
+          </ui-button>
+          <ui-button variant="outline" [loading]="exporting()" (click)="exportConsolidado('CSV')">
+            ↓ CSV
           </ui-button>
         </div>
       </header>
@@ -203,18 +207,25 @@ export class ManagementDashboardComponent implements OnInit {
     return map[tone];
   }
 
-  exportConsolidado(formato: 'PDF' | 'EXCEL'): void {
+  exportConsolidado(formato: ExportFormat): void {
     this.exporting.set(true);
-    const ext = formato === 'PDF' ? 'pdf' : 'xlsx';
-    this.reportService.downloadExport(
-      {
-        tipo: 'GERENCIAL',
-        formato,
-        rango: { ...DEFAULT_REPORT_RANGE, period: 'MONTH' },
-      },
-      `dashboard-gerencial-${new Date().toISOString().slice(0, 10)}.${ext}`,
-    );
-    this.exporting.set(false);
-    this.toastr.success(`Dashboard gerencial exportado como ${formato}.`);
+    const rango = { ...DEFAULT_REPORT_RANGE, period: 'MONTH' as const };
+    this.reportService
+      .downloadExport(
+        {
+          tipo: 'gerencial',
+          formato,
+          period: rango.period,
+          groupBy: rango.groupBy,
+          fechaInicio: rango.fechaInicio,
+          fechaFin: rango.fechaFin,
+        },
+        `dashboard-gerencial-${new Date().toISOString().slice(0, 10)}.${EXPORT_EXTENSION[formato]}`,
+      )
+      .pipe(finalize(() => this.exporting.set(false)))
+      .subscribe({
+        next: () => this.toastr.success(`Dashboard gerencial exportado como ${formato}.`),
+        error: () => this.toastr.error('No se pudo exportar el dashboard gerencial.'),
+      });
   }
 }

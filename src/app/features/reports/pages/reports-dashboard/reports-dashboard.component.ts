@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
+import { finalize, forkJoin } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { ReportService } from '../../services/report.service';
 import { RevenueChartComponent } from '../../components/revenue-chart/revenue-chart.component';
@@ -17,7 +18,9 @@ import { UiButtonComponent } from '../../../../shared/ui/button/ui-button.compon
 import { UiSkeletonComponent } from '../../../../shared/ui/skeleton/ui-skeleton.component';
 import {
   DEFAULT_REPORT_RANGE,
+  EXPORT_EXTENSION,
   ExportFormat,
+  ExportTipo,
   ReportDateRange,
   ReportGroupBy,
   ReportPeriod,
@@ -100,6 +103,9 @@ import {
             <ui-button variant="outline" [loading]="exporting()" (click)="exportReport('EXCEL')">
               ↓ Excel
             </ui-button>
+            <ui-button variant="outline" [loading]="exporting()" (click)="exportReport('CSV')">
+              ↓ CSV
+            </ui-button>
           </div>
         </div>
       </header>
@@ -112,7 +118,13 @@ import {
       } @else if (reportService.revenue(); as rev) {
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <article class="bg-white rounded-2xl border border-[var(--color-border-soft)] shadow-[var(--shadow-card)] p-5">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-ink-muted)]">Total ingresos</p>
+            <p class="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-ink-muted)]">
+              Cobros del período
+              <span
+                class="cursor-help text-[var(--color-ink-muted)]/70"
+                title="Pagos efectivamente recibidos en el período (base caja), por fecha de pago."
+                aria-label="Pagos efectivamente recibidos en el período (base caja), por fecha de pago.">ⓘ</span>
+            </p>
             <p class="mt-1.5 text-2xl font-bold text-[var(--color-success-500)]">
               {{ rev.totalIngresos | currency:'PEN':'symbol-narrow':'1.2-2' }}
             </p>
@@ -164,8 +176,16 @@ import {
                   <th class="text-right px-4 py-3 font-medium">Habitaciones</th>
                   <th class="text-right px-4 py-3 font-medium">Noches ocupadas</th>
                   <th class="text-right px-4 py-3 font-medium">% Ocupación</th>
-                  <th class="text-right px-4 py-3 font-medium">ADR</th>
-                  <th class="text-right px-4 py-3 font-medium">RevPAR</th>
+                  <th class="text-right px-4 py-3 font-medium">
+                    <span
+                      class="cursor-help border-b border-dotted border-[var(--color-ink-muted)]/50"
+                      title="Ingreso de habitación devengado, prorrateado por noche de estancia. No comparable 1:1 con los cobros del período.">ADR</span>
+                  </th>
+                  <th class="text-right px-4 py-3 font-medium">
+                    <span
+                      class="cursor-help border-b border-dotted border-[var(--color-ink-muted)]/50"
+                      title="Ingreso de habitación devengado, prorrateado por noche de estancia. No comparable 1:1 con los cobros del período.">RevPAR</span>
+                  </th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-[var(--color-border-soft)]">
@@ -187,6 +207,12 @@ import {
                 }
               </tbody>
             </table>
+          </div>
+          <div class="px-5 py-3 border-t border-[var(--color-border-soft)] text-[11px] leading-relaxed text-[var(--color-ink-muted)]">
+            <span class="mr-1">ⓘ</span>
+            <strong>Base caja</strong> (cobros del período): pagos recibidos por fecha de pago.
+            <strong>Base devengado</strong> (ADR / RevPAR): ingreso de habitación prorrateado por noche de estancia.
+            Un día puede tener ocupación con cobros en cero: el huésped está hospedado pero pagó otro día. No es un error; son bases contables distintas.
           </div>
         </div>
       }
@@ -250,21 +276,32 @@ export class ReportsDashboardComponent implements OnInit {
 
   exportReport(formato: ExportFormat): void {
     this.exporting.set(true);
-    const tipos: Array<'INGRESOS' | 'RESERVAS' | 'OCUPACION'> = ['INGRESOS', 'RESERVAS', 'OCUPACION'];
+    const tipos: ExportTipo[] = ['ingresos', 'reservas', 'ocupacion'];
+    const fecha = new Date().toISOString().slice(0, 10);
 
-    // Exporta los 3 reportes en el formato seleccionado
-    let pendientes = tipos.length;
-    tipos.forEach((tipo) => {
-      const ext = formato === 'PDF' ? 'pdf' : 'xlsx';
+    // Exporta los 3 reportes en el formato pedido. El nombre real del archivo
+    // sale del Content-Disposition; el fallback solo cubre su ausencia.
+    // forkJoin espera a que las 3 descargas terminen; el toast refleja el
+    // resultado real (no antes de tiempo).
+    const descargas = tipos.map((tipo) =>
       this.reportService.downloadExport(
-        { tipo, formato, rango: this.range },
-        `reporte-${tipo.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.${ext}`,
-      );
-      pendientes--;
-      if (pendientes === 0) {
-        this.exporting.set(false);
-        this.toastr.success(`Exportación ${formato} iniciada correctamente.`);
-      }
-    });
+        {
+          tipo,
+          formato,
+          period: this.range.period,
+          groupBy: this.range.groupBy,
+          fechaInicio: this.range.fechaInicio,
+          fechaFin: this.range.fechaFin,
+        },
+        `reporte-${tipo}-${fecha}.${EXPORT_EXTENSION[formato]}`,
+      ),
+    );
+
+    forkJoin(descargas)
+      .pipe(finalize(() => this.exporting.set(false)))
+      .subscribe({
+        next: () => this.toastr.success(`Reportes exportados como ${formato} correctamente.`),
+        error: () => this.toastr.error('No se pudieron exportar los reportes.'),
+      });
   }
 }

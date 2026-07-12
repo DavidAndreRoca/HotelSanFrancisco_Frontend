@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, publicOnlyGuard } from './core/guards/auth.guard';
-import { noClienteGuard } from './core/guards/permission.guard';
+import { hasPermission, noClienteGuard } from './core/guards/permission.guard';
 import { usuariosGuard } from './features/usuarios/guards/usuarios.guard';
 import { rolesGuard } from './features/roles/guards/roles.guard';
 import { serviciosGuard, tiposServicioGuard } from './features/servicios/guards/servicios.guard';
@@ -13,6 +13,7 @@ import { asistenciaGuard } from './features/asistencia/guards/asistencia.guard';
 import { miAsistenciaGuard } from './features/mi-asistencia/guards/mi-asistencia.guard';
 import { turnosGuard } from './features/turnos/guards/turnos.guard';
 import { horariosGuard } from './features/horarios/guards/horarios.guard';
+import { auditoriaGuard } from './features/auditoria/guards/auditoria.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -114,6 +115,7 @@ export const routes: Routes = [
       },
       {
         path: 'habitaciones',
+        canActivate: [hasPermission('habitacion:read')],
         loadComponent: () =>
           import('./features/habitaciones/pages/habitaciones-list/habitaciones-list.page').then(
             (m) => m.HabitacionesListPage,
@@ -168,7 +170,7 @@ export const routes: Routes = [
       },
       {
         path: 'reports',
-        canActivate: [noClienteGuard],
+        canActivate: [hasPermission('reporte:read')],
         loadComponent: () =>
           import('./features/reports/pages/reports-dashboard/reports-dashboard.component').then(
             (m) => m.ReportsDashboardComponent,
@@ -177,6 +179,7 @@ export const routes: Routes = [
       },
       {
         path: 'clients',
+        canActivate: [hasPermission('cliente:read')],
         loadComponent: () =>
           import('./features/clients/pages/clientes-dashboard/clientes-dashboard.component').then(
             (m) => m.ClientesDashboardComponent,
@@ -185,7 +188,7 @@ export const routes: Routes = [
       },
       {
         path: 'management',
-        canActivate: [noClienteGuard],
+        canActivate: [hasPermission('reporte:read')],
         loadComponent: () =>
           import('./features/reports/pages/management-dashboard/management-dashboard.component').then(
             (m) => m.ManagementDashboardComponent,
@@ -211,7 +214,7 @@ export const routes: Routes = [
       },
       {
         path: 'notifications/settings',
-        canActivate: [noClienteGuard],
+        canActivate: [usuariosGuard],
         loadComponent: () =>
           import('./features/notifications/pages/notifications-settings/notifications-settings.component').then(
             (m) => m.NotificationsSettingsComponent,
@@ -220,6 +223,7 @@ export const routes: Routes = [
       },
       {
         path: 'payments',
+        canActivate: [hasPermission('pago:read')],
         loadComponent: () =>
           import('./features/payments/pages/payment-dashboard/payment-dashboard.component').then(
             (m) => m.PaymentsDashboardComponent,
@@ -236,6 +240,7 @@ export const routes: Routes = [
       },
       {
         path: 'reservations',
+        canActivate: [hasPermission('reserva:read')],
         loadComponent: () =>
           import('./features/reservations/pages/reservation-dashboard/reservation-dashboard.component').then(
             (m) => m.ReservationsDashboardComponent,
@@ -244,6 +249,7 @@ export const routes: Routes = [
       },
       {
         path: 'guests',
+        canActivate: [hasPermission('cliente:read')],
         loadComponent: () =>
           import('./features/clients/pages/clientes-dashboard/clientes-dashboard.component').then(
             (m) => m.ClientesDashboardComponent,
@@ -252,6 +258,7 @@ export const routes: Routes = [
       },
       {
         path: 'employees',
+        canActivate: [hasPermission('usuario:read')],
         loadComponent: () =>
           import('./features/employees/pages/employees-dashboard/employees-dashboard.component').then(
             (m) => m.EmployeesDashboardComponent,
@@ -411,6 +418,15 @@ export const routes: Routes = [
             (m) => m.MiAsistenciaPage,
           ),
         title: 'Mi asistencia · Hotel San Francisco',
+      },
+      {
+        path: 'auditoria',
+        canActivate: [auditoriaGuard],
+        loadComponent: () =>
+          import('./features/auditoria/pages/auditoria-lista/auditoria-lista.page').then(
+            (m) => m.AuditoriaListaPage,
+          ),
+        title: 'Auditoría · Hotel San Francisco',
       },
       {
         path: 'solicitudes',

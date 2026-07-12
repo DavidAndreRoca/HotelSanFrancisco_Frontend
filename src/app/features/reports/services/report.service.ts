@@ -1,6 +1,7 @@
 // features/reports/services/report.service.ts
+import { HttpResponse } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable, finalize } from 'rxjs';
+import { Observable, finalize, tap } from 'rxjs';
 import { ApiClient } from '../../../core/http/http-client.service';
 import {
   ExportRequest,
@@ -124,21 +125,36 @@ export class ReportService {
   // Punto 17: Exportar a PDF / Excel
   // ---------------------------------------------------------------------
 
-  export(request: ExportRequest): Observable<Blob> {
-    return this.api.post<Blob, ExportRequest>(`${this.base}/exportar`, request);
+  export(request: ExportRequest): Observable<HttpResponse<Blob>> {
+    return this.api.postBlob<ExportRequest>(`${this.base}/exportar`, request);
   }
 
-  downloadExport(request: ExportRequest, filename: string): void {
-    this.export(request).subscribe({
-      next: (blob: Blob) => {
+  /**
+   * Descarga el CSV que produce el backend. Usa el nombre de archivo del header
+   * `Content-Disposition` cuando está disponible; si no, cae en `fallbackName`.
+   * Devuelve el Observable para que el llamador maneje éxito/error real.
+   */
+  downloadExport(request: ExportRequest, fallbackName: string): Observable<HttpResponse<Blob>> {
+    return this.export(request).pipe(
+      tap((response: HttpResponse<Blob>) => {
+        const blob = response.body;
+        if (!blob) return;
+        const filename = this.filenameFromResponse(response) ?? fallbackName;
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = filename;
         a.click();
         window.URL.revokeObjectURL(url);
-      },
-    });
+      }),
+    );
+  }
+
+  private filenameFromResponse(response: HttpResponse<Blob>): string | null {
+    const disposition = response.headers.get('Content-Disposition');
+    if (!disposition) return null;
+    const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+    return match ? decodeURIComponent(match[1].trim()) : null;
   }
 
   // ---------------------------------------------------------------------

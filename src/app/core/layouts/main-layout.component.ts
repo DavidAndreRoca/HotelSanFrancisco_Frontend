@@ -275,10 +275,10 @@ export class MainLayoutComponent {
     {
       title: 'Operación',
       items: [
-        { label: 'Reservas',     icon: 'calendar',  link: '/reservations' },
-        { label: 'Huéspedes',    icon: 'users',     link: '/guests' },
+        { label: 'Reservas',     icon: 'calendar',  link: '/reservations', permiso: 'reserva:read' },
+        { label: 'Huéspedes',    icon: 'users',     link: '/guests', permiso: 'cliente:read' },
         { label: 'Pedidos serv.',icon: 'clipboard', link: '/pedidos-servicio', permiso: 'servicio:read' },
-        { label: 'Incidencias',  icon: 'warning',   link: '/incidencias' },
+        { label: 'Incidencias',  icon: 'warning',   link: '/incidencias', permiso: 'incidencia:read' },
       ],
     },
     {
@@ -287,16 +287,16 @@ export class MainLayoutComponent {
         { label: 'Servicios',     icon: 'sparkles', link: '/servicios', permiso: 'servicio:read' },
         { label: 'Catálogo serv.',icon: 'list',     link: '/tipos-servicio', permiso: 'tipo-servicio:read' },
         { label: 'Punto de venta',icon: 'cart',     link: '/pos', permiso: 'venta:read' },
-        { label: 'Productos',     icon: 'box',      link: '/products' },
-        { label: 'Compras',       icon: 'truck',    link: '/purchases' },
+        { label: 'Productos',     icon: 'box',      link: '/products', permiso: 'producto:read' },
+        { label: 'Compras',       icon: 'truck',    link: '/purchases', permiso: 'compra:read' },
       ],
     },
     {
       title: 'Finanzas',
       items: [
-        { label: 'Pagos',     icon: 'card',      link: '/payments' },
-        { label: 'Reportes',  icon: 'chart',     link: '/reports' },
-        { label: 'Gerencial', icon: 'briefcase', link: '/management' },
+        { label: 'Pagos',     icon: 'card',      link: '/payments', permiso: 'pago:read' },
+        { label: 'Reportes',  icon: 'chart',     link: '/reports', permiso: 'reporte:read' },
+        { label: 'Gerencial', icon: 'briefcase', link: '/management', permiso: 'reporte:read' },
       ],
     },
     {
@@ -325,9 +325,10 @@ export class MainLayoutComponent {
     {
       title: 'Administración',
       items: [
-        { label: 'Empleados', icon: 'idcard', link: '/employees' },
+        { label: 'Empleados', icon: 'idcard', link: '/employees', permiso: 'usuario:read' },
         { label: 'Usuarios',  icon: 'cog',    link: '/users', permiso: 'usuario:read' },
         { label: 'Roles',     icon: 'shield', link: '/roles', permiso: 'rol:read' },
+        { label: 'Auditoría', icon: 'shield', link: '/auditoria', permiso: 'auditoria:read' },
       ],
     },
   ];

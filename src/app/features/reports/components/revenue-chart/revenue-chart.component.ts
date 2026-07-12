@@ -16,11 +16,18 @@ import { RevenuePoint } from '../../models/report.model';
     <div class="bg-white rounded-2xl border border-[var(--color-border-soft)] shadow-[var(--shadow-card)] p-5">
       <div class="flex items-center justify-between mb-4">
         <div>
-          <p class="text-[12px] font-semibold uppercase tracking-wide text-[var(--color-ink-muted)]">
+          <p class="flex items-center gap-1 text-[12px] font-semibold uppercase tracking-wide text-[var(--color-ink-muted)]">
             Ingresos totales
+            <span
+              class="cursor-help text-[var(--color-ink-muted)]/70"
+              title="Cobros del período, por fecha de pago (base caja)."
+              aria-label="Cobros del período, por fecha de pago (base caja).">ⓘ</span>
           </p>
           <p class="text-2xl font-bold tracking-tight text-[var(--color-ink)]">
             {{ total() | currency:'PEN':'symbol-narrow':'1.2-2' }}
+          </p>
+          <p class="text-[11px] font-normal normal-case text-[var(--color-ink-muted)]">
+            Cobros del período, por fecha de pago.
           </p>
         </div>
         <div class="flex items-center gap-4 text-[12px] text-[var(--color-ink-muted)]">

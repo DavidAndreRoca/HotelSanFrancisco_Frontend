@@ -1,4 +1,4 @@
-import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -42,6 +42,24 @@ export class ApiClient {
     options: RequestOptions = {},
   ): Observable<ApiResponse<T>> {
     return this.http.post<ApiResponse<T>>(this.url(path), body, this.opts(options));
+  }
+
+  /**
+   * POST para descarga de archivos: pide la respuesta como `Blob` y observa la
+   * respuesta completa (`HttpResponse`) para poder leer headers como
+   * `Content-Disposition`. NO usa `responseType: 'json'`, por lo que Angular no
+   * intenta parsear el cuerpo (evita el SyntaxError al recibir CSV/binario).
+   */
+  postBlob<B = unknown>(
+    path: string,
+    body: B,
+    options: RequestOptions = {},
+  ): Observable<HttpResponse<Blob>> {
+    return this.http.post(this.url(path), body, {
+      ...this.opts(options),
+      responseType: 'blob',
+      observe: 'response',
+    });
   }
 
   put<T, B = unknown>(path: string, body: B, options: RequestOptions = {}): Observable<T> {

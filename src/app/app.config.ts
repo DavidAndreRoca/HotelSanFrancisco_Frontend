@@ -11,6 +11,7 @@ import { provideToastr } from 'ngx-toastr';
 import { routes } from './app.routes';
 import { credentialsInterceptor } from './core/interceptors/credentials.interceptor';
 import { csrfInterceptor } from './core/interceptors/csrf.interceptor';
+import { refreshInterceptor } from './core/interceptors/refresh.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { bootstrapSession } from './core/auth/session-bootstrap';
 
@@ -26,7 +27,7 @@ export const appConfig: ApplicationConfig = {
     // Angular se eliminó: el backend no emite XSRF-TOKEN y Angular tampoco lo
     // enviaría con URLs absolutas.
     provideHttpClient(
-      withInterceptors([credentialsInterceptor, csrfInterceptor, errorInterceptor]),
+      withInterceptors([credentialsInterceptor, csrfInterceptor, refreshInterceptor, errorInterceptor]),
     ),
     provideAnimations(),
     provideToastr({
