@@ -25,6 +25,15 @@ import {
 import { TIPO_ASISTENCIA, TIPO_BADGE, TIPO_LABEL } from '../../utils/asistencia-ui';
 import { AsistenciaEntradaModalComponent } from '../../components/asistencia-entrada-modal.component';
 import { AsistenciaSalidaModalComponent } from '../../components/asistencia-salida-modal.component';
+import { AuthStore } from '../../../../core/auth/auth.store';
+import { ReportService } from '../../../reports/services/report.service';
+import {
+  EXPORT_EXTENSION,
+  ExportFormat,
+  ReportDateRange,
+} from '../../../reports/models/report.model';
+import { UiExportMenuComponent } from '../../../../shared/ui/export-menu/ui-export-menu.component';
+import { finalize } from 'rxjs';
 
 const PAGE_SIZE = 20;
 
@@ -35,6 +44,7 @@ const PAGE_SIZE = 20;
     EmpleadoSelectorComponent,
     AsistenciaEntradaModalComponent,
     AsistenciaSalidaModalComponent,
+    UiExportMenuComponent,
   ],
   template: `
     <div class="space-y-6">
@@ -45,6 +55,13 @@ const PAGE_SIZE = 20;
           <h1 class="text-2xl font-bold text-[#2D2926]">Asistencia</h1>
           <p class="text-sm text-[#2D2926]/55 mt-0.5">Marcaciones de entrada y salida del personal</p>
         </div>
+        <div class="flex items-center gap-2">
+        @if (puedeExportar()) {
+          <ui-export-menu
+            [tooltip]="tooltipExport()"
+            [loading]="exportando()"
+            (exportar)="exportar($event)" />
+        }
         <button type="button" (click)="entradaAbierto.set(true)"
           class="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-[#C5A048] text-white
                  text-sm font-medium hover:bg-[#8E6F2E] transition-colors">
@@ -53,6 +70,7 @@ const PAGE_SIZE = 20;
           </svg>
           Registrar entrada
         </button>
+        </div>
       </div>
 
       <!-- Filtros -->
@@ -236,6 +254,45 @@ export class AsistenciaListaPage {
   private readonly confirm = inject(ConfirmDialogService);
   private readonly ws = inject(WebSocketService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly auth = inject(AuthStore);
+  private readonly reportService = inject(ReportService);
+
+  readonly puedeExportar = computed(() => this.auth.hasPermission('asistencia:read'));
+  readonly exportando = signal(false);
+
+  // El export usa el rango Desde/Hasta de la vista (period=CUSTOM); sin ambas
+  // fechas cae al default del backend: el mes en curso. Empleado/tipo no
+  // aplican al export.
+  private rangoExport(): ReportDateRange {
+    const desde = this.fDesde();
+    const hasta = this.fHasta();
+    if (desde && hasta) {
+      return { period: 'CUSTOM', groupBy: 'DAY', fechaInicio: desde, fechaFin: hasta };
+    }
+    return { period: 'MONTH', groupBy: 'DAY', fechaInicio: null, fechaFin: null };
+  }
+
+  readonly tooltipExport = computed(() =>
+    this.fDesde() && this.fHasta()
+      ? `Exporta la asistencia del ${this.fDesde()} al ${this.fHasta()}`
+      : 'Exporta la asistencia del mes en curso (usá Desde/Hasta para otro rango)',
+  );
+
+  exportar(formato: ExportFormat): void {
+    this.exportando.set(true);
+    const fecha = new Date().toISOString().slice(0, 10);
+    this.reportService
+      .downloadAsistenciaExport(
+        formato,
+        this.rangoExport(),
+        `reporte-asistencia-${fecha}.${EXPORT_EXTENSION[formato]}`,
+      )
+      .pipe(finalize(() => this.exportando.set(false)))
+      .subscribe({
+        next: () => this.toastr.success(`Asistencia exportada como ${formato}.`),
+        error: () => this.toastr.error('No se pudo exportar la asistencia.', 'Error'),
+      });
+  }
 
   readonly loading = signal(true);
   readonly page = signal<PageResponse<AsistenciaResponse> | null>(null);

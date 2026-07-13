@@ -24,6 +24,10 @@ import {
 } from '../../models/nomina.model';
 import { ESTADO_BADGE, ESTADO_LABEL, formatMonto } from '../../utils/nomina-ui';
 import { NominaFormModalComponent } from '../../components/nomina-form-modal.component';
+import { ReportService } from '../../../reports/services/report.service';
+import { EXPORT_EXTENSION, ExportFormat } from '../../../reports/models/report.model';
+import { UiExportMenuComponent } from '../../../../shared/ui/export-menu/ui-export-menu.component';
+import { finalize } from 'rxjs';
 import { CambiarEstadoNominaModalComponent } from '../../components/cambiar-estado-nomina-modal.component';
 
 const PAGE_SIZE = 20;
@@ -35,6 +39,7 @@ const PAGE_SIZE = 20;
     EmpleadoSelectorComponent,
     NominaFormModalComponent,
     CambiarEstadoNominaModalComponent,
+    UiExportMenuComponent,
   ],
   template: `
     <div class="space-y-6">
@@ -45,6 +50,13 @@ const PAGE_SIZE = 20;
           <h1 class="text-2xl font-bold text-[#2D2926]">Nómina</h1>
           <p class="text-sm text-[#2D2926]/55 mt-0.5">Pagos de planilla del personal</p>
         </div>
+        <div class="flex items-center gap-2">
+        @if (puedeExportar()) {
+          <ui-export-menu
+            [tooltip]="tooltipExport()"
+            [loading]="exportando()"
+            (exportar)="exportar($event)" />
+        }
         @if (puedeCrear()) {
           <button type="button" (click)="formAbierto.set(true)"
             class="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-[#C5A048] text-white
@@ -55,6 +67,7 @@ const PAGE_SIZE = 20;
             Nuevo pago
           </button>
         }
+        </div>
       </div>
 
       <!-- Filtros -->
@@ -241,6 +254,9 @@ export class NominaListaPage {
   private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthStore);
 
+  private readonly reportService = inject(ReportService);
+
+  readonly puedeExportar      = computed(() => this.auth.hasPermission('nomina:read'));
   readonly puedeCrear         = computed(() => this.auth.hasPermission('nomina:create'));
   readonly puedeCambiarEstado = computed(() => this.auth.hasPermission('nomina:change-status'));
   readonly puedeEliminar      = computed(() => this.auth.hasPermission('nomina:delete'));
@@ -288,6 +304,36 @@ export class NominaListaPage {
         this.toastr.error(err.friendlyMessage ?? 'No se pudieron cargar los pagos.', 'Error');
       },
     });
+  }
+
+  readonly exportando = signal(false);
+
+  // El export solo filtra por período exacto YYYY-MM (contrato del backend).
+  // Si el filtro de la vista no tiene ese formato, se exportan todos los
+  // períodos; el tooltip lo transparenta. Empleado/estado no aplican al export.
+  private periodoExport(): string | undefined {
+    const p = this.fPeriodo().trim();
+    return /^\d{4}-\d{2}$/.test(p) ? p : undefined;
+  }
+
+  readonly tooltipExport = computed(() => {
+    const p = this.fPeriodo().trim();
+    return /^\d{4}-\d{2}$/.test(p)
+      ? `Exporta la nómina del período ${p}`
+      : 'Exporta la nómina de todos los períodos (para un período puntual, filtrá con formato AAAA-MM)';
+  });
+
+  exportar(formato: ExportFormat): void {
+    this.exportando.set(true);
+    const periodo = this.periodoExport();
+    const fecha = new Date().toISOString().slice(0, 10);
+    this.reportService
+      .downloadNominaExport(formato, periodo, `reporte-nomina-${fecha}.${EXPORT_EXTENSION[formato]}`)
+      .pipe(finalize(() => this.exportando.set(false)))
+      .subscribe({
+        next: () => this.toastr.success(`Nómina exportada como ${formato}.`),
+        error: () => this.toastr.error('No se pudo exportar la nómina.', 'Error'),
+      });
   }
 
   onEmpleado(u: UsuarioResumen | null): void {
