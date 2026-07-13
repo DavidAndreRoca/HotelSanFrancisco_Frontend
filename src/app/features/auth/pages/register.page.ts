@@ -25,6 +25,7 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
 import { UiDatePickerComponent } from '../../../shared/ui/date-picker/ui-date-picker.component';
 import { DniLookupComponent } from '../../../shared/components/dni-lookup/dni-lookup.component';
 import { ReniecPersona } from '../../../core/reniec/reniec.service';
+import { NACIONALIDADES } from '../../../shared/constants/nacionalidades';
 
 function passwordMatchValidator(group: AbstractControl): ValidationErrors | null {
   const a = group.get('contrasena')?.value;
@@ -58,11 +59,8 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
 
         <div class="relative h-full flex flex-col justify-between p-12 text-white">
           <a routerLink="/home" class="inline-flex items-center gap-3">
-            <div
-              class="w-12 h-12 rounded-full bg-[var(--color-primary-500)] text-[var(--color-ink)] flex items-center justify-center font-extrabold shadow-lg"
-            >
-              SF
-            </div>
+            <img src="logo.png" alt="Hotel San Francisco"
+              class="w-12 h-12 rounded-full object-cover shadow-lg bg-white" />
             <div class="leading-tight">
               <p class="text-sm font-semibold tracking-wider">HOTEL SAN FRANCISCO</p>
               <p class="text-[11px] text-white/70">Ica · Perú</p>
@@ -291,12 +289,15 @@ function passwordMatchValidator(group: AbstractControl): ValidationErrors | null
                 >
                   Nacionalidad
                 </label>
-                <input
+                <select
                   id="nacionalidad"
                   formControlName="nacionalidad"
-                  [class]="cls(form.controls.nacionalidad)"
-                  placeholder="Peruana"
-                />
+                  [class]="cls(form.controls.nacionalidad)">
+                  <option value="">Selecciona…</option>
+                  @for (n of nacionalidades; track n) {
+                    <option [value]="n">{{ n }}</option>
+                  }
+                </select>
               </div>
             </div>
 
@@ -387,6 +388,8 @@ export class RegisterComponent implements OnInit {
   readonly documentTypes = signal<readonly PublicDocumentType[]>([]);
 
   readonly todayIso = new Date().toISOString().split('T')[0];
+
+  readonly nacionalidades = NACIONALIDADES;
 
   readonly form = this.fb.group(
     {

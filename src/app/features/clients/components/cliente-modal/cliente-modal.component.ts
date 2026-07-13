@@ -1,8 +1,9 @@
-import { Component, input, output, inject, ChangeDetectionStrategy, effect } from '@angular/core';
+import { Component, input, output, inject, ChangeDetectionStrategy, computed, effect } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Cliente, CreateClientePayload, UpdateClientePayload } from '../../models/cliente.model';
 import { DniLookupComponent } from '../../../../shared/components/dni-lookup/dni-lookup.component';
 import { ReniecPersona } from '../../../../core/reniec/reniec.service';
+import { opcionesNacionalidad } from '../../../../shared/constants/nacionalidades';
 
 export interface ClienteModalSaveEvent {
   payload: CreateClientePayload | UpdateClientePayload;
@@ -144,9 +145,16 @@ const INPUT_RO   = `${INPUT_BASE} border-[#EEE3D1] bg-[#F9F5F0] cursor-default`;
                   <label class="text-[11px] uppercase tracking-wider font-semibold text-[#8E6F2E]">
                     Nacionalidad
                   </label>
-                  <input type="text" formControlName="nacionalidad" maxlength="60"
-                         placeholder="Ej: Peruana"
-                         [class]="mode() === 'view' ? roClass : INPUT_OK" [readonly]="mode() === 'view'">
+                  <select formControlName="nacionalidad"
+                    class="mt-1.5 w-full h-10 px-3.5 rounded-lg border border-[#EEE3D1] bg-white text-sm
+                           focus:outline-none focus:border-[#C5A048] focus:ring-2 focus:ring-[#C5A048]/20
+                           transition disabled:bg-[#F9F5F0] disabled:cursor-default"
+                    [attr.disabled]="mode() === 'view' ? true : null">
+                    <option value="">Sin especificar</option>
+                    @for (n of nacionalidades(); track n) {
+                      <option [value]="n">{{ n }}</option>
+                    }
+                  </select>
                 </div>
                 <div>
                   <label class="text-[11px] uppercase tracking-wider font-semibold text-[#8E6F2E]">
@@ -200,6 +208,9 @@ export class ClienteModalComponent {
 
   protected readonly INPUT_OK = INPUT_OK;
   protected readonly roClass  = INPUT_RO;
+
+  /** Registros antiguos pueden traer texto libre: se antepone para no perderlo al editar. */
+  readonly nacionalidades = computed(() => opcionesNacionalidad(this.cliente()?.nacionalidad));
 
   form = this.fb.group({
     nombre:          ['', [Validators.required, Validators.maxLength(80)]],
