@@ -20,7 +20,8 @@ export const TIPO_LABEL: Record<TipoVenta, string> = {
   EVENTO: 'Evento',
 };
 
-export const TIPOS_VENTA: TipoVenta[] = ['DIRECTA', 'CARGO_HABITACION', 'DELIVERY', 'EVENTO'];
+// El hotel no hace delivery: DELIVERY queda solo como etiqueta para ventas históricas.
+export const TIPOS_VENTA: TipoVenta[] = ['DIRECTA', 'CARGO_HABITACION', 'EVENTO'];
 
 /**
  * Transiciones de estado permitidas (sección 5 del doc):

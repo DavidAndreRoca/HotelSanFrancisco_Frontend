@@ -27,7 +27,7 @@ import { TIPOS_VENTA, TIPO_LABEL, formatMonto } from '../../utils/venta-ui';
 interface LineaEditable {
   productoId: number;
   productoNombre: string;
-  cantidad: number;
+  cantidad: number | null; // null = vacía o no numérica
   precioUnitario: number;
   descuentoUnitario: number;
 }
@@ -54,29 +54,12 @@ interface LineaEditable {
       <div class="bg-white rounded-2xl border border-[#EEE3D1] p-5 space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-sm font-semibold text-[#2D2926] mb-1.5">Código de venta *</label>
-            <input type="text" [(ngModel)]="codigoVenta" (ngModelChange)="onCodigo($event)"
-              placeholder="VEN-2026-001"
-              class="w-full h-10 px-3 rounded-lg border bg-white text-sm text-[#2D2926]
-                     placeholder:text-[#2D2926]/35 focus:outline-none"
-              [class]="codigoValido() ? 'border-[#EEE3D1] focus:border-[#C5A048]' : 'border-red-400'" />
-            @if (codigoVenta() && !codigoValido()) {
-              <p class="text-[11px] text-red-500 mt-1">Solo mayúsculas, números y guiones.</p>
-            }
-          </div>
-          <div>
             <label class="block text-sm font-semibold text-[#2D2926] mb-1.5">Tipo de venta *</label>
             <select [(ngModel)]="tipoVenta"
               class="w-full h-10 px-3 rounded-lg border border-[#EEE3D1] bg-white text-sm
                      text-[#2D2926] focus:outline-none focus:border-[#C5A048]">
               @for (t of tipos; track t) { <option [value]="t">{{ tipoLabel(t) }}</option> }
             </select>
-          </div>
-          <div>
-            <label class="block text-sm font-semibold text-[#2D2926] mb-1.5">Fecha de venta *</label>
-            <input type="datetime-local" [(ngModel)]="fechaVenta"
-              class="w-full h-10 px-3 rounded-lg border border-[#EEE3D1] bg-white text-sm
-                     text-[#2D2926] focus:outline-none focus:border-[#C5A048]" />
           </div>
           @if (tipoVenta() === 'CARGO_HABITACION') {
             <div>
@@ -123,8 +106,13 @@ interface LineaEditable {
                     <td class="px-2 py-2">
                       <input type="number" min="0.01" step="0.01" [ngModel]="l.cantidad"
                         (ngModelChange)="setLinea(i, 'cantidad', $event)"
-                        class="w-20 h-8 px-2 rounded border border-[#EEE3D1] text-sm
-                               focus:outline-none focus:border-[#C5A048]" />
+                        class="w-20 h-8 px-2 rounded border text-sm focus:outline-none"
+                        [class]="errorCantidad(l)
+                          ? 'border-red-400 focus:border-red-500'
+                          : 'border-[#EEE3D1] focus:border-[#C5A048]'" />
+                      @if (errorCantidad(l); as msg) {
+                        <p class="text-[11px] text-red-500 mt-1 whitespace-nowrap">{{ msg }}</p>
+                      }
                     </td>
                     <td class="px-2 py-2 text-[#2D2926] whitespace-nowrap"
                         title="Precio de catálogo; lo fija el sistema al guardar.">
@@ -193,24 +181,15 @@ export class VentaFormPage {
 
   readonly tipos = TIPOS_VENTA;
 
-  readonly codigoVenta = signal('');
   readonly tipoVenta = signal<TipoVenta>('DIRECTA');
-  readonly fechaVenta = signal(new Date().toISOString().slice(0, 16));
   readonly estanciaId = signal<number | null>(null);
   readonly huespedId = signal<number | null>(null);
   readonly lineas = signal<LineaEditable[]>([]);
   readonly guardando = signal(false);
 
-  readonly codigoValido = computed(() => /^[A-Z0-9\-]+$/.test(this.codigoVenta()));
-
   readonly totalPreview = computed(() =>
     this.lineas().reduce((acc, l) => acc + this.subtotalLinea(l), 0),
   );
-
-  onCodigo(v: string): void {
-    // Normaliza a mayúsculas para cumplir el patrón del backend
-    this.codigoVenta.set(v.toUpperCase());
-  }
 
   onHuesped(c: ClienteResumen | null): void {
     this.huespedId.set(c?.huespedId ?? null);
@@ -220,7 +199,7 @@ export class VentaFormPage {
     const existente = this.lineas().find((l) => l.productoId === p.productoId);
     if (existente) {
       // El backend rechaza productos duplicados → incrementamos la cantidad
-      this.setLinea(this.lineas().indexOf(existente), 'cantidad', existente.cantidad + 1);
+      this.setLinea(this.lineas().indexOf(existente), 'cantidad', (existente.cantidad ?? 0) + 1);
       this.toastr.info('El producto ya estaba en la venta; se aumentó la cantidad.');
       return;
     }
@@ -237,9 +216,18 @@ export class VentaFormPage {
   }
 
   // El precio no es editable: el backend siempre usa el precioVenta del catálogo.
-  setLinea(i: number, campo: 'cantidad' | 'descuentoUnitario', valor: number): void {
+  setLinea(i: number, campo: 'cantidad' | 'descuentoUnitario', valor: unknown): void {
     this.lineas.update((ls) =>
-      ls.map((l, idx) => (idx === i ? { ...l, [campo]: Number(valor) || 0 } : l)),
+      ls.map((l, idx) => {
+        if (idx !== i) return l;
+        if (campo === 'cantidad') {
+          // Conserva null cuando está vacía o no es numérica para poder mostrar
+          // el mensaje de error específico.
+          const n = valor === null || valor === '' ? null : Number(valor);
+          return { ...l, cantidad: n === null || Number.isNaN(n) ? null : n };
+        }
+        return { ...l, descuentoUnitario: Number(valor) || 0 };
+      }),
     );
   }
 
@@ -248,7 +236,7 @@ export class VentaFormPage {
   }
 
   subtotalLinea(l: LineaEditable): number {
-    return Math.max(0, (l.precioUnitario - l.descuentoUnitario) * l.cantidad);
+    return Math.max(0, (l.precioUnitario - l.descuentoUnitario) * (l.cantidad ?? 0));
   }
 
   // Espejo de la validación del backend: descuentoUnitario <= precioVenta del catálogo.
@@ -256,11 +244,19 @@ export class VentaFormPage {
     return l.descuentoUnitario > l.precioUnitario;
   }
 
+  // Mensaje específico por tipo de error en la cantidad; null si es válida.
+  errorCantidad(l: LineaEditable): string | null {
+    if (l.cantidad === null) return 'Ingresa la cantidad.';
+    if (Number.isNaN(l.cantidad)) return 'La cantidad debe ser un número.';
+    if (l.cantidad <= 0) return 'Debe ser mayor que 0.';
+    return null;
+  }
+
   puedeGuardar(): boolean {
-    if (!this.codigoValido() || this.lineas().length === 0) return false;
+    if (this.lineas().length === 0) return false;
     if (this.tipoVenta() === 'CARGO_HABITACION' && !this.estanciaId()) return false;
     return this.lineas().every(
-      (l) => l.cantidad > 0 && l.descuentoUnitario >= 0 && !this.descuentoInvalido(l),
+      (l) => this.errorCantidad(l) === null && l.descuentoUnitario >= 0 && !this.descuentoInvalido(l),
     );
   }
 
@@ -309,16 +305,13 @@ export class VentaFormPage {
   private enviarVenta(): void {
     const usuarioId = this.store.user()!.usuarioId;
     const payload: CreateVentaRequest = {
-      codigoVenta: this.codigoVenta().trim(),
       tipoVenta: this.tipoVenta(),
-      fechaVenta: `${this.fechaVenta()}:00`,
       usuarioId,
       estanciaId: this.estanciaId() ?? undefined,
       huespedId: this.huespedId() ?? undefined,
       detalles: this.lineas().map((l) => ({
         productoId: l.productoId,
-        cantidad: l.cantidad,
-        precioUnitario: l.precioUnitario,
+        cantidad: l.cantidad!, // validado en puedeGuardar()
         descuentoUnitario: l.descuentoUnitario || undefined,
       })),
     };

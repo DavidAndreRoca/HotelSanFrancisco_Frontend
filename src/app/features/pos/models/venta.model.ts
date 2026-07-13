@@ -2,6 +2,7 @@
 // Tipos espejo del backend — POS / Ventas (sección 9 del doc).
 
 export type EstadoVenta = 'PENDIENTE' | 'COMPLETADA' | 'ANULADA';
+// DELIVERY sigue existiendo en datos históricos del backend, pero ya no se ofrece al crear.
 export type TipoVenta = 'DIRECTA' | 'CARGO_HABITACION' | 'DELIVERY' | 'EVENTO';
 
 export interface DetalleVentaResponse {
@@ -34,14 +35,13 @@ export interface VentaResponse {
 export interface CreateDetalleVentaRequest {
   productoId: number;
   cantidad: number;
-  precioUnitario: number;
+  precioUnitario?: number; // ignorado por el backend; usa producto.precioVenta del catálogo
   descuentoUnitario?: number; // 0 si no se envía
 }
 
 export interface CreateVentaRequest {
-  codigoVenta: string; // ^[A-Z0-9\-]+$
+  // codigoVenta y fechaVenta los genera el backend; la venta se crea COMPLETADA.
   tipoVenta: TipoVenta;
-  fechaVenta: string; // ISO LocalDateTime, no futura
   usuarioId: number;
   estanciaId?: number;
   huespedId?: number;
