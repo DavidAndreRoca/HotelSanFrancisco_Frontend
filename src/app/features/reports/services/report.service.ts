@@ -4,6 +4,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Observable, finalize, tap } from 'rxjs';
 import { ApiClient } from '../../../core/http/http-client.service';
 import {
+  ExportFormat,
   ExportRequest,
   ManagementDashboard,
   OccupancyReport,
@@ -130,24 +131,55 @@ export class ReportService {
   }
 
   /**
-   * Descarga el CSV que produce el backend. Usa el nombre de archivo del header
-   * `Content-Disposition` cuando está disponible; si no, cae en `fallbackName`.
-   * Devuelve el Observable para que el llamador maneje éxito/error real.
+   * Descarga el archivo que produce el backend (CSV/Excel/PDF). Usa el nombre
+   * del header `Content-Disposition` cuando está disponible; si no, cae en
+   * `fallbackName`. Devuelve el Observable para que el llamador maneje
+   * éxito/error real.
    */
   downloadExport(request: ExportRequest, fallbackName: string): Observable<HttpResponse<Blob>> {
-    return this.export(request).pipe(
-      tap((response: HttpResponse<Blob>) => {
-        const blob = response.body;
-        if (!blob) return;
-        const filename = this.filenameFromResponse(response) ?? fallbackName;
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        window.URL.revokeObjectURL(url);
-      }),
-    );
+    return this.export(request).pipe(tap((res) => this.saveResponse(res, fallbackName)));
+  }
+
+  /**
+   * Reporte de nómina (GET). `periodo` es un período exacto `YYYY-MM`;
+   * omitido exporta todos los períodos. Requiere permiso nomina:read.
+   */
+  downloadNominaExport(
+    formato: ExportFormat,
+    periodo: string | undefined,
+    fallbackName: string,
+  ): Observable<HttpResponse<Blob>> {
+    return this.api
+      .getBlob(`${this.base}/nomina/exportar`, { params: { formato, periodo } })
+      .pipe(tap((res) => this.saveResponse(res, fallbackName)));
+  }
+
+  /**
+   * Reporte de asistencia (GET). Acepta el mismo contrato de rango que los
+   * demás reportes (period + fechas en CUSTOM). Requiere asistencia:read.
+   */
+  downloadAsistenciaExport(
+    formato: ExportFormat,
+    range: ReportDateRange,
+    fallbackName: string,
+  ): Observable<HttpResponse<Blob>> {
+    return this.api
+      .getBlob(`${this.base}/asistencia/exportar`, {
+        params: { formato, ...this.rangeParams(range) },
+      })
+      .pipe(tap((res) => this.saveResponse(res, fallbackName)));
+  }
+
+  private saveResponse(response: HttpResponse<Blob>, fallbackName: string): void {
+    const blob = response.body;
+    if (!blob) return;
+    const filename = this.filenameFromResponse(response) ?? fallbackName;
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
   }
 
   private filenameFromResponse(response: HttpResponse<Blob>): string | null {

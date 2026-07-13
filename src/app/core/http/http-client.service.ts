@@ -45,6 +45,18 @@ export class ApiClient {
   }
 
   /**
+   * GET para descarga de archivos: mismo contrato que `postBlob` pero para
+   * endpoints de exportación que reciben sus filtros por query string.
+   */
+  getBlob(path: string, options: RequestOptions = {}): Observable<HttpResponse<Blob>> {
+    return this.http.get(this.url(path), {
+      ...this.opts(options),
+      responseType: 'blob',
+      observe: 'response',
+    });
+  }
+
+  /**
    * POST para descarga de archivos: pide la respuesta como `Blob` y observa la
    * respuesta completa (`HttpResponse`) para poder leer headers como
    * `Content-Disposition`. NO usa `responseType: 'json'`, por lo que Angular no
