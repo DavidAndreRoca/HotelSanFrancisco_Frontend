@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
-import { finalize, forkJoin } from 'rxjs';
+import { finalize } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { ReportService } from '../../services/report.service';
 import { RevenueChartComponent } from '../../components/revenue-chart/revenue-chart.component';
@@ -16,6 +16,7 @@ import { OccupancyChartComponent } from '../../components/occupancy-chart/occupa
 import { ReservationsSummaryComponent } from '../../components/reservations-summary/reservations-summary.component';
 import { UiButtonComponent } from '../../../../shared/ui/button/ui-button.component';
 import { UiSkeletonComponent } from '../../../../shared/ui/skeleton/ui-skeleton.component';
+import { UiExportMenuComponent } from '../../../../shared/ui/export-menu/ui-export-menu.component';
 import {
   DEFAULT_REPORT_RANGE,
   EXPORT_EXTENSION,
@@ -38,6 +39,7 @@ import {
     ReservationsSummaryComponent,
     UiButtonComponent,
     UiSkeletonComponent,
+    UiExportMenuComponent,
   ],
   template: `
     <div class="space-y-6">
@@ -53,11 +55,11 @@ import {
         <div class="flex flex-wrap items-end gap-3">
           <!-- Selector período -->
           <div>
-            <label class="text-[12px] font-medium text-[var(--color-ink-soft)]">Período</label>
+            <label class="block text-[11px] font-semibold uppercase tracking-wide text-[var(--color-ink-muted)]">Período</label>
             <select
               [(ngModel)]="range.period"
               (ngModelChange)="onPeriodChange()"
-              class="mt-1 h-10 px-3 rounded-lg border border-[var(--color-border-soft)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]">
+              class="block mt-1 h-10 px-3 rounded-lg border border-[var(--color-border-soft)] bg-white shadow-sm text-sm text-[var(--color-ink)] cursor-pointer hover:border-[var(--color-primary-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] transition-colors">
               <option value="TODAY">Hoy</option>
               <option value="WEEK">Esta semana</option>
               <option value="MONTH">Este mes</option>
@@ -69,22 +71,22 @@ import {
 
           @if (range.period === 'CUSTOM') {
             <div>
-              <label class="text-[12px] font-medium text-[var(--color-ink-soft)]">Desde</label>
+              <label class="block text-[11px] font-semibold uppercase tracking-wide text-[var(--color-ink-muted)]">Desde</label>
               <input type="date" [(ngModel)]="range.fechaInicio"
-                class="mt-1 h-10 px-3 rounded-lg border border-[var(--color-border-soft)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]" />
+                class="block mt-1 h-10 px-3 rounded-lg border border-[var(--color-border-soft)] bg-white shadow-sm text-sm text-[var(--color-ink)] cursor-pointer hover:border-[var(--color-primary-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] transition-colors" />
             </div>
             <div>
-              <label class="text-[12px] font-medium text-[var(--color-ink-soft)]">Hasta</label>
+              <label class="block text-[11px] font-semibold uppercase tracking-wide text-[var(--color-ink-muted)]">Hasta</label>
               <input type="date" [(ngModel)]="range.fechaFin"
-                class="mt-1 h-10 px-3 rounded-lg border border-[var(--color-border-soft)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]" />
+                class="block mt-1 h-10 px-3 rounded-lg border border-[var(--color-border-soft)] bg-white shadow-sm text-sm text-[var(--color-ink)] cursor-pointer hover:border-[var(--color-primary-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] transition-colors" />
             </div>
           }
 
           <div>
-            <label class="text-[12px] font-medium text-[var(--color-ink-soft)]">Agrupar por</label>
+            <label class="block text-[11px] font-semibold uppercase tracking-wide text-[var(--color-ink-muted)]">Agrupar por</label>
             <select
               [(ngModel)]="range.groupBy"
-              class="mt-1 h-10 px-3 rounded-lg border border-[var(--color-border-soft)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]">
+              class="block mt-1 h-10 px-3 rounded-lg border border-[var(--color-border-soft)] bg-white shadow-sm text-sm text-[var(--color-ink)] cursor-pointer hover:border-[var(--color-primary-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] transition-colors">
               <option value="DAY">Día</option>
               <option value="WEEK">Semana</option>
               <option value="MONTH">Mes</option>
@@ -95,20 +97,23 @@ import {
             Aplicar
           </ui-button>
 
-          <!-- Exportar -->
-          <div class="flex gap-2">
-            <ui-button variant="outline" [loading]="exporting()" (click)="exportReport('PDF')">
-              ↓ PDF
-            </ui-button>
-            <ui-button variant="outline" [loading]="exporting()" (click)="exportReport('EXCEL')">
-              ↓ Excel
-            </ui-button>
-            <ui-button variant="outline" [loading]="exporting()" (click)="exportReport('CSV')">
-              ↓ CSV
-            </ui-button>
-          </div>
+          <!-- Export gerencial: el backend siempre arma mes en curso vs mes
+               anterior (semántica deliberada); NO se bindea al filtro global. -->
+          <ui-export-menu
+            label="Exportar resumen"
+            tooltip="Resumen ejecutivo del mes en curso (KPIs + ingresos, reservas y ocupación)"
+            [loading]="exportando() === 'gerencial'"
+            (exportar)="exportSection('gerencial', $event)" />
         </div>
       </header>
+
+      <!-- Sección Ingresos -->
+      <div class="flex items-center justify-between pt-2">
+        <h2 class="text-base font-semibold">Ingresos</h2>
+        <ui-export-menu
+          [loading]="exportando() === 'ingresos'"
+          (exportar)="exportSection('ingresos', $event)" />
+      </div>
 
       <!-- KPI Cards de ingresos -->
       @if (reportService.revenueLoading()) {
@@ -156,6 +161,14 @@ import {
       } @else if (reportService.revenue(); as rev) {
         <app-revenue-chart [serie]="rev.serie" [total]="rev.totalIngresos" />
       }
+
+      <!-- Sección Ocupación -->
+      <div class="flex items-center justify-between pt-6">
+        <h2 class="text-base font-semibold">Ocupación</h2>
+        <ui-export-menu
+          [loading]="exportando() === 'ocupacion'"
+          (exportar)="exportSection('ocupacion', $event)" />
+      </div>
 
       <!-- Punto 14: Gráfico de ocupación -->
       @if (reportService.occupancyLoading()) {
@@ -217,6 +230,14 @@ import {
         </div>
       }
 
+      <!-- Sección Reservas -->
+      <div class="flex items-center justify-between pt-6">
+        <h2 class="text-base font-semibold">Reservas</h2>
+        <ui-export-menu
+          [loading]="exportando() === 'reservas'"
+          (exportar)="exportSection('reservas', $event)" />
+      </div>
+
       <!-- Punto 13: Resumen de reservas -->
       @if (reportService.reservationsLoading()) {
         <ui-skeleton height="10rem" />
@@ -258,7 +279,7 @@ export class ReportsDashboardComponent implements OnInit {
   private readonly toastr = inject(ToastrService);
 
   range: ReportDateRange = { ...DEFAULT_REPORT_RANGE };
-  readonly exporting = signal(false);
+  readonly exportando = signal<ExportTipo | null>(null);
 
   ngOnInit(): void {
     this.refresh();
@@ -274,17 +295,14 @@ export class ReportsDashboardComponent implements OnInit {
     this.reportService.loadOccupancyReport(this.range);
   }
 
-  exportReport(formato: ExportFormat): void {
-    this.exporting.set(true);
-    const tipos: ExportTipo[] = ['ingresos', 'reservas', 'ocupacion'];
+  // Una acción de exportar = una llamada con un tipo = una descarga. El
+  // gerencial ignora el rango en el backend (siempre mes en curso); igual se
+  // manda el rango del filtro para cumplir el contrato del request.
+  exportSection(tipo: ExportTipo, formato: ExportFormat): void {
+    this.exportando.set(tipo);
     const fecha = new Date().toISOString().slice(0, 10);
-
-    // Exporta los 3 reportes en el formato pedido. El nombre real del archivo
-    // sale del Content-Disposition; el fallback solo cubre su ausencia.
-    // forkJoin espera a que las 3 descargas terminen; el toast refleja el
-    // resultado real (no antes de tiempo).
-    const descargas = tipos.map((tipo) =>
-      this.reportService.downloadExport(
+    this.reportService
+      .downloadExport(
         {
           tipo,
           formato,
@@ -294,14 +312,11 @@ export class ReportsDashboardComponent implements OnInit {
           fechaFin: this.range.fechaFin,
         },
         `reporte-${tipo}-${fecha}.${EXPORT_EXTENSION[formato]}`,
-      ),
-    );
-
-    forkJoin(descargas)
-      .pipe(finalize(() => this.exporting.set(false)))
+      )
+      .pipe(finalize(() => this.exportando.set(null)))
       .subscribe({
-        next: () => this.toastr.success(`Reportes exportados como ${formato} correctamente.`),
-        error: () => this.toastr.error('No se pudieron exportar los reportes.'),
+        next: () => this.toastr.success(`Reporte de ${tipo} exportado como ${formato}.`),
+        error: () => this.toastr.error(`No se pudo exportar el reporte de ${tipo}.`),
       });
   }
 }

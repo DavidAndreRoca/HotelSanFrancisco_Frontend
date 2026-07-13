@@ -15,6 +15,7 @@ import { RevenueChartComponent } from '../../components/revenue-chart/revenue-ch
 import { OccupancyChartComponent } from '../../components/occupancy-chart/occupancy-chart.component';
 import { UiButtonComponent } from '../../../../shared/ui/button/ui-button.component';
 import { UiSkeletonComponent } from '../../../../shared/ui/skeleton/ui-skeleton.component';
+import { UiExportMenuComponent } from '../../../../shared/ui/export-menu/ui-export-menu.component';
 import { DEFAULT_REPORT_RANGE, EXPORT_EXTENSION, ExportFormat } from '../../models/report.model';
 
 interface KpiCard {
@@ -34,6 +35,7 @@ interface KpiCard {
     OccupancyChartComponent,
     UiButtonComponent,
     UiSkeletonComponent,
+    UiExportMenuComponent,
   ],
   template: `
     <div class="space-y-6">
@@ -56,15 +58,10 @@ interface KpiCard {
           <ui-button variant="primary" [loading]="reportService.managementLoading()" (click)="refresh()">
             Actualizar
           </ui-button>
-          <ui-button variant="outline" [loading]="exporting()" (click)="exportConsolidado('PDF')">
-            ↓ PDF
-          </ui-button>
-          <ui-button variant="outline" [loading]="exporting()" (click)="exportConsolidado('EXCEL')">
-            ↓ Excel
-          </ui-button>
-          <ui-button variant="outline" [loading]="exporting()" (click)="exportConsolidado('CSV')">
-            ↓ CSV
-          </ui-button>
+          <ui-export-menu
+            tooltip="Resumen ejecutivo del mes en curso"
+            [loading]="exporting()"
+            (exportar)="exportConsolidado($event)" />
         </div>
       </header>
 
