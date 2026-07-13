@@ -5,9 +5,7 @@
 >
   <div
     class="absolute inset-0 bg-cover bg-center"
-    style="
-      background-image: url('https://cdn-zen.readytotrip.com/t/1024x768/content/7d/84/7d8472cb5988c09e50c66e81fadd8a446805491f.jpeg');
-    "
+    style="background-image: url('fondo_home.jpg')"
     aria-hidden="true"
   ></div>
   <div
@@ -91,12 +89,11 @@
       Bienvenido a Ica
     </p>
     <h1
-      class="text-4xl md:text-6xl font-bold leading-[1.05] max-w-3xl text-[var(--color-primary-300)]"
+      class="text-5xl md:text-7xl font-bold leading-[1.05] max-w-3xl text-[var(--color-primary-300)]"
     >
-      Hospitalidad iqueña con un toque
-      <span class="text-[var(--color-primary-300)]">distintivo</span>.
+      Hospitalidad iqueña con un toque distintivo.
     </h1>
-    <p class="mt-6 text-white/80 max-w-xl text-[17px] leading-relaxed">
+    <p class="mt-6 text-white/85 max-w-xl text-lg md:text-xl leading-relaxed">
       Descansa, disfruta y vive una experiencia inolvidable en el corazón de Ica. Reserva en
       segundos.
     </p>
@@ -162,8 +159,8 @@
       <p class="uppercase text-[11px] tracking-[0.4em] text-[var(--color-primary-700)] mb-3">
         Habitaciones
       </p>
-      <h2 class="text-3xl md:text-4xl font-bold">Encuentra tu espacio ideal</h2>
-      <p class="text-[var(--color-ink-muted)] mt-3 max-w-xl mx-auto">
+      <h2 class="text-4xl md:text-5xl font-bold">Encuentra tu espacio ideal</h2>
+      <p class="text-[var(--color-ink-muted)] mt-3 max-w-xl mx-auto text-lg">
         Despierta en la magia de Ica con la comodidad que mereces.
       </p>
     </div>
@@ -190,7 +187,7 @@
           >
             <div class="relative aspect-[4/3] overflow-hidden">
               <img
-                [src]="roomImage(i)"
+                [src]="roomImage(room)"
                 [alt]="room.nombre"
                 loading="lazy"
                 decoding="async"
@@ -210,7 +207,10 @@
               <ul class="mt-4 space-y-1.5 text-[13px] text-[var(--color-ink-soft)]">
                 @for (feature of roomFeatures(room); track feature) {
                   <li class="flex items-center gap-2">
-                    <span class="text-[var(--color-primary-500)]" aria-hidden="true">✓</span>
+                    <svg class="w-3.5 h-3.5 text-[var(--color-primary-500)] shrink-0" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
                     {{ feature }}
                   </li>
                 }
@@ -243,7 +243,7 @@
       <p class="uppercase text-[11px] tracking-[0.4em] text-[var(--color-primary-300)] mb-3">
         Servicios
       </p>
-      <h2 class="text-3xl md:text-4xl font-bold">Todo lo que necesitas</h2>
+      <h2 class="text-4xl md:text-5xl font-bold">Todo lo que necesitas</h2>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -278,7 +278,7 @@
   <div class="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
     <div class="relative">
       <img
-        src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80"
+        src="fondo_home.jpg"
         alt="Hotel San Francisco"
         loading="lazy"
         decoding="async"
@@ -291,8 +291,8 @@
       <p class="uppercase text-[11px] tracking-[0.4em] text-[var(--color-primary-700)] mb-3">
         Sobre nosotros
       </p>
-      <h2 class="text-3xl md:text-4xl font-bold">Tu hogar en el corazón de Ica</h2>
-      <p class="mt-5 text-[var(--color-ink-soft)] leading-relaxed text-[15px]">
+      <h2 class="text-4xl md:text-5xl font-bold">Tu hogar en el corazón de Ica</h2>
+      <p class="mt-5 text-[var(--color-ink-soft)] leading-relaxed text-lg">
         Ubicado en el centro de Ica, el Hotel San Francisco combina hospitalidad tradicional con
         servicios modernos para ofrecer una estadía cómoda, elegante y segura. Cada detalle está
         pensado para hacerte sentir como en casa.
@@ -344,19 +344,19 @@
       >
         Contacto
       </h3>
-      <ul class="text-sm space-y-2 text-white/80">
+      <ul class="text-[15px] space-y-2 text-white/80">
         <li>
           <a href="tel:+51959552124" class="hover:text-[var(--color-primary-300)]"
-            >📞 959 552 124</a
+            >Teléfono: 959 552 124</a
           >
         </li>
-        <li>📍 Calle Loreto 108, Ica, Perú</li>
+        <li>Calle Loreto 108, Ica, Perú</li>
         <li>
           <a
             href="mailto:hotelsanfrancisco2023ica@gmail.com"
             class="hover:text-[var(--color-primary-300)]"
           >
-            ✉ hotelsanfrancisco2023ica&#64;gmail.com
+            hotelsanfrancisco2023ica&#64;gmail.com
           </a>
         </li>
       </ul>

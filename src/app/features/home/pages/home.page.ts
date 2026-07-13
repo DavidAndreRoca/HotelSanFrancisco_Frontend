@@ -8,14 +8,7 @@ import { UiDatePickerComponent } from '../../../shared/ui/date-picker/ui-date-pi
 import { RoomTypesService } from '../../rooms/services/room-types.service';
 import { RoomType } from '../../rooms/models/room-type.model';
 
-const ROOM_IMAGES = [
-  'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1560347876-aeef00ee58a1?auto=format&fit=crop&w=800&q=80',
-];
+import { mediaTipoHabitacion } from '../../../shared/constants/tipo-habitacion-media';
 
 interface Service {
   image: string;
@@ -78,8 +71,8 @@ export class HomeComponent implements OnInit {
     this.roomTypesSvc.load({ size: 6, sort: 'precioBase,asc' });
   }
 
-  roomImage(index: number): string {
-    return ROOM_IMAGES[index % ROOM_IMAGES.length];
+  roomImage(room: RoomType): string {
+    return mediaTipoHabitacion(room.nombre).imagen;
   }
 
   roomFeatures(room: RoomType): string[] {
@@ -87,6 +80,8 @@ export class HomeComponent implements OnInit {
     if (room.descripcion) {
       const parts = room.descripcion.split(',').map(s => s.trim()).filter(Boolean);
       features.push(...parts.slice(0, 2));
+    } else {
+      features.push(...mediaTipoHabitacion(room.nombre).info.slice(0, 2));
     }
     return features;
   }
