@@ -120,6 +120,9 @@ import { ReniecPersona } from '../../../../../core/reniec/reniec.service';
                 </select>
               </div>
             </div>
+            @if (errorPersonas(); as msg) {
+              <p class="text-xs text-[var(--color-danger-500)]" role="alert">{{ msg }}</p>
+            }
 
             <div>
               <label class="block text-[13px] font-medium text-[var(--color-ink-soft)] mb-1.5">
@@ -251,10 +254,33 @@ export class Step2DatosComponent {
     return !!(ctrl?.invalid && ctrl.touched);
   }
 
+  /**
+   * Coteja adultos + niños contra la capacidad de la habitación elegida y
+   * contra las personas indicadas en la búsqueda del paso 1. Null si es válido.
+   */
+  errorPersonas(): string | null {
+    const v = this.form.getRawValue();
+    const total = Number(v.nroAdultos) + Number(v.nroNinos);
+    const hab = this.state.habitacionSeleccionada();
+    if (hab && total > hab.capacidadMaxima) {
+      return `La habitación ${hab.numero} admite máximo ${hab.capacidadMaxima} persona(s); has indicado ${total}.`;
+    }
+    const buscadas = this.state.searchParams()?.guests;
+    if (buscadas != null && total > buscadas) {
+      return `Buscaste habitaciones para ${buscadas} persona(s); ajusta la búsqueda si viajan ${total}.`;
+    }
+    return null;
+  }
+
   continuar(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.toastr.warning('Completa todos los campos obligatorios.');
+      return;
+    }
+    const errPersonas = this.errorPersonas();
+    if (errPersonas) {
+      this.toastr.warning(errPersonas, 'Número de personas');
       return;
     }
     const v = this.form.getRawValue();
@@ -264,8 +290,8 @@ export class Step2DatosComponent {
       apellidos: v.apellidos,
       telefono: v.telefono,
       correo: v.correo,
-      nroAdultos: v.nroAdultos,
-      nroNinos: v.nroNinos,
+      nroAdultos: Number(v.nroAdultos),
+      nroNinos: Number(v.nroNinos),
       serviciosAdicionales: v.serviciosAdicionales,
     });
     this.next.emit();
