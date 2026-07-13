@@ -13,6 +13,7 @@ import { ToastrService } from 'ngx-toastr';
 import { HttpErrorResponse } from '@angular/common/http';
 import { BookingApiService, BookingStateService } from '../../../services/booking.service';
 import { HabitacionDisponible } from '../../../models/booking.model';
+import { mediaTipoHabitacion } from '../../../../../shared/constants/tipo-habitacion-media';
 
 @Component({
   selector: 'app-step1-seleccionar',
@@ -83,6 +84,11 @@ import { HabitacionDisponible } from '../../../models/booking.model';
                 [class]="habSeleccionada()?.habitacionId === hab.habitacionId
                   ? 'border-[#C5A048] shadow-md'
                   : 'border-[var(--color-border-soft)] hover:border-[#C5A048]'">
+                <img
+                  [src]="imagenTipo(hab)"
+                  [alt]="hab.tipoHabitacionNombre"
+                  loading="lazy"
+                  class="w-full aspect-[16/9] object-cover rounded-xl mb-3" />
                 <div class="flex items-start justify-between mb-3">
                   <div>
                     <p class="font-semibold text-[#2D2926] text-[15px]">{{ hab.tipoHabitacionNombre }}</p>
@@ -98,6 +104,12 @@ import { HabitacionDisponible } from '../../../models/booking.model';
                 </div>
                 @if (hab.descripcion) {
                   <p class="text-[12px] text-[var(--color-ink-muted)] mb-3 line-clamp-2">{{ hab.descripcion }}</p>
+                } @else {
+                  <ul class="text-[12px] text-[var(--color-ink-muted)] mb-3 space-y-0.5">
+                    @for (item of infoTipo(hab); track item) {
+                      <li>• {{ item }}</li>
+                    }
+                  </ul>
                 }
                 <div class="flex items-center justify-between text-[12px] text-[var(--color-ink-muted)] mb-4">
                   <span>Capacidad: {{ hab.capacidadMaxima }} pers.</span>
@@ -197,6 +209,14 @@ export class Step1SeleccionarComponent implements OnInit {
         this.toastr.error(err.error?.message ?? 'Error al buscar habitaciones.');
       },
     });
+  }
+
+  imagenTipo(hab: HabitacionDisponible): string {
+    return mediaTipoHabitacion(hab.tipoHabitacionNombre).imagen;
+  }
+
+  infoTipo(hab: HabitacionDisponible): string[] {
+    return mediaTipoHabitacion(hab.tipoHabitacionNombre).info;
   }
 
   seleccionar(hab: HabitacionDisponible): void {
