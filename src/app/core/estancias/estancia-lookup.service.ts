@@ -18,7 +18,15 @@ interface ReservaRaw {
   estado: string;
   estanciaId?: number | null;
   huespedes?: { nombreCompleto: string; esPrincipal?: boolean }[];
-  habitaciones?: { habitacionNumero: string }[];
+  habitaciones?: { reservaHabitacionId?: number; habitacionNumero: string; estado?: string }[];
+}
+
+/** Habitación ocupada (reserva CHECK_IN) para asociar incidencias por número legible. */
+export interface HabitacionOcupada {
+  reservaHabitacionId: number;
+  habitacionNumero: string;
+  codReserva: string;
+  huespedNombre: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -48,6 +56,36 @@ export class EstanciaLookupService {
               habitaciones: (r.habitaciones ?? []).map((h) => h.habitacionNumero).join(', '),
               estanciaId: r.estanciaId ?? null,
             })),
+        ),
+      );
+  }
+
+  /**
+   * Habitaciones de reservas con CHECK_IN activo, identificadas por su número
+   * legible, para seleccionar la reserva-habitación de una incidencia.
+   */
+  buscarHabitacionesOcupadas(): Observable<HabitacionOcupada[]> {
+    return this.api
+      .get<PageResponse<ReservaRaw>>('/api/v1/reservas', {
+        params: { estado: 'CHECK_IN', size: 100, sort: 'fechaInicio,desc' },
+      })
+      .pipe(
+        map((page) =>
+          (page.content ?? [])
+            .filter((r) => r.estado === 'CHECK_IN')
+            .flatMap((r) =>
+              (r.habitaciones ?? [])
+                .filter((h) => h.reservaHabitacionId != null && h.estado !== 'CANCELADA')
+                .map((h) => ({
+                  reservaHabitacionId: h.reservaHabitacionId!,
+                  habitacionNumero: h.habitacionNumero,
+                  codReserva: r.codReserva,
+                  huespedNombre:
+                    r.huespedes?.find((x) => x.esPrincipal)?.nombreCompleto ??
+                    r.huespedes?.[0]?.nombreCompleto ??
+                    '—',
+                })),
+            ),
         ),
       );
   }

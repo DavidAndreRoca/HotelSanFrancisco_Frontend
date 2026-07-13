@@ -1,7 +1,12 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { catchError, of } from 'rxjs';
 import { UiButtonComponent } from '../../../../shared/ui/button/ui-button.component';
 import { UiModalComponent } from '../../../../shared/ui/modal/ui-modal.component';
+import {
+  EstanciaLookupService,
+  HabitacionOcupada,
+} from '../../../../core/estancias/estancia-lookup.service';
 import { CreateIncidenciaPayload, Incidencia, PrioridadIncidencia } from '../../models/incidencia.model';
 
 @Component({
@@ -49,16 +54,26 @@ import { CreateIncidenciaPayload, Incidencia, PrioridadIncidencia } from '../../
 
           <div>
             <label for="reservaHabitacionId" class="text-[13px] font-medium text-[var(--color-ink-soft)]">
-              N° de habitación
+              Habitación
             </label>
-            <input
+            <select
               id="reservaHabitacionId"
-              type="number"
-              min="0"
               formControlName="reservaHabitacionId"
-              [class]="inputCls(form.controls.reservaHabitacionId)"
-              placeholder="Opcional" />
-            <p class="text-[11px] text-[var(--color-ink-muted)] mt-1">Déjalo vacío si es un área común.</p>
+              [class]="inputCls(form.controls.reservaHabitacionId)">
+              <option [ngValue]="null">Área común / sin habitación</option>
+              @for (h of habitaciones(); track h.reservaHabitacionId) {
+                <option [ngValue]="h.reservaHabitacionId">
+                  Hab. {{ h.habitacionNumero }} — {{ h.codReserva }} · {{ h.huespedNombre }}
+                </option>
+              }
+            </select>
+            @if (cargandoHabitaciones()) {
+              <p class="text-[11px] text-[var(--color-ink-muted)] mt-1">Cargando habitaciones ocupadas…</p>
+            } @else if (habitaciones().length === 0) {
+              <p class="text-[11px] text-[var(--color-ink-muted)] mt-1">
+                No hay habitaciones con huéspedes en este momento.
+              </p>
+            }
           </div>
         </div>
 
@@ -96,6 +111,36 @@ import { CreateIncidenciaPayload, Incidencia, PrioridadIncidencia } from '../../
 })
 export class IncidenciaFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
+  private readonly estanciaLookup = inject(EstanciaLookupService);
+
+  /** Habitaciones ocupadas (reservas CHECK_IN) para el selector. */
+  readonly habitacionesOcupadas = signal<HabitacionOcupada[]>([]);
+  readonly cargandoHabitaciones = signal(true);
+
+  /**
+   * Opciones del selector. Al editar, si el id guardado ya no está en las
+   * ocupadas (p. ej. la reserva hizo check-out), se agrega como opción
+   * histórica para no romper la carga del registro.
+   */
+  readonly habitaciones = computed<HabitacionOcupada[]>(() => {
+    const base = this.habitacionesOcupadas();
+    const edit = this.editing();
+    if (
+      edit?.reservaHabitacionId != null &&
+      !base.some((h) => h.reservaHabitacionId === edit.reservaHabitacionId)
+    ) {
+      return [
+        {
+          reservaHabitacionId: edit.reservaHabitacionId,
+          habitacionNumero: `RH #${edit.reservaHabitacionId}`,
+          codReserva: 'registro anterior',
+          huespedNombre: '—',
+        },
+        ...base,
+      ];
+    }
+    return base;
+  });
 
   readonly open = input.required<boolean>();
   readonly editing = input<Incidencia | null>(null);
@@ -119,6 +164,13 @@ export class IncidenciaFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.applyEditing();
+    this.estanciaLookup
+      .buscarHabitacionesOcupadas()
+      .pipe(catchError(() => of([] as HabitacionOcupada[])))
+      .subscribe((hs) => {
+        this.habitacionesOcupadas.set(hs);
+        this.cargandoHabitaciones.set(false);
+      });
   }
 
   applyEditing(): void {
@@ -164,6 +216,15 @@ export class IncidenciaFormComponent implements OnInit {
       return;
     }
     const v = this.form.getRawValue();
+
+    // Solo se aceptan ids provenientes del selector (o ninguno).
+    if (
+      v.reservaHabitacionId != null &&
+      !this.habitaciones().some((h) => h.reservaHabitacionId === v.reservaHabitacionId)
+    ) {
+      this.form.controls.reservaHabitacionId.setValue(null);
+      return;
+    }
 
     if (this.editing()) {
       this.submitting.set(true);
