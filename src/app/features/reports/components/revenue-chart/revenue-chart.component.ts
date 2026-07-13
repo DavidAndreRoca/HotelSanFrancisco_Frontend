@@ -75,32 +75,37 @@ import { RevenuePoint } from '../../models/report.model';
               </text>
             }
 
-            <!-- Bars -->
-            @for (bar of bars(); track bar.fecha; let i = $index) {
-              <!-- Adelantos -->
-              <rect
-                [attr.x]="bar.x"
-                [attr.y]="bar.yAdelantos"
-                [attr.width]="barW() * 0.45"
-                [attr.height]="bar.hAdelantos"
-                fill="var(--color-primary-500)"
-                rx="2" />
-              <!-- Saldos -->
-              <rect
-                [attr.x]="bar.x + barW() * 0.48"
-                [attr.y]="bar.ySaldos"
-                [attr.width]="barW() * 0.45"
-                [attr.height]="bar.hSaldos"
-                fill="var(--color-success-500)"
-                rx="2" />
+            <!-- Líneas: adelantos y saldos -->
+            <polyline
+              [attr.points]="lineaAdelantos()"
+              fill="none"
+              stroke="var(--color-primary-500)"
+              stroke-width="2"
+              stroke-linejoin="round"
+              stroke-linecap="round" />
+            <polyline
+              [attr.points]="lineaSaldos()"
+              fill="none"
+              stroke="var(--color-success-500)"
+              stroke-width="2"
+              stroke-linejoin="round"
+              stroke-linecap="round" />
+
+            @for (pt of puntos(); track pt.fecha) {
+              <circle [attr.cx]="pt.x" [attr.cy]="pt.yAdelantos" r="3" fill="var(--color-primary-500)">
+                <title>Adelantos {{ pt.label }}</title>
+              </circle>
+              <circle [attr.cx]="pt.x" [attr.cy]="pt.ySaldos" r="3" fill="var(--color-success-500)">
+                <title>Saldos {{ pt.label }}</title>
+              </circle>
               <!-- Label fecha -->
               <text
-                [attr.x]="bar.x + barW() * 0.45"
+                [attr.x]="pt.x"
                 [attr.y]="svgHeight - paddingBottom + 14"
                 text-anchor="middle"
                 font-size="9"
                 fill="var(--color-ink-muted)">
-                {{ bar.label }}
+                {{ pt.label }}
               </text>
             }
           </svg>
@@ -146,23 +151,26 @@ export class RevenueChartComponent {
     });
   });
 
-  readonly bars = computed(() => {
+  /** Puntos centrados en cada intervalo, para las dos series en línea. */
+  readonly puntos = computed(() => {
     const max = this.maxVal();
     const bw = this.barW();
-    return this.serie().map((p, i) => {
-      const hAdelantos = (p.ingresosAnticipos / max) * this.chartH;
-      const hSaldos = (p.ingresosSaldos / max) * this.chartH;
-      return {
-        fecha: p.fecha,
-        x: this.paddingLeft + i * bw,
-        yAdelantos: this.paddingTop + this.chartH - hAdelantos,
-        hAdelantos,
-        ySaldos: this.paddingTop + this.chartH - hSaldos,
-        hSaldos,
-        label: this.shortDate(p.fecha),
-      };
-    });
+    return this.serie().map((p, i) => ({
+      fecha: p.fecha,
+      x: this.paddingLeft + i * bw + bw / 2,
+      yAdelantos: this.paddingTop + this.chartH - (p.ingresosAnticipos / max) * this.chartH,
+      ySaldos: this.paddingTop + this.chartH - (p.ingresosSaldos / max) * this.chartH,
+      label: this.shortDate(p.fecha),
+    }));
   });
+
+  readonly lineaAdelantos = computed(() =>
+    this.puntos().map((p) => `${p.x},${p.yAdelantos}`).join(' '),
+  );
+
+  readonly lineaSaldos = computed(() =>
+    this.puntos().map((p) => `${p.x},${p.ySaldos}`).join(' '),
+  );
 
   private shortDate(iso: string): string {
     try {
