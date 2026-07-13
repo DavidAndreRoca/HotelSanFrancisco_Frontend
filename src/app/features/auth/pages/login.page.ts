@@ -26,11 +26,8 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
 
         <div class="relative h-full flex flex-col justify-between p-12 text-white">
           <a routerLink="/home" class="inline-flex items-center gap-3 group">
-            <div
-              class="w-12 h-12 rounded-full bg-[var(--color-primary-500)] text-[var(--color-ink)] flex items-center justify-center font-extrabold shadow-lg"
-            >
-              SF
-            </div>
+            <img src="logo.png" alt="Hotel San Francisco"
+              class="w-12 h-12 rounded-full object-cover shadow-lg bg-white" />
             <div class="leading-tight">
               <p class="text-sm font-semibold tracking-wider">HOTEL SAN FRANCISCO</p>
               <p class="text-[11px] text-white/70">Ica · Perú</p>
@@ -57,11 +54,8 @@ import { UiButtonComponent } from '../../../shared/ui/button/ui-button.component
       >
         <div class="w-full max-w-md">
           <div class="mb-10 lg:hidden text-center">
-            <div
-              class="inline-flex w-14 h-14 rounded-full bg-[var(--color-ink)] text-[var(--color-primary-300)] items-center justify-center font-extrabold"
-            >
-              SF
-            </div>
+            <img src="logo.png" alt="Hotel San Francisco"
+              class="inline-flex w-14 h-14 rounded-full object-cover bg-white shadow" />
           </div>
 
           <header class="mb-8">
