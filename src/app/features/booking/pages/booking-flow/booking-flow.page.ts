@@ -7,7 +7,8 @@ import {
   signal,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { BookingStateService } from '../../services/booking.service';
+import { ToastrService } from 'ngx-toastr';
+import { BookingApiService, BookingStateService } from '../../services/booking.service';
 import { Step1SeleccionarComponent } from './steps/step1-seleccionar.component';
 import { Step2DatosComponent } from './steps/step2-datos.component';
 import { Step3ResumenComponent } from './steps/step3-resumen.component';
@@ -115,6 +116,8 @@ export class BookingFlowPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly state = inject(BookingStateService);
+  private readonly bookingApi = inject(BookingApiService);
+  private readonly toastr = inject(ToastrService);
 
   readonly step = signal(1);
   readonly stepLabels = STEP_LABELS;
@@ -127,6 +130,52 @@ export class BookingFlowPage implements OnInit {
         checkOut: params['checkOut'],
         guests: Number(params['guests']),
       });
+    }
+    if (params['pago']) {
+      this.procesarRetornoPago(params['pago'], params['purchase'], params['msg']);
+    }
+  }
+
+  /**
+   * Retorno del checkout de Niubiz: el pago termina en una navegación completa
+   * (POST del lightbox → backend → redirect aquí), así que el resultado llega
+   * por query params y la confirmación se recupera del backend.
+   */
+  private procesarRetornoPago(resultado: string, purchase?: string, msg?: string): void {
+    // Limpia los query params para que un F5 no reprocese el resultado.
+    this.router.navigate([], { queryParams: {}, replaceUrl: true });
+
+    if (resultado === 'exito' && purchase) {
+      this.bookingApi.getConfirmacionPago(purchase).subscribe({
+        next: (c) => {
+          this.state.setConfirmacion(c);
+          this.step.set(5);
+          this.toastr.success('¡Pago confirmado! Su reserva está garantizada.');
+        },
+        error: () => {
+          this.toastr.error(
+            'El pago se procesó pero no se pudo cargar la confirmación. Revise su correo.',
+          );
+        },
+      });
+      return;
+    }
+    if (resultado === 'rechazado') {
+      this.toastr.warning(
+        msg ?? 'El pago no fue autorizado. Puede intentar nuevamente.',
+        'Pago rechazado',
+      );
+      return;
+    }
+    if (resultado === 'timeout') {
+      this.toastr.info('El tiempo para completar el pago expiró. Puede intentarlo nuevamente.');
+      return;
+    }
+    if (resultado === 'error') {
+      this.toastr.error(
+        'No se pudo verificar el resultado del pago. No vuelva a intentar: el hotel le confirmará por correo.',
+        'Verificación pendiente',
+      );
     }
   }
 
