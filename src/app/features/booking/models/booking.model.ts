@@ -55,5 +55,18 @@ export interface BookingConfirmationResponse {
   tipoPago: TipoPago;
   adelanto: number;
   montoPendiente: number;
-  metodoPagoNombre: string;
+  /** PENDIENTE al crear la pre-reserva; CONFIRMADA tras autorizar el pago. */
+  estadoReserva: string;
+}
+
+/** Datos para abrir el checkout de Niubiz (el monto lo fija el backend). */
+export interface CrearSesionPagoResponse {
+  reservaId: number;
+  purchaseNumber: string;
+  sessionKey: string;
+  merchantId: string;
+  monto: number;
+  moneda: string;
+  checkoutScriptUrl: string;
+  expirationTime: number | null;
 }

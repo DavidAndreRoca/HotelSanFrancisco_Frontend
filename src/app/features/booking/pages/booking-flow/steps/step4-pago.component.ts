@@ -3,101 +3,76 @@ import {
   Component,
   EventEmitter,
   inject,
-  OnInit,
   Output,
   signal,
 } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
+import { environment } from '../../../../../../environments/environment';
 import { BookingApiService, BookingStateService } from '../../../services/booking.service';
-import { MetodoPagoPublico } from '../../../models/booking.model';
+import {
+  BookingConfirmationResponse,
+  CrearSesionPagoResponse,
+} from '../../../models/booking.model';
+
+/** API global que expone checkout.js de Niubiz una vez cargado. */
+declare global {
+  interface Window {
+    VisanetCheckout?: {
+      configure(config: Record<string, unknown>): void;
+      open(): void;
+    };
+  }
+}
 
 @Component({
   selector: 'app-step4-pago',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, DecimalPipe],
+  imports: [DecimalPipe],
   template: `
     <div class="max-w-2xl mx-auto space-y-6">
       <div class="bg-white rounded-2xl border border-[var(--color-border-soft)] p-6 shadow-[var(--shadow-card)]">
-        <h2 class="text-lg font-bold text-[#2D2926] mb-1">Método de pago</h2>
+        <h2 class="text-lg font-bold text-[#2D2926] mb-1">Pago seguro online</h2>
         <p class="text-[13px] text-[var(--color-ink-muted)] mb-6">
-          Monto a pagar ahora:
-          <strong class="text-[#C5A048] text-[16px]">S/ {{ state.adelanto() | number:'1.2-2' }}</strong>
+          Para garantizar su reserva se requiere el pago
+          {{ state.tipoPago() === 'TOTAL' ? 'del total' : 'de un adelanto del 50%' }}.
         </p>
 
-        @if (cargando()) {
-          <div class="space-y-3">
-            @for (i of [1,2,3,4]; track i) {
-              <div class="h-14 bg-gray-100 rounded-xl animate-pulse"></div>
-            }
+        <!-- Resumen del cobro -->
+        <div class="p-5 rounded-xl border-2 border-[#C5A048] bg-[#FDF8EF] space-y-2">
+          <div class="flex justify-between text-[14px]">
+            <span class="text-[var(--color-ink-muted)]">Total de la reserva</span>
+            <span class="font-medium">S/ {{ state.montoTotal() | number:'1.2-2' }}</span>
           </div>
-        } @else {
-          <div class="space-y-3">
-            @for (m of metodos(); track m.metodoPagoId) {
-              <label class="flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-colors"
-                [class]="metodoPagoSeleccionado() === m.metodoPagoId
-                  ? 'border-[#C5A048] bg-[#FDF8EF]'
-                  : 'border-[var(--color-border-soft)] hover:border-[#C5A048]'">
-                <input type="radio" name="metodoPago" [value]="m.metodoPagoId"
-                  [checked]="metodoPagoSeleccionado() === m.metodoPagoId"
-                  (change)="seleccionarMetodo(m)"
-                  class="accent-[#C5A048]" />
-                <span class="font-medium text-[#2D2926] text-[14px]">{{ m.nombre }}</span>
-              </label>
-            }
+          <div class="flex justify-between text-[15px] font-bold text-[#C5A048] border-t border-[#EEE3D1] pt-2">
+            <span>A pagar ahora</span>
+            <span>S/ {{ state.adelanto() | number:'1.2-2' }}</span>
           </div>
-        }
+          @if (state.montoPendiente() > 0) {
+            <div class="flex justify-between text-[12px] text-[var(--color-ink-muted)]">
+              <span>Saldo al llegar al hotel</span>
+              <span>S/ {{ state.montoPendiente() | number:'1.2-2' }}</span>
+            </div>
+          }
+        </div>
 
-        <!-- Formulario tarjeta (solo si método es tarjeta) -->
-        @if (mostrarFormTarjeta()) {
-          <div class="mt-6 p-5 bg-[#F9F5F0] rounded-xl space-y-4">
-            <p class="text-[13px] font-semibold text-[var(--color-ink-soft)] mb-1">Datos de la tarjeta</p>
-            <form [formGroup]="cardForm" class="space-y-4" novalidate>
-              <div>
-                <label class="block text-[13px] font-medium text-[var(--color-ink-soft)] mb-1.5">
-                  Número de tarjeta <span class="text-[var(--color-danger-500)]">*</span>
-                </label>
-                <input type="text" formControlName="numeroTarjeta"
-                  placeholder="1234 5678 9012 3456"
-                  maxlength="19"
-                  [class]="cardInputClass('numeroTarjeta')" />
-              </div>
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-[13px] font-medium text-[var(--color-ink-soft)] mb-1.5">
-                    Vencimiento <span class="text-[var(--color-danger-500)]">*</span>
-                  </label>
-                  <input type="text" formControlName="vencimiento"
-                    placeholder="MM/AA"
-                    maxlength="5"
-                    [class]="cardInputClass('vencimiento')" />
-                </div>
-                <div>
-                  <label class="block text-[13px] font-medium text-[var(--color-ink-soft)] mb-1.5">
-                    CVV <span class="text-[var(--color-danger-500)]">*</span>
-                  </label>
-                  <input type="password" formControlName="cvv"
-                    placeholder="123"
-                    maxlength="4"
-                    [class]="cardInputClass('cvv')" />
-                </div>
-              </div>
-              <div>
-                <label class="block text-[13px] font-medium text-[var(--color-ink-soft)] mb-1.5">
-                  Titular <span class="text-[var(--color-danger-500)]">*</span>
-                </label>
-                <input type="text" formControlName="titular"
-                  placeholder="Nombre como aparece en la tarjeta"
-                  [class]="cardInputClass('titular')" />
-              </div>
-            </form>
-            <p class="text-[11px] text-[var(--color-ink-muted)]">
-              Los datos de tarjeta son procesados de forma segura. No los almacenamos en nuestros servidores.
-            </p>
-          </div>
-        }
+        <!-- Medios aceptados -->
+        <div class="mt-5 flex items-center gap-2 text-[13px] text-[var(--color-ink-soft)]">
+          <svg class="w-4 h-4 shrink-0 text-[#C5A048]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M3 10h18M7 15h2m2 0h2M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+          </svg>
+          Aceptamos tarjetas de crédito / débito (Visa, Mastercard, Amex, Diners) y Yape.
+        </div>
+
+        <div class="mt-3 flex items-center gap-2 text-[11px] text-[var(--color-ink-muted)]">
+          <svg class="w-4 h-4 shrink-0 text-[#C5A048]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+          Sus datos de pago se ingresan en el formulario seguro de Niubiz; nunca pasan por nuestros servidores.
+        </div>
       </div>
 
       <!-- Nav -->
@@ -106,92 +81,49 @@ import { MetodoPagoPublico } from '../../../models/booking.model';
           class="px-6 h-10 border border-[var(--color-border-soft)] text-[var(--color-ink-muted)] rounded-lg text-[14px] hover:border-[#C5A048] hover:text-[#C5A048] transition-colors disabled:opacity-60">
           Anterior
         </button>
-        <button (click)="confirmar()" [disabled]="enviando()"
+        <button (click)="pagar()" [disabled]="enviando()"
           class="px-8 h-10 bg-[#C5A048] hover:bg-[#b8923e] disabled:opacity-60 text-white font-semibold rounded-lg text-[14px] transition-colors">
-          {{ enviando() ? 'Procesando...' : 'Confirmar reserva' }}
+          {{ enviando() ? 'Procesando...' : 'Pagar y confirmar' }}
         </button>
       </div>
     </div>
   `,
 })
-export class Step4PagoComponent implements OnInit {
+export class Step4PagoComponent {
   @Output() next = new EventEmitter<void>();
   @Output() back = new EventEmitter<void>();
   /** La habitación ya no está disponible (409): volver al paso de búsqueda. */
   @Output() conflicto = new EventEmitter<void>();
 
-  private readonly fb = inject(FormBuilder);
   private readonly bookingApi = inject(BookingApiService);
   private readonly toastr = inject(ToastrService);
   readonly state = inject(BookingStateService);
 
-  readonly metodos = signal<MetodoPagoPublico[]>([]);
-  readonly cargando = signal(true);
   readonly enviando = signal(false);
-  readonly metodoPagoSeleccionado = signal<number | null>(null);
-  readonly mostrarFormTarjeta = signal(false);
 
-  readonly cardForm = this.fb.nonNullable.group({
-    numeroTarjeta: ['', Validators.required],
-    vencimiento: ['', Validators.required],
-    cvv: ['', Validators.required],
-    titular: ['', Validators.required],
-  });
+  private scriptCargado: Promise<void> | null = null;
+  private scriptUrl: string | null = null;
 
-  ngOnInit(): void {
-    const existente = this.state.metodoPagoId();
-    if (existente) this.metodoPagoSeleccionado.set(existente);
+  pagar(): void {
+    this.enviando.set(true);
 
-    this.bookingApi.findMetodosPago().subscribe({
-      next: (res) => {
-        this.metodos.set(res);
-        this.cargando.set(false);
-        if (existente) {
-          const m = res.find((x) => x.metodoPagoId === existente);
-          if (m) this.checkTarjeta(m);
-        }
-      },
-      error: () => {
-        this.cargando.set(false);
-        this.toastr.error('No se pudieron cargar los métodos de pago.');
-      },
+    // Pre-reserva PENDIENTE (una sola vez) → sesión Niubiz → checkout.
+    const pendiente = this.state.reservaPendiente();
+    if (pendiente) {
+      this.iniciarPago(pendiente.reservaId);
+      return;
+    }
+    this.crearReserva((res) => {
+      this.state.setReservaPendiente(res);
+      this.iniciarPago(res.reservaId);
     });
   }
 
-  seleccionarMetodo(m: MetodoPagoPublico): void {
-    this.metodoPagoSeleccionado.set(m.metodoPagoId);
-    this.state.setMetodoPago(m.metodoPagoId);
-    this.checkTarjeta(m);
-  }
-
-  private checkTarjeta(m: MetodoPagoPublico): void {
-    this.mostrarFormTarjeta.set(m.nombre.toLowerCase().includes('tarjeta'));
-  }
-
-  cardInputClass(field: string): string {
-    const ctrl = this.cardForm.get(field);
-    const invalid = ctrl?.invalid && ctrl.touched;
-    return `w-full h-10 px-3.5 rounded-lg border text-[14px] bg-white focus:outline-none focus:ring-2 focus:ring-[#C5A048] ${
-      invalid ? 'border-[var(--color-danger-500)]' : 'border-[var(--color-border-soft)]'
-    }`;
-  }
-
-  confirmar(): void {
-    if (!this.metodoPagoSeleccionado()) {
-      this.toastr.warning('Selecciona un método de pago.');
-      return;
-    }
-    if (this.mostrarFormTarjeta() && this.cardForm.invalid) {
-      this.cardForm.markAllAsTouched();
-      this.toastr.warning('Completa los datos de la tarjeta.');
-      return;
-    }
-
+  private crearReserva(onOk: (res: BookingConfirmationResponse) => void): void {
     const hab = this.state.habitacionSeleccionada()!;
     const datos = this.state.datosHuesped()!;
     const params = this.state.searchParams()!;
 
-    this.enviando.set(true);
     this.bookingApi.crearReserva({
       fechaInicio: params.checkIn,
       fechaFin: params.checkOut,
@@ -206,13 +138,8 @@ export class Step4PagoComponent implements OnInit {
       nroNinos: datos.nroNinos,
       serviciosAdicionales: datos.serviciosAdicionales,
       tipoPago: this.state.tipoPago(),
-      metodoPagoId: this.metodoPagoSeleccionado()!,
     }).subscribe({
-      next: (res) => {
-        this.state.setConfirmacion(res);
-        this.enviando.set(false);
-        this.next.emit();
-      },
+      next: onOk,
       error: (err: HttpErrorResponse) => {
         this.enviando.set(false);
         if (err.status === 409) {
@@ -226,5 +153,79 @@ export class Step4PagoComponent implements OnInit {
         this.toastr.error(err.error?.message ?? 'Error al procesar la reserva. Intente nuevamente.');
       },
     });
+  }
+
+  private iniciarPago(reservaId: number): void {
+    this.bookingApi.crearSesionPago(reservaId).subscribe({
+      next: (sesion) => this.abrirCheckout(sesion),
+      error: (err: HttpErrorResponse) => {
+        this.enviando.set(false);
+        if (err.status === 503) {
+          this.toastr.error('El pago online no está disponible en este momento. Intente más tarde.');
+          return;
+        }
+        this.toastr.error(err.error?.message ?? 'No se pudo iniciar el pago. Intente nuevamente.');
+      },
+    });
+  }
+
+  private abrirCheckout(sesion: CrearSesionPagoResponse): void {
+    this.cargarScript(sesion.checkoutScriptUrl)
+      .then(() => {
+        const checkout = window.VisanetCheckout;
+        if (!checkout) {
+          this.enviando.set(false);
+          this.toastr.error('No se pudo cargar el formulario de pago. Intente nuevamente.');
+          return;
+        }
+        const datos = this.state.datosHuesped();
+        checkout.configure({
+          sessiontoken: sesion.sessionKey,
+          channel: 'web',
+          merchantid: sesion.merchantId,
+          purchasenumber: sesion.purchaseNumber,
+          amount: sesion.monto,
+          expirationminutes: '15',
+          timeouturl: `${window.location.origin}/booking?pago=timeout`,
+          merchantlogo: '',
+          formbuttoncolor: '#C5A048',
+          // El checkout hace un POST clásico del transactionToken a esta URL:
+          // el backend autoriza el cobro y redirige de vuelta a /booking con el
+          // resultado en query params (la SPA pierde su estado en esa navegación).
+          action: `${environment.apiUrl}/api/v1/booking/pago/retorno/${sesion.purchaseNumber}`,
+          showamount: true,
+          cardholdername: datos?.nombres ?? '',
+          cardholderlastname: datos?.apellidos ?? '',
+          cardholderemail: datos?.correo ?? '',
+        });
+        checkout.open();
+        // Se libera el botón: si el usuario cierra el modal sin pagar puede
+        // reintentar (se genera una nueva sesión; la anterior expira sola).
+        this.enviando.set(false);
+      })
+      .catch(() => {
+        this.enviando.set(false);
+        this.toastr.error('No se pudo cargar el formulario de pago. Verifique su conexión.');
+      });
+  }
+
+  private cargarScript(url: string): Promise<void> {
+    if (this.scriptCargado && this.scriptUrl === url) {
+      return this.scriptCargado;
+    }
+    this.scriptUrl = url;
+    this.scriptCargado = new Promise<void>((resolve, reject) => {
+      if (window.VisanetCheckout) {
+        resolve();
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = url;
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('checkout.js load error'));
+      document.head.appendChild(script);
+    });
+    return this.scriptCargado;
   }
 }

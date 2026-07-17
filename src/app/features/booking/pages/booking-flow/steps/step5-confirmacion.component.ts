@@ -103,7 +103,7 @@ function matchPasswords(group: AbstractControl): ValidationErrors | null {
                   <span>S/ {{ c.montoTotal | number:'1.2-2' }}</span>
                 </div>
                 <div class="flex justify-between text-green-700 font-semibold">
-                  <span>Pagado ({{ c.metodoPagoNombre }})</span>
+                  <span>Pagado online (Niubiz)</span>
                   <span>S/ {{ c.adelanto | number:'1.2-2' }}</span>
                 </div>
                 @if (c.montoPendiente > 0) {

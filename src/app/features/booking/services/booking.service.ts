@@ -4,6 +4,7 @@ import { ApiClient } from '../../../core/http/http-client.service';
 import {
   BookingConfirmationResponse,
   BookingDatosHuesped,
+  CrearSesionPagoResponse,
   HabitacionDisponible,
   MetodoPagoPublico,
   SearchParams,
@@ -16,7 +17,8 @@ export class BookingStateService {
   readonly habitacionSeleccionada = signal<HabitacionDisponible | null>(null);
   readonly datosHuesped = signal<BookingDatosHuesped | null>(null);
   readonly tipoPago = signal<TipoPago>('TOTAL');
-  readonly metodoPagoId = signal<number | null>(null);
+  /** Pre-reserva PENDIENTE creada para pago online (permite reintentar el cobro sin duplicarla). */
+  readonly reservaPendiente = signal<BookingConfirmationResponse | null>(null);
   readonly confirmacion = signal<BookingConfirmationResponse | null>(null);
 
   readonly noches = computed(() => {
@@ -46,24 +48,31 @@ export class BookingStateService {
     this.habitacionSeleccionada.set(null);
     this.datosHuesped.set(null);
     this.tipoPago.set('TOTAL');
-    this.metodoPagoId.set(null);
+    this.reservaPendiente.set(null);
     this.confirmacion.set(null);
   }
 
   selectHabitacion(hab: HabitacionDisponible): void {
     this.habitacionSeleccionada.set(hab);
+    // Cambiar habitación/datos/tipo de pago invalida la pre-reserva online previa:
+    // sus montos ya no corresponden (la anterior la cancela el job de expiración).
+    this.reservaPendiente.set(null);
   }
 
   setDatosHuesped(datos: BookingDatosHuesped): void {
     this.datosHuesped.set(datos);
+    this.reservaPendiente.set(null);
   }
 
   setTipoPago(tipo: TipoPago): void {
+    if (this.tipoPago() !== tipo) {
+      this.reservaPendiente.set(null);
+    }
     this.tipoPago.set(tipo);
   }
 
-  setMetodoPago(id: number): void {
-    this.metodoPagoId.set(id);
+  setReservaPendiente(c: BookingConfirmationResponse | null): void {
+    this.reservaPendiente.set(c);
   }
 
   setConfirmacion(c: BookingConfirmationResponse): void {
@@ -75,7 +84,7 @@ export class BookingStateService {
     this.habitacionSeleccionada.set(null);
     this.datosHuesped.set(null);
     this.tipoPago.set('TOTAL');
-    this.metodoPagoId.set(null);
+    this.reservaPendiente.set(null);
     this.confirmacion.set(null);
   }
 }
@@ -108,8 +117,25 @@ export class BookingApiService {
     nroNinos: number;
     serviciosAdicionales: string;
     tipoPago: TipoPago;
-    metodoPagoId: number;
   }): Observable<BookingConfirmationResponse> {
     return this.api.post<BookingConfirmationResponse>('/api/v1/booking', payload);
+  }
+
+  crearSesionPago(reservaId: number): Observable<CrearSesionPagoResponse> {
+    return this.api.post<CrearSesionPagoResponse>(`/api/v1/booking/${reservaId}/pago/session`, {});
+  }
+
+  confirmarPago(payload: {
+    purchaseNumber: string;
+    transactionToken: string;
+  }): Observable<BookingConfirmationResponse> {
+    return this.api.post<BookingConfirmationResponse>('/api/v1/booking/pago/confirmar', payload);
+  }
+
+  /** Confirmación de un pago ya autorizado (tras el redirect de retorno del checkout). */
+  getConfirmacionPago(purchaseNumber: string): Observable<BookingConfirmationResponse> {
+    return this.api.get<BookingConfirmationResponse>(
+      `/api/v1/booking/pago/${purchaseNumber}/confirmacion`,
+    );
   }
 }
