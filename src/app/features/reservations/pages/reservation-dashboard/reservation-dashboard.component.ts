@@ -1,4 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+
+
+import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit, ViewChild } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+
 import { ToastrService } from 'ngx-toastr';
 import { AuthStore } from '../../../../core/auth/auth.store';
 import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
@@ -9,6 +13,8 @@ import { ReservationFiltersComponent } from '../../components/reservation-filter
 import { ReservationDetailComponent } from '../../components/reservation-detail/reservation-detail.component';
 import { ReservationFormComponent, ReservaFormSaveEvent } from '../../components/reservation-form/reservation-form.component';
 import { CancelarModalComponent } from '../../components/cancelar-modal/cancelar-modal.component';
+import { NiubizCheckoutService } from '../../../../core/pagos/niubiz-checkout.service';
+import { BookingApiService } from '../../../booking/services/booking.service';
 import {
   CancelarReservaPayload,
   CreateReservaPayload,
@@ -108,11 +114,17 @@ import {
       (onCancelar)="confirmarCancelacion($event)" />
   `,
 })
-export class ReservationsDashboardComponent {
-  protected readonly svc    = inject(ReservationService);
-  private readonly confirm  = inject(ConfirmDialogService);
-  private readonly toastr   = inject(ToastrService);
-  private readonly auth     = inject(AuthStore);
+export class ReservationsDashboardComponent implements OnInit {
+  @ViewChild(ReservationFormComponent) formRef?: ReservationFormComponent;
+
+  protected readonly svc       = inject(ReservationService);
+  private readonly confirm     = inject(ConfirmDialogService);
+  private readonly toastr      = inject(ToastrService);
+  private readonly auth        = inject(AuthStore);
+  private readonly router      = inject(Router);
+  private readonly route       = inject(ActivatedRoute);
+  private readonly checkoutSvc = inject(NiubizCheckoutService);
+  private readonly bookingApi  = inject(BookingApiService);
 
   readonly puedeCrear         = computed(() => this.auth.hasPermission('reserva:create'));
   readonly puedeEditar        = computed(() => this.auth.hasPermission('reserva:update'));
@@ -125,7 +137,41 @@ export class ReservationsDashboardComponent {
   readonly cancelarAbierto  = signal(false);
   readonly reservaACancelar = signal<Reserva | null>(null);
 
-  // ── Detail ─────────────────────────────────────────────────────────────────
+  ngOnInit(): void {
+    const params = this.route.snapshot.queryParams;
+    if (params['pago']) {
+      this.procesarRetornoPago(params['pago'], params['purchase'], params['msg']);
+    }
+  }
+
+  private procesarRetornoPago(resultado: string, purchase?: string, msg?: string): void {
+    this.router.navigate([], { queryParams: {}, replaceUrl: true });
+
+    if (resultado === 'exito' && purchase) {
+      this.bookingApi.getConfirmacionPago(purchase).subscribe({
+        next: (c) => {
+          this.toastr.success('¡Pago confirmado! Su reserva está garantizada.');
+          this.svc.cargarTodas();
+          this.abrirDetalle(c.reservaId);
+        },
+        error: () => {
+          this.toastr.error('El pago se procesó pero no se pudo cargar la confirmación de la reserva.');
+        },
+      });
+      return;
+    }
+    if (resultado === 'rechazado') {
+      this.toastr.warning(msg ?? 'El pago no fue autorizado. Puede intentar nuevamente.', 'Pago rechazado');
+      return;
+    }
+    if (resultado === 'timeout') {
+      this.toastr.info('El tiempo para completar el pago expiró. Intente nuevamente.');
+      return;
+    }
+    if (resultado === 'error') {
+      this.toastr.error('No se pudo verificar el resultado del pago. Revise la reserva.', 'Error de verificación');
+    }
+  }
 
   abrirDetalle(id: number): void {
     this.reservaIdDetalle.set(id);
@@ -167,27 +213,79 @@ export class ReservationsDashboardComponent {
   }
 
   guardarReserva(event: ReservaFormSaveEvent): void {
-    const obs$ = event.id != null
-      ? this.svc.update(event.id, event.payload as UpdateReservaPayload)
-      : this.svc.create(event.payload as CreateReservaPayload);
-    obs$.subscribe({
-      next: () => {
-        this.formAbierto.set(false);
-        this.toastr.success(event.id ? 'Reserva actualizada.' : 'Reserva creada.');
-      },
-      error: (err: { status?: number; friendlyMessage?: string }) => {
-        if (err.status === 409) {
-          // La habitación fue tomada por otra reserva: el form queda abierto
-          // para volver a elegir habitación/fechas.
-          this.toastr.warning(
-            err.friendlyMessage ?? 'La habitación ya no está disponible para las fechas seleccionadas.',
-            'Disponibilidad',
-          );
-          return;
+    if (event.id != null) {
+      this.svc.update(event.id, event.payload as UpdateReservaPayload).subscribe({
+        next: () => {
+          this.formAbierto.set(false);
+          this.toastr.success('Reserva actualizada.');
+        },
+        error: (err: any) => this.handleError(err),
+      });
+    } else {
+      this.svc.create(event.payload as CreateReservaPayload).subscribe({
+        next: (nueva: Reserva) => {
+          if (event.metodoPagoStaff === 'EFECTIVO') {
+            // Registrar pago en efectivo → cierra modal al confirmar
+            this.svc.pagoInicialEfectivo(nueva.reservaId).subscribe({
+              next: () => {
+                this.formAbierto.set(false);
+                this.toastr.success('Reserva creada y pago en efectivo registrado. La reserva está CONFIRMADA.');
+              },
+              error: (err: any) => {
+                this.formRef?.enviandoPago.set(false);
+                this.toastr.error(err.error?.message || 'La reserva se creó pero no se pudo registrar el pago en efectivo.');
+              }
+            });
+          } else if (event.metodoPagoStaff === 'NIUBIZ') {
+            // Crear sesión y abrir checkout → el modal se cierra al redirigir
+            this.iniciarPagoNiubiz(nueva.reservaId, nueva);
+          } else {
+            this.formAbierto.set(false);
+            this.toastr.success('Reserva creada.');
+          }
+        },
+        error: (err: any) => {
+          this.formRef?.enviandoPago.set(false);
+          this.handleError(err);
+        },
+      });
+    }
+  }
+
+  private iniciarPagoNiubiz(reservaId: number, reserva: Reserva): void {
+    const principal = reserva.huespedes?.find(h => h.esPrincipal) || reserva.huespedes?.[0];
+    this.checkoutSvc.crearSesion(reservaId).subscribe({
+      next: async (sesion) => {
+        try {
+          await this.checkoutSvc.abrirCheckout(sesion, 'dashboard', {
+            nombres: principal?.nombre || '',
+            apellidos: principal?.apellidoPaterno || '',
+            correo: principal?.correo || undefined,
+          });
+          // abrirCheckout abre el lightbox y retorna inmediatamente;
+          // el resultado llega por redirect. No cerramos el modal aquí.
+        } catch (err: any) {
+          this.formRef?.enviandoPago.set(false);
+          this.toastr.error(err.message || 'No se pudo abrir el checkout de Niubiz.');
         }
-        this.toastr.error(err.friendlyMessage ?? 'No se pudo guardar.', 'Error');
       },
+      error: (err: any) => {
+        this.formRef?.enviandoPago.set(false);
+        this.toastr.error(err.error?.message || 'No se pudo crear la sesión de pago de Niubiz.');
+      }
     });
+  }
+
+
+  private handleError(err: { status?: number; friendlyMessage?: string }): void {
+    if (err.status === 409) {
+      this.toastr.warning(
+        err.friendlyMessage ?? 'La habitación ya no está disponible para las fechas seleccionadas.',
+        'Disponibilidad',
+      );
+      return;
+    }
+    this.toastr.error(err.friendlyMessage ?? 'No se pudo guardar.', 'Error');
   }
 
   // ── Check-in / Check-out ───────────────────────────────────────────────────

@@ -24,7 +24,7 @@ import { mediaTipoHabitacion } from '../../../../../shared/constants/tipo-habita
       <!-- Filtro de fechas / huéspedes -->
       <div class="bg-white rounded-2xl border border-[var(--color-border-soft)] p-6 shadow-[var(--shadow-card)]">
         <h2 class="text-lg font-bold text-[#2D2926] mb-4">Buscar disponibilidad</h2>
-        <form [formGroup]="filterForm" (ngSubmit)="buscar()" class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <form [formGroup]="filterForm" (ngSubmit)="buscar()" class="grid grid-cols-1 sm:grid-cols-5 gap-4">
           <div>
             <label class="block text-[13px] font-medium text-[var(--color-ink-soft)] mb-1">
               Fecha de entrada
@@ -41,12 +41,23 @@ import { mediaTipoHabitacion } from '../../../../../shared/constants/tipo-habita
           </div>
           <div>
             <label class="block text-[13px] font-medium text-[var(--color-ink-soft)] mb-1">
-              Huéspedes
+              Adultos
             </label>
-            <select formControlName="guests"
+            <select formControlName="adultos"
               class="w-full h-10 px-3 rounded-lg border border-[var(--color-border-soft)] text-[14px] bg-white focus:outline-none focus:ring-2 focus:ring-[#C5A048]">
               @for (n of [1,2,3,4]; track n) {
-                <option [value]="n">{{ n }} persona{{ n > 1 ? 's' : '' }}</option>
+                <option [value]="n">{{ n }} adulto{{ n > 1 ? 's' : '' }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="block text-[13px] font-medium text-[var(--color-ink-soft)] mb-1">
+              Niños
+            </label>
+            <select formControlName="ninos"
+              class="w-full h-10 px-3 rounded-lg border border-[var(--color-border-soft)] text-[14px] bg-white focus:outline-none focus:ring-2 focus:ring-[#C5A048]">
+              @for (n of [0,1,2,3]; track n) {
+                <option [value]="n">{{ n }} niño{{ n !== 1 ? 's' : '' }}</option>
               }
             </select>
           </div>
@@ -69,10 +80,22 @@ import { mediaTipoHabitacion } from '../../../../../shared/constants/tipo-habita
         </div>
       } @else if (disponibles().length > 0) {
         <div>
-          <p class="text-[13px] text-[var(--color-ink-muted)] mb-4">
-            {{ disponibles().length }} habitacion{{ disponibles().length > 1 ? 'es' : '' }} disponible{{ disponibles().length > 1 ? 's' : '' }}
-            para las fechas seleccionadas.
-          </p>
+          <div class="flex items-center justify-between mb-4">
+            <p class="text-[13px] text-[var(--color-ink-muted)]">
+              {{ disponibles().length }} habitacion{{ disponibles().length > 1 ? 'es' : '' }} disponible{{ disponibles().length > 1 ? 's' : '' }}
+              para las fechas seleccionadas.
+            </p>
+            @if (multiHabilitado() && seleccionadas().length > 0) {
+              <span class="text-[12px] text-[#C5A048] font-semibold">
+                {{ seleccionadas().length }} seleccionada{{ seleccionadas().length > 1 ? 's' : '' }}
+              </span>
+            }
+          </div>
+          @if (multiHabilitado()) {
+            <p class="text-[12px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 mb-4">
+              ✓ Con {{ nAdultos() }} adultos puedes seleccionar varias habitaciones.
+            </p>
+          }
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             @for (hab of disponibles(); track hab.habitacionId) {
               <div
@@ -81,7 +104,7 @@ import { mediaTipoHabitacion } from '../../../../../shared/constants/tipo-habita
                 tabindex="0"
                 role="button"
                 class="bg-white rounded-2xl border-2 p-5 cursor-pointer transition-all hover:shadow-md"
-                [class]="habSeleccionada()?.habitacionId === hab.habitacionId
+                [class]="sel(hab.habitacionId)
                   ? 'border-[#C5A048] shadow-md'
                   : 'border-[var(--color-border-soft)] hover:border-[#C5A048]'">
                 <img
@@ -94,7 +117,7 @@ import { mediaTipoHabitacion } from '../../../../../shared/constants/tipo-habita
                     <p class="font-semibold text-[#2D2926] text-[15px]">{{ hab.tipoHabitacionNombre }}</p>
                     <p class="text-[12px] text-[var(--color-ink-muted)]">Hab. {{ hab.numero }} — Piso {{ hab.piso }}</p>
                   </div>
-                  @if (habSeleccionada()?.habitacionId === hab.habitacionId) {
+                  @if (sel(hab.habitacionId)) {
                     <div class="w-5 h-5 rounded-full bg-[#C5A048] flex items-center justify-center flex-shrink-0">
                       <svg class="w-3 h-3 text-white" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
@@ -139,12 +162,12 @@ import { mediaTipoHabitacion } from '../../../../../shared/constants/tipo-habita
       }
 
       <!-- Botón continuar -->
-      @if (habSeleccionada()) {
+      @if (seleccionadas().length > 0) {
         <div class="flex justify-end">
           <button
             (click)="continuar()"
             class="px-8 h-11 bg-[#C5A048] hover:bg-[#b8923e] text-white font-semibold rounded-lg text-[14px] transition-colors">
-            Continuar
+            Continuar {{ seleccionadas().length > 1 ? '(' + seleccionadas().length + ' hab.)' : '' }}
           </button>
         </div>
       }
@@ -162,13 +185,15 @@ export class Step1SeleccionarComponent implements OnInit {
   readonly disponibles = signal<HabitacionDisponible[]>([]);
   readonly buscando = signal(false);
   readonly buscado = signal(false);
-  readonly habSeleccionada = this.state.habitacionSeleccionada;
+  readonly seleccionadas = this.state.habitacionesSeleccionadas;
+  readonly capacidadSel = this.state.capacidadSeleccionada;
   readonly noches = this.state.noches;
 
   readonly filterForm = this.fb.nonNullable.group({
     checkIn: ['', Validators.required],
     checkOut: ['', Validators.required],
-    guests: [2, [Validators.required, Validators.min(1)]],
+    adultos: [1, [Validators.required, Validators.min(1)]],
+    ninos: [0, [Validators.min(0)]],
   });
 
   ngOnInit(): void {
@@ -177,7 +202,8 @@ export class Step1SeleccionarComponent implements OnInit {
       this.filterForm.patchValue({
         checkIn: params.checkIn,
         checkOut: params.checkOut,
-        guests: params.guests,
+        adultos: params.adultos,
+        ninos: params.ninos,
       });
       this.buscar();
     }
@@ -189,12 +215,15 @@ export class Step1SeleccionarComponent implements OnInit {
       this.toastr.warning('Completa las fechas y la cantidad de huéspedes.');
       return;
     }
-    const { checkIn, checkOut, guests } = this.filterForm.getRawValue();
+    const { checkIn, checkOut } = this.filterForm.getRawValue();
+    const adultos = Number(this.filterForm.getRawValue().adultos);
+    const ninos = Number(this.filterForm.getRawValue().ninos);
+    const guests = adultos + ninos;
     if (new Date(checkOut) <= new Date(checkIn)) {
       this.toastr.warning('La fecha de salida debe ser posterior a la de entrada.');
       return;
     }
-    this.state.setSearch({ checkIn, checkOut, guests });
+    this.state.setSearch({ checkIn, checkOut, guests, adultos, ninos });
     this.buscando.set(true);
     this.buscado.set(false);
     this.disponibles.set([]);
@@ -220,11 +249,49 @@ export class Step1SeleccionarComponent implements OnInit {
   }
 
   seleccionar(hab: HabitacionDisponible): void {
-    this.state.selectHabitacion(hab);
+    // Restricción: con 1 adulto no se permite selección múltiple
+    const adultos = this.state.searchParams()?.adultos ?? 1;
+    const yaTieneUna = this.seleccionadas().length > 0;
+    const estaSeleccionada = this.sel(hab.habitacionId);
+    if (!estaSeleccionada && adultos <= 1 && yaTieneUna) {
+      this.toastr.warning(
+        'Con un solo adulto solo puedes reservar una habitación. ' +
+        'Aumenta el número de adultos en la búsqueda para seleccionar varias.',
+        'Selección múltiple no disponible',
+      );
+      return;
+    }
+    this.state.toggleHabitacion(hab);
+  }
+
+  sel(habitacionId: number): boolean {
+    return this.state.estaSeleccionada(habitacionId);
+  }
+
+  /** Con 1 adulto la selección es única; con 2+ se habilita la múltiple. */
+  multiHabilitado(): boolean {
+    return (this.state.searchParams()?.adultos ?? 1) > 1;
+  }
+
+  /** Número de adultos seleccionados en la búsqueda (para mostrar en el hint del template). */
+  nAdultos(): number {
+    return this.state.searchParams()?.adultos ?? 1;
   }
 
   continuar(): void {
-    if (!this.state.habitacionSeleccionada()) return;
+    const habs = this.seleccionadas();
+    if (habs.length === 0) return;
+    const params = this.state.searchParams();
+    const pax = (params?.adultos ?? 1) + (params?.ninos ?? 0);
+    const capacidad = this.capacidadSel();
+    if (capacidad > 0 && pax > capacidad) {
+      this.toastr.warning(
+        `Las habitaciones seleccionadas alojan hasta ${capacidad} persona${capacidad !== 1 ? 's' : ''}, ` +
+          `pero indicaste ${pax}. Agrega otra habitación o ajusta los huéspedes.`,
+        'Capacidad insuficiente',
+      );
+      return;
+    }
     this.next.emit();
   }
 }

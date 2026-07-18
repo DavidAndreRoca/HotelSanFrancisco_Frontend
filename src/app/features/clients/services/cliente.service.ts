@@ -7,6 +7,7 @@ import {
   CreateClientePayload, UpdateClientePayload,
 } from '../models/cliente.model';
 import { AuthStore } from '../../../core/auth/auth.store';
+import { map } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class ClienteService {
@@ -78,7 +79,17 @@ export class ClienteService {
   findById(id: number): Cliente | undefined        { return this._clientes().find(c => c.huespedId === id); }
   findByDocumento(doc: string): Cliente | undefined { return this._clientes().find(c => c.numeroDocumento === doc); }
 
-  // ── Mutaciones (retornan Observable) ─────────────────────────────────────────
+  /**
+   * Búsqueda dinámica en el backend por nombre, apellido o documento.
+   * Úsala en autocompletes del dashboard (no depende del cache inicial).
+   */
+  buscar(q: string): Observable<Cliente[]> {
+    return this.api.get<PageResponse<Cliente>>('/api/v1/clientes', {
+      params: { q: q.trim(), size: 20, sort: 'apellidoPaterno,asc' },
+    }).pipe(map(page => page.content));
+  }
+
+
   create(payload: CreateClientePayload): Observable<Cliente> {
     return this.api.post<Cliente>('/api/v1/clientes', payload).pipe(
       tap(nuevo => this._clientes.update(list => [nuevo, ...list]))
