@@ -1,8 +1,6 @@
 
 
-import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core';
-import { of } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { ToastrService } from 'ngx-toastr';
@@ -117,6 +115,8 @@ import {
   `,
 })
 export class ReservationsDashboardComponent implements OnInit {
+  @ViewChild(ReservationFormComponent) formRef?: ReservationFormComponent;
+
   protected readonly svc       = inject(ReservationService);
   private readonly confirm     = inject(ConfirmDialogService);
   private readonly toastr      = inject(ToastrService);
@@ -224,23 +224,30 @@ export class ReservationsDashboardComponent implements OnInit {
     } else {
       this.svc.create(event.payload as CreateReservaPayload).subscribe({
         next: (nueva: Reserva) => {
-          this.formAbierto.set(false);
-          this.toastr.success('Reserva creada.');
-
           if (event.metodoPagoStaff === 'EFECTIVO') {
+            // Registrar pago en efectivo → cierra modal al confirmar
             this.svc.pagoInicialEfectivo(nueva.reservaId).subscribe({
               next: () => {
-                this.toastr.success('Pago inicial en efectivo registrado y reserva confirmada.');
+                this.formAbierto.set(false);
+                this.toastr.success('Reserva creada y pago en efectivo registrado. La reserva está CONFIRMADA.');
               },
               error: (err: any) => {
-                this.toastr.error(err.error?.message || 'No se pudo registrar el pago en efectivo.');
+                this.formRef?.enviandoPago.set(false);
+                this.toastr.error(err.error?.message || 'La reserva se creó pero no se pudo registrar el pago en efectivo.');
               }
             });
           } else if (event.metodoPagoStaff === 'NIUBIZ') {
+            // Crear sesión y abrir checkout → el modal se cierra al redirigir
             this.iniciarPagoNiubiz(nueva.reservaId, nueva);
+          } else {
+            this.formAbierto.set(false);
+            this.toastr.success('Reserva creada.');
           }
         },
-        error: (err: any) => this.handleError(err),
+        error: (err: any) => {
+          this.formRef?.enviandoPago.set(false);
+          this.handleError(err);
+        },
       });
     }
   }
@@ -255,15 +262,20 @@ export class ReservationsDashboardComponent implements OnInit {
             apellidos: principal?.apellidoPaterno || '',
             correo: principal?.correo || undefined,
           });
+          // abrirCheckout abre el lightbox y retorna inmediatamente;
+          // el resultado llega por redirect. No cerramos el modal aquí.
         } catch (err: any) {
+          this.formRef?.enviandoPago.set(false);
           this.toastr.error(err.message || 'No se pudo abrir el checkout de Niubiz.');
         }
       },
       error: (err: any) => {
+        this.formRef?.enviandoPago.set(false);
         this.toastr.error(err.error?.message || 'No se pudo crear la sesión de pago de Niubiz.');
       }
     });
   }
+
 
   private handleError(err: { status?: number; friendlyMessage?: string }): void {
     if (err.status === 409) {

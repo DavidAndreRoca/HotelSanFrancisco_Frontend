@@ -78,7 +78,7 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
 
             <!-- Step bar -->
             <div class="flex items-center px-6 py-3 border-b border-[#EEE3D1] bg-[#F9F5F0] shrink-0">
-              @for (p of [1,2,3,4]; track p) {
+              @for (p of [1,2,3,4,5]; track p) {
                 <button type="button"
                   class="flex items-center gap-1.5 disabled:cursor-not-allowed"
                   [disabled]="pasoActual() < p"
@@ -97,7 +97,7 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                     {{ pasoLabel(p) }}
                   </span>
                 </button>
-                @if (p < 4) {
+                @if (p < 5) {
                   <div class="flex-1 h-px mx-2 transition-colors"
                        [class]="pasoActual() > p ? 'bg-emerald-500' : 'bg-[#EEE3D1]'"></div>
                 }
@@ -799,14 +799,116 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                   </svg>
                   Volver
                 </button>
-                <button type="button" (click)="guardarCreate()" [disabled]="descuentoInvalido()"
+                <button type="button" (click)="avanzarPaso()" [disabled]="descuentoInvalido()"
                   class="h-9 px-5 rounded-xl bg-[#C5A048] text-white text-sm font-semibold
                          hover:bg-[#8E6F2E] transition-colors flex items-center gap-2 disabled:opacity-50">
-                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/>
+                  Continuar
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
                   </svg>
-                  Crear reserva
                 </button>
+              </div>
+            }
+
+            <!-- PASO 5: Pago -->
+            @if (pasoActual() === 5) {
+              <div class="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+
+                <!-- Resumen del cobro -->
+                <div class="p-5 rounded-xl border-2 border-[#C5A048] bg-[#FDF8EF] space-y-2">
+                  <div class="flex justify-between text-[14px]">
+                    <span class="text-[#2D2926]/65">Total de la reserva</span>
+                    <span class="font-medium text-[#2D2926]">S/ {{ total() | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="flex justify-between text-[15px] font-bold text-[#C5A048] border-t border-[#EEE3D1] pt-2">
+                    <span>A pagar ahora ({{ modalidadPago() === 'TOTAL' ? '100%' : '50%' }})</span>
+                    <span>S/ {{ adelanto() | number:'1.2-2' }}</span>
+                  </div>
+                  @if (saldoPendiente() > 0) {
+                    <div class="flex justify-between text-[12px] text-[#2D2926]/50">
+                      <span>Saldo al llegar al hotel</span>
+                      <span>S/ {{ saldoPendiente() | number:'1.2-2' }}</span>
+                    </div>
+                  }
+                </div>
+
+                @if (!esCliente() && metodoPagoStaff() === 'NIUBIZ') {
+                  <!-- Pago en línea con Niubiz -->
+                  <div class="rounded-xl border border-[#EEE3D1] p-4 space-y-3">
+                    <div class="flex items-center gap-2 text-[13px] text-[#2D2926]/65">
+                      <svg class="w-4 h-4 shrink-0 text-[#C5A048]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h2m2 0h2M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                      </svg>
+                      Aceptamos Visa, Mastercard, Amex, Diners y Yape.
+                    </div>
+                    <div class="flex items-center gap-2 text-[11px] text-[#2D2926]/50">
+                      <svg class="w-4 h-4 shrink-0 text-[#C5A048]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                      </svg>
+                      Los datos de pago se ingresan en el formulario seguro de Niubiz.
+                    </div>
+                  </div>
+                }
+
+                @if (!esCliente() && metodoPagoStaff() === 'EFECTIVO') {
+                  <!-- Pago en efectivo -->
+                  <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                    <p class="text-sm font-semibold text-emerald-700">Pago en efectivo</p>
+                    <p class="text-xs text-emerald-600 mt-1">
+                      Al confirmar, la reserva quedará en estado <strong>CONFIRMADA</strong> y
+                      se registrará el adelanto de S/ {{ adelanto() | number:'1.2-2' }} en el sistema.
+                    </p>
+                  </div>
+                }
+
+              </div>
+
+              <div class="flex items-center justify-between gap-3 px-6 py-4 border-t border-[#EEE3D1] shrink-0">
+                <button type="button" (click)="irAPaso(4)" [disabled]="enviandoPago()"
+                  class="h-9 px-4 rounded-xl border border-[#EEE3D1] text-sm font-medium
+                         text-[#2D2926]/70 hover:bg-[#F9F5F0] transition-colors flex items-center gap-2
+                         disabled:opacity-50">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/>
+                  </svg>
+                  Volver
+                </button>
+
+                @if (!esCliente() && metodoPagoStaff() === 'NIUBIZ') {
+                  <button type="button" (click)="guardarCreate()" [disabled]="enviandoPago()"
+                    class="h-9 px-6 rounded-xl bg-[#C5A048] text-white text-sm font-semibold
+                           hover:bg-[#8E6F2E] transition-colors flex items-center gap-2 disabled:opacity-60">
+                    @if (enviandoPago()) {
+                      <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" d="M12 3v3m0 12v3M3 12h3m12 0h3"/>
+                      </svg>
+                      Procesando...
+                    } @else {
+                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h2m2 0h2M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                      </svg>
+                      Crear y pagar con Niubiz
+                    }
+                  </button>
+                }
+
+                @if (!esCliente() && metodoPagoStaff() === 'EFECTIVO') {
+                  <button type="button" (click)="guardarCreate()" [disabled]="enviandoPago()"
+                    class="h-9 px-6 rounded-xl bg-emerald-600 text-white text-sm font-semibold
+                           hover:bg-emerald-700 transition-colors flex items-center gap-2 disabled:opacity-60">
+                    @if (enviandoPago()) {
+                      <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" d="M12 3v3m0 12v3M3 12h3m12 0h3"/>
+                      </svg>
+                      Registrando...
+                    } @else {
+                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/>
+                      </svg>
+                      Confirmar pago en efectivo
+                    }
+                  </button>
+                }
               </div>
             }
           }
@@ -1059,7 +1161,8 @@ export class ReservationFormComponent {
   });
 
   // ── State ──────────────────────────────────────────────────────────────────
-  readonly pasoActual               = signal<1 | 2 | 3 | 4>(1);
+  readonly pasoActual               = signal<1 | 2 | 3 | 4 | 5>(1);
+  readonly enviandoPago             = signal(false);
   readonly habitacionesSeleccionadas = signal<Array<{
     hab: HabitacionDisponible;
     tipoHabitacionId: number;
@@ -1310,7 +1413,9 @@ export class ReservationFormComponent {
     this.errorPaso.set(null);
     this.descuento.set(0);
     this.modalidadPago.set('PARCIAL');
+    this.metodoPagoStaff.set('NIUBIZ');
     this.observaciones.set(null);
+    this.enviandoPago.set(false);
     this._fechaInicio.set('');
     this._fechaFin.set('');
     this._nroAdultos.set(1);
@@ -1322,11 +1427,12 @@ export class ReservationFormComponent {
     this.disponibilidadSvc.limpiar();
   }
 
+
   // ── Step navigation ────────────────────────────────────────────────────────
 
   irAPaso(paso: number): void {
     if (paso >= this.pasoActual()) return;
-    this.pasoActual.set(paso as 1 | 2 | 3 | 4);
+    this.pasoActual.set(paso as 1 | 2 | 3 | 4 | 5);
     this.errorPaso.set(null);
   }
 
@@ -1388,6 +1494,12 @@ export class ReservationFormComponent {
         }
       }
       this.pasoActual.set(4);
+    } else if (paso === 4) {
+      if (!this.esCliente() && this.descuentoInvalido()) {
+        this.errorPaso.set('El descuento no puede superar el 30% del subtotal.');
+        return;
+      }
+      this.pasoActual.set(5);
     }
   }
 
@@ -1402,8 +1514,15 @@ export class ReservationFormComponent {
     const actual = this.habitacionesSeleccionadas();
     const idx = actual.findIndex(h => h.hab.habitacionId === hab.habitacionId);
     if (idx >= 0) {
+      // Deseleccionar siempre permitido
       this.habitacionesSeleccionadas.set(actual.filter((_, i) => i !== idx));
     } else {
+      // Bloquear selección de más de 1 habitación cuando nroAdultos === 1
+      if (this._nroAdultos() <= 1 && actual.length >= 1) {
+        this.errorPaso.set('Con 1 adulto solo puedes seleccionar 1 habitación. Aumenta el número de adultos para agregar más.');
+        return;
+      }
+      this.errorPaso.set(null);
       // Auto-asignar tipo si la habitación ya tiene uno asignado
       const tipoEnLista = hab.tipoHabitacionId
         ? this.tipos().find(t => t.tipoHabitacionId === hab.tipoHabitacionId)
@@ -1641,6 +1760,7 @@ export class ReservationFormComponent {
       payload.canalId   = f1.canalId ?? 1; // Directa por defecto si el staff no elige
     }
 
+    this.enviandoPago.set(true);
     this.onSave.emit({
       payload,
       metodoPagoStaff: this.esStaff() ? this.metodoPagoStaff() : undefined,
@@ -1690,7 +1810,7 @@ export class ReservationFormComponent {
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   pasoLabel(paso: number): string {
-    return ['', 'Fechas', 'Habitaciones', 'Huéspedes', 'Detalles'][paso] ?? '';
+    return ['', 'Fechas', 'Habitaciones', 'Huéspedes', 'Detalles', 'Pago'][paso] ?? '';
   }
 
   stepCircleCls(p: number): string {
