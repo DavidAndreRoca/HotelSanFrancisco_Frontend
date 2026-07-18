@@ -19,10 +19,7 @@
   <meta name="twitter:card" content="summary">
 
   <link rel="icon" type="image/png" href="logo.png">
-  <script>
-    // sockjs-client espera `global` (Node). Polyfill antes de cualquier módulo.
-    window.global = window;
-  </script>
+  <script src="patch-global.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Carga no bloqueante: media="print" descarga sin bloquear el primer render
