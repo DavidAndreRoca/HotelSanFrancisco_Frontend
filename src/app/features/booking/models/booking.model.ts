@@ -18,10 +18,24 @@ export interface MetodoPagoPublico {
 export interface SearchParams {
   checkIn: string;
   checkOut: string;
+  /** Total de huéspedes (adultos + niños), usado por la consulta de disponibilidad. */
   guests: number;
+  adultos: number;
+  ninos: number;
+}
+
+export interface BookingAcompanante {
+  nombre: string;
+  apellidoPaterno: string;
+  apellidoMaterno?: string;
+  numeroDocumento: string;
+  nacionalidad?: string;
+  correo?: string;
+  telefono?: string;
 }
 
 export interface BookingDatosHuesped {
+  tipoDocumento: string;
   numeroDocumento: string;
   nombres: string;
   apellidos: string;
@@ -30,6 +44,7 @@ export interface BookingDatosHuesped {
   serviciosAdicionales: string;
   nroAdultos: number;
   nroNinos: number;
+  acompanantes: BookingAcompanante[];
 }
 
 export type TipoPago = 'TOTAL' | 'ANTICIPO';
@@ -43,6 +58,13 @@ export interface BookingConfirmationResponse {
   habitacionNumero: string;
   habitacionPiso: number;
   tipoHabitacionNombre: string;
+  /** Todas las habitaciones de la reserva (selección múltiple). */
+  habitaciones: Array<{
+    numero: string;
+    piso: number;
+    tipoNombre: string;
+    precioNoche: number;
+  }>;
   huespedNombres: string;
   huespedApellidos: string;
   huespedDocumento: string;

@@ -62,11 +62,7 @@ const ICON_PATHS: Record<string, string> = {
         aria-label="Navegación principal"
       >
         <div class="px-6 py-6 flex items-center gap-3 border-b border-white/5">
-          <div
-            class="w-10 h-10 rounded-full bg-[var(--color-primary-500)] text-[var(--color-ink)] flex items-center justify-center font-extrabold"
-          >
-            SF
-          </div>
+          <img src="logo.png" alt="Logo" class="w-10 h-10 rounded-full">
           <div class="leading-tight">
             <p class="text-sm font-semibold tracking-wide">Hotel San Francisco</p>
             <p class="text-[11px] text-white/60">Panel administrativo</p>

@@ -12,7 +12,8 @@ import {
 import { DecimalPipe } from '@angular/common';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { Subject } from 'rxjs';
 import { DisponibilidadService, HabitacionDisponible } from '../../services/disponibilidad.service';
 import { ClienteService } from '../../../clients/services/cliente.service';
 import { AuthStore } from '../../../../core/auth/auth.store';
@@ -22,6 +23,7 @@ import { Cliente, CreateClientePayload } from '../../../clients/models/cliente.m
 export interface ReservaFormSaveEvent {
   payload: CreateReservaPayload | UpdateReservaPayload;
   id?: number;
+  metodoPagoStaff?: 'EFECTIVO' | 'NIUBIZ';
 }
 
 // Online (3) se asigna automáticamente al cliente; el staff solo elige entre Directa y Booking.
@@ -469,7 +471,7 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                       class="w-full h-10 pl-9 pr-3 rounded-lg border border-[#EEE3D1] bg-white text-sm
                              focus:outline-none focus:border-[#C5A048] focus:ring-2 focus:ring-[#C5A048]/20 transition"
                       [value]="busquedaHuesped()"
-                      (input)="busquedaHuesped.set($any($event.target).value)"
+                      (input)="setBusqueda($any($event.target).value)"
                       placeholder="García, 45678901..." />
                   </div>
                 </div>
@@ -650,6 +652,35 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                     @if (descuentoInvalido()) {
                       <p class="text-xs text-red-500 mt-1">El descuento no puede superar el 30% del subtotal.</p>
                     }
+                  </div>
+                }
+
+                @if (!esCliente()) {
+                  <!-- Selector para el staff: Si elije EFECTIVO, se confirma de inmediato; si NIUBIZ, se abre el modal y espera el pago -->
+                  <div class="mt-4 border-t border-[#EEE3D1] pt-4">
+                    <label class="text-[13px] font-medium text-[#2D2926]/70">Método de pago inicial</label>
+                    <div class="mt-2 grid grid-cols-2 gap-3">
+                      <button type="button" (click)="metodoPagoStaff.set('NIUBIZ')"
+                        [class]="metodoPagoStaff() === 'NIUBIZ'
+                          ? 'flex items-center gap-2 py-3 px-4 rounded-lg border-2 border-[#C5A048] bg-[#FBF7EF] transition'
+                          : 'flex items-center gap-2 py-3 px-4 rounded-lg border border-[#EEE3D1] bg-white hover:border-[#C5A048]/50 transition'">
+                        <div class="w-4 h-4 rounded-full border-2 border-current flex items-center justify-center shrink-0"
+                             [class]="metodoPagoStaff() === 'NIUBIZ' ? 'text-[#C5A048]' : 'text-transparent'">
+                          <div class="w-2 h-2 rounded-full bg-current"></div>
+                        </div>
+                        <span class="text-sm font-semibold text-[#2D2926]">Pago en Línea (Niubiz)</span>
+                      </button>
+                      <button type="button" (click)="metodoPagoStaff.set('EFECTIVO')"
+                        [class]="metodoPagoStaff() === 'EFECTIVO'
+                          ? 'flex items-center gap-2 py-3 px-4 rounded-lg border-2 border-emerald-500 bg-emerald-50 transition'
+                          : 'flex items-center gap-2 py-3 px-4 rounded-lg border border-[#EEE3D1] bg-white hover:border-emerald-500/50 transition'">
+                        <div class="w-4 h-4 rounded-full border-2 border-current flex items-center justify-center shrink-0"
+                             [class]="metodoPagoStaff() === 'EFECTIVO' ? 'text-emerald-500' : 'text-transparent'">
+                          <div class="w-2 h-2 rounded-full bg-current"></div>
+                        </div>
+                        <span class="text-sm font-semibold text-[#2D2926]">Efectivo en Caja</span>
+                      </button>
+                    </div>
                   </div>
                 }
 
@@ -1018,6 +1049,15 @@ export class ReservationFormComponent {
     { value: 'TOTAL',   label: 'Pago total',   hint: '100% del total' },
   ];
 
+  /** Método de pago solo para staff: EFECTIVO o NIUBIZ. */
+  readonly metodoPagoStaff = signal<'EFECTIVO' | 'NIUBIZ'>('NIUBIZ');
+
+  /** True si el usuario en sesión es RECEPCIONISTA o ADMIN. */
+  readonly esStaff = computed(() => {
+    const rol = this.authStore.rol();
+    return rol === 'RECEPCIONISTA' || rol === 'ADMIN';
+  });
+
   // ── State ──────────────────────────────────────────────────────────────────
   readonly pasoActual               = signal<1 | 2 | 3 | 4>(1);
   readonly habitacionesSeleccionadas = signal<Array<{
@@ -1034,6 +1074,11 @@ export class ReservationFormComponent {
   /** Cuando el usuario es CLIENTE, el backend infiere el huésped del JWT:
    *  se oculta el selector de cliente y no se exige seleccionar huéspedes. */
   readonly esCliente = computed(() => this.authStore.rol() === 'CLIENTE');
+
+  /** Subject para la búsqueda dinámica de clientes (debounce + switchMap). */
+  private readonly _busquedaSubject = new Subject<string>();
+  /** Resultados dinámicos de la búsqueda de clientes (vaciar en resultados de menos de 2 chars). */
+  readonly resultadosBusquedaDinamicos = signal<import('../../../clients/models/cliente.model').Cliente[]>([]);
 
   private readonly _fechaInicio = signal('');
   private readonly _fechaFin    = signal('');
@@ -1148,16 +1193,7 @@ export class ReservationFormComponent {
   });
 
   readonly resultadosBusqueda = computed(() => {
-    const term = this.busquedaHuesped().toLowerCase().trim();
-    if (term.length < 2) return [];
-    const selIds = new Set(this.huespedesSeleccionados().map(h => h.cliente.huespedId));
-    return this.clienteSvc.clientes()
-      .filter(c =>
-        !selIds.has(c.huespedId) &&
-        c.estado === 'ACTIVO' &&
-        (c.nombreCompleto.toLowerCase().includes(term) || c.numeroDocumento.includes(term)),
-      )
-      .slice(0, 5);
+    return this.resultadosBusquedaDinamicos();
   });
 
   private readonly _editHydratedId = signal<number | null>(null);
@@ -1243,6 +1279,25 @@ export class ReservationFormComponent {
     this.editForm.get('nroNinos')!.valueChanges.pipe(
       takeUntilDestroyed(this.destroyRef),
     ).subscribe(v => this._nroNinos.set(Number(v ?? 0)));
+
+    // Búsqueda dinámica de clientes: debounce 300ms + cancel de peticiones previas.
+    this._busquedaSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap(q => {
+        if (q.trim().length < 2) {
+          this.resultadosBusquedaDinamicos.set([]);
+          return [];
+        }
+        return this.clienteSvc.buscar(q);
+      }),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(lista => {
+      const selIds = new Set(this.huespedesSeleccionados().map(h => h.cliente.huespedId));
+      this.resultadosBusquedaDinamicos.set(
+        lista.filter(c => !selIds.has(c.huespedId) && c.estado === 'ACTIVO').slice(0, 8),
+      );
+    });
   }
 
   reset(): void {
@@ -1250,6 +1305,7 @@ export class ReservationFormComponent {
     this.habitacionesSeleccionadas.set([]);
     this.huespedesSeleccionados.set([]);
     this.busquedaHuesped.set('');
+    this.resultadosBusquedaDinamicos.set([]);
     this.nuevoClienteAbierto.set(false);
     this.errorPaso.set(null);
     this.descuento.set(0);
@@ -1487,11 +1543,18 @@ export class ReservationFormComponent {
 
   // ── Guest management ───────────────────────────────────────────────────────
 
+  setBusqueda(termino: string): void {
+    this.busquedaHuesped.set(termino);
+    this._busquedaSubject.next(termino);
+  }
+
   agregarHuesped(cliente: Cliente): void {
     if (this.huespedesSeleccionados().some(h => h.cliente.huespedId === cliente.huespedId)) return;
     const esPrincipal = this.huespedesSeleccionados().length === 0;
     this.huespedesSeleccionados.update(list => [...list, { cliente, esPrincipal }]);
     this.busquedaHuesped.set('');
+    this.resultadosBusquedaDinamicos.set([]);
+    this._busquedaSubject.next('');
   }
 
   quitarHuesped(huespedId: number): void {
@@ -1578,7 +1641,10 @@ export class ReservationFormComponent {
       payload.canalId   = f1.canalId ?? 1; // Directa por defecto si el staff no elige
     }
 
-    this.onSave.emit({ payload });
+    this.onSave.emit({
+      payload,
+      metodoPagoStaff: this.esStaff() ? this.metodoPagoStaff() : undefined,
+    });
   }
 
   guardarEdit(): void {

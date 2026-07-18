@@ -24,4 +24,17 @@ export class ClienteLookupService {
       })
       .pipe(map((page) => page.content));
   }
+
+  /**
+   * Búsqueda por término libre — nombre, apellidos o documento (OR, server-side).
+   * Es la búsqueda del autocomplete del modal de reservas: consulta la BD real
+   * en vez de filtrar un caché en memoria.
+   */
+  buscar(q: string): Observable<ClienteResumen[]> {
+    return this.api
+      .get<PageResponse<ClienteResumen>>('/api/v1/clientes', {
+        params: { q: q.trim(), estado: 'ACTIVO', size: 8, sort: 'apellidoPaterno,asc' },
+      })
+      .pipe(map((page) => page.content));
+  }
 }

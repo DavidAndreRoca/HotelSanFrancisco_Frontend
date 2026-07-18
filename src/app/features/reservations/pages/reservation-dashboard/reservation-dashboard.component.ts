@@ -1,4 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { of } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
+
 import { ToastrService } from 'ngx-toastr';
 import { AuthStore } from '../../../../core/auth/auth.store';
 import { ConfirmDialogService } from '../../../../shared/ui/confirm-dialog/confirm-dialog.service';
@@ -169,7 +172,14 @@ export class ReservationsDashboardComponent {
   guardarReserva(event: ReservaFormSaveEvent): void {
     const obs$ = event.id != null
       ? this.svc.update(event.id, event.payload as UpdateReservaPayload)
-      : this.svc.create(event.payload as CreateReservaPayload);
+      : this.svc.create(event.payload as CreateReservaPayload).pipe(
+          switchMap(nueva => {
+            if (event.metodoPagoStaff === 'EFECTIVO') {
+              return this.svc.pagoInicialEfectivo(nueva.reservaId);
+            }
+            return of(nueva);
+          })
+        );
     obs$.subscribe({
       next: () => {
         this.formAbierto.set(false);

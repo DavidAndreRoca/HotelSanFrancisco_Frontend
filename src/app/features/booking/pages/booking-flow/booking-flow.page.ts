@@ -129,6 +129,8 @@ export class BookingFlowPage implements OnInit {
         checkIn: params['checkIn'],
         checkOut: params['checkOut'],
         guests: Number(params['guests']),
+        adultos: Number(params['adultos'] || params['guests']),
+        ninos: Number(params['ninos'] || 0),
       });
     }
     if (params['pago']) {

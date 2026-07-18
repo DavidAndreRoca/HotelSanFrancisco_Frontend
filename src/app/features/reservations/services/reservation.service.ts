@@ -149,14 +149,31 @@ export class ReservationService {
 
   // ── Mutaciones (retornan Observable, actualizan signal via tap) ──────────────
   create(payload: CreateReservaPayload): Observable<Reserva> {
+    console.log('[Reservation Service] Creando nueva reserva (Staff):', payload);
     return this.api.post<Reserva>('/api/v1/reservas', payload).pipe(
-      tap(nueva => this._reservas.update(list => [nueva, ...list]))
+      tap(nueva => {
+        console.log('[Reservation Service] Reserva creada exitosamente:', nueva.codReserva);
+        this._reservas.update(list => [nueva, ...list]);
+      })
     );
   }
 
   update(id: number, payload: UpdateReservaPayload): Observable<Reserva> {
     return this.api.put<Reserva>(`/api/v1/reservas/${id}`, payload).pipe(
       tap(updated => this._reservas.update(list => list.map(r => r.reservaId === id ? updated : r)))
+    );
+  }
+
+  pagoInicialEfectivo(reservaId: number): Observable<any> {
+    console.log(`[Reservation Service] Registrando pago inicial en EFECTIVO para reserva ${reservaId}`);
+    return this.api.post<any>(`/api/v1/pagos/reservas/${reservaId}/inicial-efectivo`, {}).pipe(
+      tap(() => {
+        console.log(`[Reservation Service] Pago inicial registrado, reserva ${reservaId} CONFIRMADA.`);
+        // Al registrar el pago en efectivo, la reserva pasa a CONFIRMADA, refrescamos el registro local
+        this.getById(reservaId).subscribe(updated => {
+          this._reservas.update(list => list.map(r => r.reservaId === reservaId ? updated : r));
+        });
+      })
     );
   }
 

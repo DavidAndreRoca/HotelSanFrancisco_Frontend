@@ -9,22 +9,11 @@ import {
 import { DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
-import { environment } from '../../../../../../environments/environment';
 import { BookingApiService, BookingStateService } from '../../../services/booking.service';
+import { NiubizCheckoutService } from '../../../../../core/pagos/niubiz-checkout.service';
 import {
   BookingConfirmationResponse,
-  CrearSesionPagoResponse,
 } from '../../../models/booking.model';
-
-/** API global que expone checkout.js de Niubiz una vez cargado. */
-declare global {
-  interface Window {
-    VisanetCheckout?: {
-      configure(config: Record<string, unknown>): void;
-      open(): void;
-    };
-  }
-}
 
 @Component({
   selector: 'app-step4-pago',
@@ -97,12 +86,10 @@ export class Step4PagoComponent {
 
   private readonly bookingApi = inject(BookingApiService);
   private readonly toastr = inject(ToastrService);
+  private readonly niubiz = inject(NiubizCheckoutService);
   readonly state = inject(BookingStateService);
 
   readonly enviando = signal(false);
-
-  private scriptCargado: Promise<void> | null = null;
-  private scriptUrl: string | null = null;
 
   pagar(): void {
     this.enviando.set(true);
@@ -120,15 +107,15 @@ export class Step4PagoComponent {
   }
 
   private crearReserva(onOk: (res: BookingConfirmationResponse) => void): void {
-    const hab = this.state.habitacionSeleccionada()!;
+    const habs = this.state.habitacionesSeleccionadas();
     const datos = this.state.datosHuesped()!;
     const params = this.state.searchParams()!;
 
+    // Soporte multi-habitación: todas las habitaciones seleccionadas
     this.bookingApi.crearReserva({
       fechaInicio: params.checkIn,
       fechaFin: params.checkOut,
-      habitacionId: hab.habitacionId,
-      tipoHabitacionId: hab.tipoHabitacionId,
+      habitacionesIds: habs.map(h => h.habitacionId),
       numeroDocumento: datos.numeroDocumento,
       nombres: datos.nombres,
       apellidos: datos.apellidos,
@@ -136,6 +123,7 @@ export class Step4PagoComponent {
       correo: datos.correo,
       nroAdultos: datos.nroAdultos,
       nroNinos: datos.nroNinos,
+      acompanantes: datos.acompanantes ?? [],
       serviciosAdicionales: datos.serviciosAdicionales,
       tipoPago: this.state.tipoPago(),
     }).subscribe({
@@ -156,8 +144,22 @@ export class Step4PagoComponent {
   }
 
   private iniciarPago(reservaId: number): void {
-    this.bookingApi.crearSesionPago(reservaId).subscribe({
-      next: (sesion) => this.abrirCheckout(sesion),
+    this.niubiz.crearSesion(reservaId).subscribe({
+      next: async (sesion) => {
+        try {
+          const datos = this.state.datosHuesped();
+          await this.niubiz.abrirCheckout(sesion, 'booking', {
+            nombres: datos?.nombres,
+            apellidos: datos?.apellidos,
+            correo: datos?.correo,
+          });
+          // El checkout.open() no bloquea; el resultado llega por redirect.
+          this.enviando.set(false);
+        } catch {
+          this.enviando.set(false);
+          this.toastr.error('No se pudo cargar el formulario de pago. Verifique su conexión.');
+        }
+      },
       error: (err: HttpErrorResponse) => {
         this.enviando.set(false);
         if (err.status === 503) {
@@ -167,65 +169,5 @@ export class Step4PagoComponent {
         this.toastr.error(err.error?.message ?? 'No se pudo iniciar el pago. Intente nuevamente.');
       },
     });
-  }
-
-  private abrirCheckout(sesion: CrearSesionPagoResponse): void {
-    this.cargarScript(sesion.checkoutScriptUrl)
-      .then(() => {
-        const checkout = window.VisanetCheckout;
-        if (!checkout) {
-          this.enviando.set(false);
-          this.toastr.error('No se pudo cargar el formulario de pago. Intente nuevamente.');
-          return;
-        }
-        const datos = this.state.datosHuesped();
-        checkout.configure({
-          sessiontoken: sesion.sessionKey,
-          channel: 'web',
-          merchantid: sesion.merchantId,
-          purchasenumber: sesion.purchaseNumber,
-          amount: sesion.monto,
-          expirationminutes: '15',
-          timeouturl: `${window.location.origin}/booking?pago=timeout`,
-          merchantlogo: '',
-          formbuttoncolor: '#C5A048',
-          // El checkout hace un POST clásico del transactionToken a esta URL:
-          // el backend autoriza el cobro y redirige de vuelta a /booking con el
-          // resultado en query params (la SPA pierde su estado en esa navegación).
-          action: `${environment.apiUrl}/api/v1/booking/pago/retorno/${sesion.purchaseNumber}`,
-          showamount: true,
-          cardholdername: datos?.nombres ?? '',
-          cardholderlastname: datos?.apellidos ?? '',
-          cardholderemail: datos?.correo ?? '',
-        });
-        checkout.open();
-        // Se libera el botón: si el usuario cierra el modal sin pagar puede
-        // reintentar (se genera una nueva sesión; la anterior expira sola).
-        this.enviando.set(false);
-      })
-      .catch(() => {
-        this.enviando.set(false);
-        this.toastr.error('No se pudo cargar el formulario de pago. Verifique su conexión.');
-      });
-  }
-
-  private cargarScript(url: string): Promise<void> {
-    if (this.scriptCargado && this.scriptUrl === url) {
-      return this.scriptCargado;
-    }
-    this.scriptUrl = url;
-    this.scriptCargado = new Promise<void>((resolve, reject) => {
-      if (window.VisanetCheckout) {
-        resolve();
-        return;
-      }
-      const script = document.createElement('script');
-      script.src = url;
-      script.async = true;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error('checkout.js load error'));
-      document.head.appendChild(script);
-    });
-    return this.scriptCargado;
   }
 }
