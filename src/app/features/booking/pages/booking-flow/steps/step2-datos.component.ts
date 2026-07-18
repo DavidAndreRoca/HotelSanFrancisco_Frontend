@@ -1,5 +1,6 @@
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   computed,
   EventEmitter,
@@ -7,6 +8,8 @@ import {
   OnInit,
   Output,
   signal,
+  AfterViewInit,
+  DestroyRef, // <-- Importa DestroyRef
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DecimalPipe } from '@angular/common';
@@ -30,7 +33,6 @@ import {
 } from '../../../../../core/validators/documento';
 import { BookingAcompanante } from '../../../models/booking.model';
 
-/** Tipos de documento disponibles en el selector */
 const TIPOS_DOCUMENTO = REGLAS_DOCUMENTO.map(r => ({ codigo: r.codigo, label: r.label }));
 
 @Component({
@@ -322,17 +324,18 @@ const TIPOS_DOCUMENTO = REGLAS_DOCUMENTO.map(r => ({ codigo: r.codigo, label: r.
     </div>
   `,
 })
-export class Step2DatosComponent implements OnInit {
+export class Step2DatosComponent implements OnInit, AfterViewInit {
   @Output() next = new EventEmitter<void>();
   @Output() back = new EventEmitter<void>();
 
   private readonly fb = inject(FormBuilder);
   private readonly toastr = inject(ToastrService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef); // <-- Inyecta DestroyRef
   readonly state = inject(BookingStateService);
 
   readonly tiposDoc = TIPOS_DOCUMENTO;
 
-  /** Regla del tipo de documento actual del titular. */
   readonly reglaActual = computed(() => {
     const tipo = this.form?.controls.tipoDocumento?.value as TipoDocumentoCodigo;
     return reglaDocumento(tipo || 'DNI');
@@ -351,13 +354,13 @@ export class Step2DatosComponent implements OnInit {
     acompanantes: this.fb.array<FormGroup>([]),
   });
 
-  /** Los nombres provienen de RENIEC (datos oficiales) y quedan bloqueados. */
   readonly nombresBloqueados = signal(false);
 
-  /** Número de acompañantes = total de personas - 1 (titular). Mínimo 0. */
   readonly nAcompanantesSolicitados = computed(() => {
     const v = this.form.getRawValue();
-    return Math.max(0, Number(v.nroAdultos) + Number(v.nroNinos) - 1);
+    const adultos = Number(v.nroAdultos) || 0;
+    const ninos = Number(v.nroNinos) || 0;
+    return Math.max(0, adultos + ninos - 1);
   });
 
   get acompananteControls(): FormGroup[] {
@@ -365,6 +368,7 @@ export class Step2DatosComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Restaurar datos existentes o precargar
     const existing = this.state.datosHuesped();
     if (existing) {
       this.form.patchValue({
@@ -378,45 +382,59 @@ export class Step2DatosComponent implements OnInit {
         nroNinos: existing.nroNinos,
         serviciosAdicionales: existing.serviciosAdicionales,
       });
-      // Re-poblar acompañantes existentes
       if (existing.acompanantes?.length) {
         existing.acompanantes.forEach(a => this.agregarAcompanante(a));
       }
     } else {
-      // Pre-cargar adultos/niños del paso de búsqueda
       const params = this.state.searchParams();
       if (params) {
-        this.form.patchValue({ nroAdultos: params.adultos, nroNinos: params.ninos });
+        const patch: any = {};
+        if (params.adultos != null) patch.nroAdultos = params.adultos;
+        if (params.ninos != null) patch.nroNinos = params.ninos;
+        if (Object.keys(patch).length) this.form.patchValue(patch);
       }
     }
 
-    // Validación dinámica del documento del titular
+    // Validación dinámica - PASANDO destroyRef
     this.form.controls.tipoDocumento.valueChanges
-      .pipe(takeUntilDestroyed())
+      .pipe(takeUntilDestroyed(this.destroyRef)) // <-- Corregido
       .subscribe((tipo) => {
         aplicarValidadorDocumento(
           this.form.controls.numeroDocumento,
           (tipo || 'DNI') as TipoDocumentoCodigo,
         );
-        // Si cambió el tipo, quitar datos RENIEC
         this.desbloquearNombres();
+        this.cdr.markForCheck();
       });
 
-    // Cambio de total de personas → ajustar FormArray
-    this.form.controls.nroAdultos.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.ajustarAcompanantes());
-    this.form.controls.nroNinos.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.ajustarAcompanantes());
+    this.form.controls.nroAdultos.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef)) // <-- Corregido
+      .subscribe(() => {
+        this.ajustarAcompanantes();
+        this.cdr.markForCheck();
+      });
 
-    // Si cambió el documento, los datos de RENIEC ya no corresponden
+    this.form.controls.nroNinos.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef)) // <-- Corregido
+      .subscribe(() => {
+        this.ajustarAcompanantes();
+        this.cdr.markForCheck();
+      });
+
     this.form.controls.numeroDocumento.valueChanges
-      .pipe(takeUntilDestroyed())
+      .pipe(takeUntilDestroyed(this.destroyRef)) // <-- Corregido
       .subscribe(() => this.desbloquearNombres());
 
-    // Aplicar validación inicial del tipo
+    // Validación inicial
     aplicarValidadorDocumento(
       this.form.controls.numeroDocumento,
       (this.form.controls.tipoDocumento.value || 'DNI') as TipoDocumentoCodigo,
     );
+  }
+
+  ngAfterViewInit(): void {
     this.ajustarAcompanantes();
+    this.cdr.detectChanges();
   }
 
   // ── RENIEC ────────────────────────────────────────────────────────────────
@@ -427,12 +445,14 @@ export class Step2DatosComponent implements OnInit {
       apellidos: `${p.apellidoPaterno} ${p.apellidoMaterno}`.trim(),
     });
     this.bloquearNombres();
+    this.cdr.detectChanges();
   }
 
   private bloquearNombres(): void {
     this.form.controls.nombres.disable();
     this.form.controls.apellidos.disable();
     this.nombresBloqueados.set(true);
+    this.cdr.detectChanges();
   }
 
   private desbloquearNombres(): void {
@@ -441,6 +461,7 @@ export class Step2DatosComponent implements OnInit {
     this.form.controls.nombres.enable();
     this.form.controls.apellidos.enable();
     this.nombresBloqueados.set(false);
+    this.cdr.detectChanges();
   }
 
   // ── FormArray de acompañantes ─────────────────────────────────────────────
@@ -460,7 +481,6 @@ export class Step2DatosComponent implements OnInit {
       correo: [data?.correo ?? ''],
       telefono: [data?.telefono ?? ''],
     });
-    // Aplicar validación inicial al número de documento
     aplicarValidadorDocumento(group.controls['numeroDocumento'], tipo, false);
     return group;
   }
@@ -472,21 +492,26 @@ export class Step2DatosComponent implements OnInit {
   private ajustarAcompanantes(): void {
     const total = this.nAcompanantesSolicitados();
     const actual = this.acompananteArray.length;
+
     if (total > actual) {
-      for (let i = actual; i < total; i++) this.agregarAcompanante();
+      for (let i = actual; i < total; i++) {
+        this.acompananteArray.push(this.crearAcompananteGroup());
+      }
     } else if (total < actual) {
-      for (let i = actual - 1; i >= total; i--) this.acompananteArray.removeAt(i);
+      for (let i = actual - 1; i >= total; i--) {
+        this.acompananteArray.removeAt(i);
+      }
     }
+    this.cdr.detectChanges();
   }
 
-  /** Cuando cambia el tipo de doc de un acompañante, re-aplica la validación. */
   onCambioTipoDocAcomp(index: number): void {
     const group = this.acompananteArray.at(index) as FormGroup;
     const tipo = group.controls['tipoDocumento'].value as TipoDocumentoCodigo;
     aplicarValidadorDocumento(group.controls['numeroDocumento'], tipo, false);
+    this.cdr.markForCheck();
   }
 
-  /** Regla del tipo de documento del acompañante en el índice dado. */
   reglaAcomp(index: number) {
     const group = this.acompananteArray.at(index) as FormGroup;
     return reglaDocumento(group?.controls['tipoDocumento']?.value);
@@ -506,7 +531,6 @@ export class Step2DatosComponent implements OnInit {
     return !!(ctrl?.invalid && ctrl.touched);
   }
 
-  /** Mensaje de error para el campo (con el mensaje específico del tipo de doc). */
   errMsg(field: string): string | null {
     const ctrl = this.form.get(field) as AbstractControl | null;
     if (!ctrl?.invalid || !ctrl.touched) return null;
@@ -524,10 +548,6 @@ export class Step2DatosComponent implements OnInit {
     return null;
   }
 
-  /**
-   * Coteja adultos + niños contra la capacidad de la habitación elegida y
-   * contra las personas indicadas en la búsqueda del paso 1. Null si es válido.
-   */
   errorPersonas(): string | null {
     const v = this.form.getRawValue();
     const total = Number(v.nroAdultos) + Number(v.nroNinos);
@@ -555,7 +575,6 @@ export class Step2DatosComponent implements OnInit {
     }
     const v = this.form.getRawValue();
 
-    // Construir lista de acompañantes filtrando los vacíos
     const acompanantes: BookingAcompanante[] = v.acompanantes
       .filter((a: any) => a.nombre?.trim() || a.numeroDocumento?.trim())
       .map((a: any) => ({

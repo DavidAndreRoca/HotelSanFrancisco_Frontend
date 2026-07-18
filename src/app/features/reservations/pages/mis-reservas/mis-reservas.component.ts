@@ -354,19 +354,45 @@ export class MisReservasComponent implements OnInit {
   ngOnInit(): void {
     // Escuchar parámetros de retorno de Niubiz
     this.route.queryParams.subscribe(params => {
-      const pagoStatus = params['pago'];
-      const reservaId = params['reservaId'];
-      const msg = params['mensaje'];
+      const pagoStatus = params['pago'];        // 'exito', 'rechazado', 'error', 'timeout'
+      const purchaseNumber = params['purchase']; // purchaseNumber (identificador de la transacción)
+      const msg = params['msg'];                 // mensaje adicional (solo en rechazo o error)
 
-      if (pagoStatus && reservaId) {
-        this.procesarRetornoPago(pagoStatus, +reservaId, msg);
+      if (pagoStatus && purchaseNumber) {
+        // Mostrar mensaje según el estado
+        this.mostrarMensajeSegunEstado(pagoStatus, msg, purchaseNumber);
+
+        // Si el pago fue exitoso, recargar la lista de reservas
+        if (pagoStatus === 'exito') {
+          this.cargar();
+        }
+
         // Limpiar URL para no reprocesar al recargar
         this.router.navigate([], {
-          queryParams: { pago: null, reservaId: null, mensaje: null, transactionToken: null },
+          queryParams: { pago: null, purchase: null, msg: null },
           queryParamsHandling: 'merge'
         });
       }
     });
+  }
+
+  private mostrarMensajeSegunEstado(estado: string, msg?: string, purchaseNumber?: string): void {
+    switch (estado) {
+      case 'exito':
+        this.toastr.success(`Pago confirmado correctamente. N° operación: ${purchaseNumber}`);
+        break;
+      case 'rechazado':
+        this.toastr.error(msg || 'El pago fue rechazado. Intenta nuevamente.');
+        break;
+      case 'error':
+        this.toastr.error('Ocurrió un error al procesar el pago.');
+        break;
+      case 'timeout':
+        this.toastr.warning('El tiempo de sesión de pago expiró.');
+        break;
+      default:
+        this.toastr.info('Estado de pago desconocido.');
+    }
   }
 
   private procesarRetornoPago(resultado: string, reservaId: number, msg?: string): void {
