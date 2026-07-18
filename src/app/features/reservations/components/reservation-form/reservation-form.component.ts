@@ -832,7 +832,7 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                   }
                 </div>
 
-                @if (!esCliente() && metodoPagoStaff() === 'NIUBIZ') {
+                @if (esCliente() || (!esCliente() && metodoPagoStaff() === 'NIUBIZ')) {
                   <!-- Pago en línea con Niubiz -->
                   <div class="rounded-xl border border-[#EEE3D1] p-4 space-y-3">
                     <div class="flex items-center gap-2 text-[13px] text-[#2D2926]/65">
@@ -874,7 +874,7 @@ const INPUT_ERR = `${INPUT_BASE} border-red-400 focus:ring-2 focus:ring-red-400/
                   Volver
                 </button>
 
-                @if (!esCliente() && metodoPagoStaff() === 'NIUBIZ') {
+                @if (esCliente() || (!esCliente() && metodoPagoStaff() === 'NIUBIZ')) {
                   <button type="button" (click)="guardarCreate()" [disabled]="enviandoPago()"
                     class="h-9 px-6 rounded-xl bg-[#C5A048] text-white text-sm font-semibold
                            hover:bg-[#8E6F2E] transition-colors flex items-center gap-2 disabled:opacity-60">

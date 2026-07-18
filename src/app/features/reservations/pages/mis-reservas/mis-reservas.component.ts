@@ -1,10 +1,12 @@
 import {
-  Component, inject, signal, computed, ChangeDetectionStrategy,
+  Component, inject, signal, computed, ChangeDetectionStrategy, OnInit, ViewChild
 } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { AuthStore } from '../../../../core/auth/auth.store';
+import { NiubizCheckoutService } from '../../../../core/pagos/niubiz-checkout.service';
 import { MisReservasService } from '../../services/mis-reservas.service';
 import { ReservationDetailComponent } from '../../components/reservation-detail/reservation-detail.component';
 import { EditarAcompanantesModalComponent } from '../../components/editar-acompanantes-modal/editar-acompanantes-modal.component';
@@ -316,10 +318,15 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
       (onSave)="guardarReserva($event)" />
   `,
 })
-export class MisReservasComponent {
+export class MisReservasComponent implements OnInit {
+  @ViewChild(ReservationFormComponent) formRef?: ReservationFormComponent;
+
   protected readonly auth   = inject(AuthStore);
   private  readonly misSvc  = inject(MisReservasService);
   private  readonly toastr  = inject(ToastrService);
+  private  readonly route       = inject(ActivatedRoute);
+  private  readonly router      = inject(Router);
+  private  readonly checkoutSvc = inject(NiubizCheckoutService);
 
   readonly filtroActivo  = signal<FiltroMisReservas>('todas');
   readonly paginaActual  = signal(0);
@@ -342,6 +349,54 @@ export class MisReservasComponent {
 
   constructor() {
     this.cargar();
+  }
+
+  ngOnInit(): void {
+    // Escuchar parámetros de retorno de Niubiz
+    this.route.queryParams.subscribe(params => {
+      const pagoStatus = params['pago'];
+      const reservaId = params['reservaId'];
+      const msg = params['mensaje'];
+
+      if (pagoStatus && reservaId) {
+        this.procesarRetornoPago(pagoStatus, +reservaId, msg);
+        // Limpiar URL para no reprocesar al recargar
+        this.router.navigate([], {
+          queryParams: { pago: null, reservaId: null, mensaje: null, transactionToken: null },
+          queryParamsHandling: 'merge'
+        });
+      }
+    });
+  }
+
+  private procesarRetornoPago(resultado: string, reservaId: number, msg?: string): void {
+    if (resultado === 'exito') {
+      this.toastr.success('El pago en línea se procesó correctamente.', 'Pago exitoso');
+      this.cargar(); // Refrescar lista de reservas
+      // Opcionalmente abrir el detalle para ver la reserva confirmada
+      this.misSvc.obtenerDetalle(reservaId).subscribe({
+        next: (reserva) => {
+          this.reservaDetalle.set(reserva);
+          this.reservaIdDetalle.set(reserva.reservaId);
+          this.detailAbierto.set(true);
+        },
+        error: () => {
+          this.toastr.error('El pago se procesó pero no se pudo cargar la confirmación de la reserva.');
+        },
+      });
+      return;
+    }
+    if (resultado === 'rechazado') {
+      this.toastr.warning(msg ?? 'El pago no fue autorizado. Puede intentar nuevamente.', 'Pago rechazado');
+      return;
+    }
+    if (resultado === 'timeout') {
+      this.toastr.info('El tiempo para completar el pago expiró. Intente nuevamente.');
+      return;
+    }
+    if (resultado === 'error') {
+      this.toastr.error('No se pudo verificar el resultado del pago. Revise la reserva.', 'Error de verificación');
+    }
   }
 
   /** Carga las reservas del usuario autenticado desde /api/v1/mis-reservas. */
@@ -527,13 +582,36 @@ export class MisReservasComponent {
   guardarReserva(event: ReservaFormSaveEvent): void {
     this.misSvc.crear(event.payload as CreateReservaPayload).subscribe({
       next: (creada) => {
-        this.formAbierto.set(false);
-        this.toastr.success(`Reserva ${creada.codReserva} creada.`);
-        this.cargar();
+        // En lugar de simplemente cerrar, para clientes SIEMPRE se debe pagar con Niubiz
+        this.iniciarPagoNiubiz(creada.reservaId, creada);
       },
       error: (err: HttpErrorResponse & { friendlyMessage?: string }) => {
+        if (this.formRef) this.formRef.enviandoPago.set(false);
         this.toastr.error(err.friendlyMessage ?? 'No se pudo crear la reserva.', 'Error');
       },
+    });
+  }
+
+  private iniciarPagoNiubiz(reservaId: number, reserva: Reserva): void {
+    const principal = reserva.huespedes?.find(h => h.esPrincipal) || reserva.huespedes?.[0];
+    this.checkoutSvc.crearSesion(reservaId).subscribe({
+      next: async (sesion) => {
+        try {
+          // 'dashboard' como origen asegura que el callback vuelva a esta misma pantalla
+          await this.checkoutSvc.abrirCheckout(sesion, 'dashboard', {
+            nombres: principal?.nombre || '',
+            apellidos: principal?.apellidoPaterno || '',
+            correo: principal?.correo || undefined,
+          });
+        } catch (err: any) {
+          if (this.formRef) this.formRef.enviandoPago.set(false);
+          this.toastr.error(err.message || 'No se pudo abrir el checkout de Niubiz.');
+        }
+      },
+      error: (err: any) => {
+        if (this.formRef) this.formRef.enviandoPago.set(false);
+        this.toastr.error(err.error?.message || 'No se pudo crear la sesión de pago de Niubiz.');
+      }
     });
   }
 
