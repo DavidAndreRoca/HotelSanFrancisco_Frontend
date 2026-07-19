@@ -22,15 +22,10 @@
   <script src="patch-global.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <!-- Carga no bloqueante: media="print" descarga sin bloquear el primer render
-       y onload la aplica; el <noscript> cubre navegadores sin JS. -->
+  <!-- Carga de fuentes Google Fonts -->
   <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-    media="print" onload="this.media='all'">
-  <noscript>
-    <link rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
-  </noscript>
+    media="all">
 </head>
 <body class="font-sans antialiased">
   <app-root></app-root>
