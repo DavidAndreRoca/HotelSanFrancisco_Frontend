@@ -193,7 +193,7 @@ export class PaymentModalComponent implements OnChanges {
   readonly saldoPendiente = computed(() => {
     const ctx = this.context();
     if (!ctx) return null;
-    const pagado = this.pagosPrevios() ?? ctx.adelanto;
+    const pagado = this.pagosPrevios() !== null ? this.pagosPrevios()! : ctx.adelanto;
     return Math.max(0, Math.round((ctx.montoTotal - pagado) * 100) / 100);
   });
 
