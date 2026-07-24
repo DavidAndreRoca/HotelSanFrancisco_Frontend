@@ -19,6 +19,7 @@ interface PagoClienteItem {
   metodoPago: string | null;
   monto: number;
   facturaUrl: string | null;
+  tipoPago: string | null;
 }
 
 // Filas compactas (~64px); 7 por página llena bien sin desbordar la pantalla.

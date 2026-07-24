@@ -209,9 +209,9 @@ const ESTADO_CFG: Record<EstadoReserva, { label: string; badge: string; dot: str
                           border-t border-[#F9F5F0]">
                 <div>
                   <p class="text-base font-bold text-[#2D2926]">S/ {{ r.montoTotal | number:'1.2-2' }}</p>
-                  @if (r.adelanto > 0) {
+                  @if (r.saldoPendiente > 0) {
                     <p class="text-[11px] text-[#C5A048] font-semibold">
-                      Saldo: S/ {{ (r.montoTotal - r.adelanto) | number:'1.2-2' }}
+                      Saldo: S/ {{ r.saldoPendiente | number:'1.2-2' }}
                     </p>
                   }
                 </div>

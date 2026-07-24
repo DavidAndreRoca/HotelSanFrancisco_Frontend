@@ -22,6 +22,7 @@ interface MiPagoResponse {
   metodoPago: string | null;
   monto: number;
   facturaUrl: string | null;
+  tipoPago: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -134,7 +135,7 @@ export class ReservationService {
         pagoId: i.pagoId ?? 0,
         metodoPagoId: 0,
         metodoPagoNombre: i.metodoPago ?? 'Sin información',
-        tipoPago: '',
+        tipoPago: i.tipoPago ?? '',
         fecha: i.fecha,
         monto: i.monto,
         comprobante: i.facturaUrl,

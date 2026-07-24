@@ -201,6 +201,12 @@ const ROOM_IMAGES = [
                     S/. {{ formatMonto(totalPagado()) }}
                   </span>
                 </div>
+                <div class="flex items-center justify-between text-sm font-semibold">
+                  <span class="text-[#C5A048]">Saldo pendiente</span>
+                  <span class="text-[#C5A048]">
+                    S/. {{ formatMonto(r.montoTotal - totalPagado()) }}
+                  </span>
+                </div>
                 <hr class="border-[#EEE3D1]" />
                 <div class="flex items-center justify-between text-sm">
                   <span class="text-[#2D2926]/55 font-medium">Método de pago</span>
@@ -281,7 +287,9 @@ export class ReservationDetailPage {
   readonly pagos = signal<PagoReserva[]>([]);
 
   readonly totalPagado = computed(() =>
-    this.pagos().reduce((sum, p) => sum + p.monto, 0),
+    this.pagos()
+      .filter(p => p.tipoPago !== 'REEMBOLSO')
+      .reduce((sum, p) => sum + p.monto, 0),
   );
 
   readonly metodoPago = computed(() =>

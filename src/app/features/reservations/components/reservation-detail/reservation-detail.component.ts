@@ -264,12 +264,12 @@ const HAB_ESTADO: Record<EstadoReservaHabitacion, string> = {
                   <span>S/ {{ reserva()!.montoTotal | number:'1.2-2' }}</span>
                 </div>
                 <div class="flex justify-between items-center px-4 py-2.5 border-b border-[#F9F5F0] text-sm text-[#2D2926]">
-                  <span>Adelanto pagado</span>
-                  <span class="text-emerald-600 font-semibold">S/ {{ reserva()!.adelanto | number:'1.2-2' }}</span>
+                  <span>Pagado</span>
+                  <span class="text-emerald-600 font-semibold">S/ {{ (reserva()!.montoTotal - reserva()!.saldoPendiente) | number:'1.2-2' }}</span>
                 </div>
                 <div class="flex justify-between items-center px-4 py-2.5 text-sm font-semibold text-[#C5A048]">
                   <span>Saldo pendiente</span>
-                  <span>S/ {{ (reserva()!.montoTotal - reserva()!.adelanto) | number:'1.2-2' }}</span>
+                  <span>S/ {{ reserva()!.saldoPendiente | number:'1.2-2' }}</span>
                 </div>
               </div>
             </section>
