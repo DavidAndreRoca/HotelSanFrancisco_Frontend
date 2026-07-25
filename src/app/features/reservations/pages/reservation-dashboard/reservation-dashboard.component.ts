@@ -257,7 +257,7 @@ export class ReservationsDashboardComponent implements OnInit {
     this.checkoutSvc.crearSesion(reservaId).subscribe({
       next: async (sesion) => {
         try {
-          await this.checkoutSvc.abrirCheckout(sesion, 'dashboard', {
+          await this.checkoutSvc.abrirCheckout(sesion, 'reservations', {
             nombres: principal?.nombre || '',
             apellidos: principal?.apellidoPaterno || '',
             correo: principal?.correo || undefined,

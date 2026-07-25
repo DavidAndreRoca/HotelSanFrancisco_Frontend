@@ -55,7 +55,7 @@ export class NiubizCheckoutService {
    */
   async abrirCheckout(
     sesion: SesionPagoNiubiz,
-    origen: 'booking' | 'dashboard',
+    origen: 'booking' | 'mis-reservas' | 'reservations' | 'mis-pagos',
     titular?: TitularCheckout,
   ): Promise<void> {
     await this.cargarScript(sesion.checkoutScriptUrl);
@@ -65,7 +65,13 @@ export class NiubizCheckoutService {
     }
     const action =
       `${environment.apiUrl}/api/v1/booking/pago/retorno/${sesion.purchaseNumber}` +
-      (origen === 'dashboard' ? '?origen=dashboard' : '');
+      (origen !== 'booking' ? `?origen=${origen}` : '');
+
+    const timeoutPath =
+      origen === 'mis-reservas' ? '/reservations/mis-reservas' :
+      origen === 'reservations' ? '/reservations' :
+      origen === 'mis-pagos' ? '/mis-pagos' :
+      '/booking';
 
     checkout.configure({
       sessiontoken: sesion.sessionKey,
@@ -74,7 +80,7 @@ export class NiubizCheckoutService {
       purchasenumber: sesion.purchaseNumber,
       amount: sesion.monto,
       expirationminutes: '15',
-      timeouturl: `${window.location.origin}${origen === 'dashboard' ? '/reservas' : '/booking'}?pago=timeout`,
+      timeouturl: `${window.location.origin}${timeoutPath}?pago=timeout`,
       merchantlogo: '',
       formbuttoncolor: '#C5A048',
       action,

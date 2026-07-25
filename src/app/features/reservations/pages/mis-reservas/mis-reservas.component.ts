@@ -624,7 +624,7 @@ export class MisReservasComponent implements OnInit {
       next: async (sesion) => {
         try {
           // 'dashboard' como origen asegura que el callback vuelva a esta misma pantalla
-          await this.checkoutSvc.abrirCheckout(sesion, 'dashboard', {
+          await this.checkoutSvc.abrirCheckout(sesion, 'mis-reservas', {
             nombres: principal?.nombre || '',
             apellidos: principal?.apellidoPaterno || '',
             correo: principal?.correo || undefined,
