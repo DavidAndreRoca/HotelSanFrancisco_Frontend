@@ -3,11 +3,13 @@ import {
   Component,
   computed,
   inject,
+  OnInit,
   signal,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { ApiClient } from '../../../../core/http/http-client.service';
+import { NiubizCheckoutService } from '../../../../core/pagos/niubiz-checkout.service';
 
 interface PagoClienteItem {
   pagoId: number | null;
@@ -153,9 +155,11 @@ const PAGE_SIZE_PAGADOS = 7;
                     <button
                       type="button"
                       (click)="pagar(p)"
+                      [disabled]="cargandoPago()"
                       class="h-8 px-4 rounded-lg bg-[#C5A048] text-white text-xs font-medium
-                             hover:bg-[#8E6F2E] transition-colors">
-                      Pagar
+                             hover:bg-[#8E6F2E] disabled:opacity-50 disabled:cursor-not-allowed
+                             transition-colors">
+                      {{ cargandoPago() ? 'Procesando...' : 'Pagar' }}
                     </button>
                     <span class="text-sm font-bold text-[#2D2926] text-right min-w-[56px] ml-auto sm:ml-0">
                       {{ formatMonto(p.monto) }}
@@ -259,12 +263,15 @@ const PAGE_SIZE_PAGADOS = 7;
     </div>
   `,
 })
-export class PagosFacturasClientePage {
+export class PagosFacturasClientePage implements OnInit {
   private readonly api = inject(ApiClient);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly toastr = inject(ToastrService);
+  private readonly checkoutSvc = inject(NiubizCheckoutService);
 
   readonly loading = signal(true);
+  readonly cargandoPago = signal(false);
   readonly pagos = signal<PagoClienteItem[]>([]);
 
   readonly pendientes = computed(() =>
@@ -304,6 +311,42 @@ export class PagosFacturasClientePage {
     this.load();
   }
 
+  ngOnInit(): void {
+    this.route.queryParams.subscribe(params => {
+      const pagoStatus = params['pago'];
+      const purchaseNumber = params['purchase'];
+      const msg = params['msg'];
+
+      if (pagoStatus) {
+        switch (pagoStatus) {
+          case 'exito':
+            this.toastr.success(
+              purchaseNumber
+                ? `Pago confirmado correctamente. Operación N° ${purchaseNumber}`
+                : 'Pago confirmado correctamente.',
+              'Pago exitoso',
+            );
+            this.load();
+            break;
+          case 'rechazado':
+            this.toastr.error(msg || 'El pago fue rechazado. Intenta nuevamente.', 'Pago rechazado');
+            break;
+          case 'error':
+            this.toastr.error('Ocurrió un error al procesar el pago.', 'Error');
+            break;
+          case 'timeout':
+            this.toastr.warning('El tiempo de sesión de pago expiró.', 'Tiempo agotado');
+            break;
+        }
+
+        this.router.navigate([], {
+          queryParams: { pago: null, purchase: null, msg: null },
+          queryParamsHandling: 'merge',
+        });
+      }
+    });
+  }
+
   private load(): void {
     this.api
       .get<PagoClienteItem[]>('/api/v1/mis-pagos')
@@ -334,10 +377,26 @@ export class PagosFacturasClientePage {
   }
 
   pagar(p: PagoClienteItem): void {
-    this.toastr.info(
-      `Módulo de pago en línea próximamente disponible.`,
-      'Próximamente',
-    );
+    this.cargandoPago.set(true);
+
+    this.checkoutSvc.crearSesion(p.reservaId).subscribe({
+      next: async (sesion) => {
+        try {
+          await this.checkoutSvc.abrirCheckout(sesion, 'mis-pagos');
+          this.cargandoPago.set(false);
+        } catch (err: any) {
+          this.cargandoPago.set(false);
+          this.toastr.error(err.message || 'No se pudo abrir el formulario de pago.');
+        }
+      },
+      error: (err: any) => {
+        this.cargandoPago.set(false);
+        this.toastr.error(
+          err.error?.message || 'No se pudo iniciar el pago. Intente nuevamente.',
+          'Error',
+        );
+      },
+    });
   }
 
   descargarFactura(p: PagoClienteItem): void {
