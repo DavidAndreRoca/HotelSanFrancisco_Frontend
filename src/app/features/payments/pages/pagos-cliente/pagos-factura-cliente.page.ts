@@ -401,7 +401,21 @@ export class PagosFacturasClientePage implements OnInit {
 
   descargarFactura(p: PagoClienteItem): void {
     if (p.facturaUrl) {
-      window.open(p.facturaUrl, '_blank');
+      this.api.getBlob(p.facturaUrl).subscribe({
+        next: (res) => {
+          const blob = res.body;
+          if (!blob) return;
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `comprobante-${p.pagoId}.pdf`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+        },
+        error: () => {
+          this.toastr.error('No se pudo descargar la factura.', 'Error');
+        },
+      });
     } else {
       this.toastr.info('Factura no disponible aún.', 'Sin factura');
     }

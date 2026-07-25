@@ -11,6 +11,7 @@ import { forkJoin, catchError, of } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { ReservationService } from '../../services/reservation.service';
 import { DetalleHuesped, EstadoReserva, PagoReserva, Reserva, ReservaHabitacion } from '../../models/reservation.model';
+import { ApiClient } from '../../../../core/http/http-client.service';
 
 const ROOM_IMAGES = [
   'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=900&q=80',
@@ -281,6 +282,7 @@ export class ReservationDetailPage {
   private readonly route = inject(ActivatedRoute);
   private readonly svc = inject(ReservationService);
   private readonly toastr = inject(ToastrService);
+  private readonly api = inject(ApiClient);
 
   readonly loading = signal(true);
   readonly reserva = signal<Reserva | null>(null);
@@ -370,8 +372,21 @@ export class ReservationDetailPage {
   descargarComprobante(): void {
     const pago = this.pagos().find((p) => p.comprobante);
     if (pago?.comprobante) {
-      // comprobante es número de boleta/factura (ej. "BOLETA-2026-0001"), no una URL
-      this.toastr.info(`Comprobante: ${pago.comprobante}`, 'Número de comprobante');
+      this.api.getBlob(pago.comprobante).subscribe({
+        next: (res) => {
+          const blob = res.body;
+          if (!blob) return;
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `comprobante-${pago.pagoId}.pdf`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+        },
+        error: () => {
+          this.toastr.error('No se pudo descargar el comprobante.', 'Error');
+        },
+      });
     } else {
       this.toastr.info('El comprobante aún no está disponible.', 'Sin comprobante');
     }
